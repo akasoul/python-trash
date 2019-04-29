@@ -1,75 +1,30 @@
 from tkinter import *
-from random import randint
-
-# these two imports are important
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib as plt
+import numpy as np
 from matplotlib.figure import Figure
-import time
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
 import threading
 
-continuePlotting = False
+a = 2
 
 
-def change_state():
-    global continuePlotting
-    if continuePlotting == True:
-        continuePlotting = False
-    else:
-        continuePlotting = True
+#a=2  # type: int
+
+class app:
+
+    def __init__(self):
+        root = Tk()
+        root.minsize(500,500)
+
+        btn = Button(root,  # родительское окно
+                     text="Click me",  # надпись на кнопке
+                     width=10, height=5,  # ширина и высота
+                     bg="white", fg="black")  # цвет фона и надписи
+
+        btn.place(x=10, y=5)
+        root.mainloop()
 
 
-def data_points():
-    f = open("data.txt", "w")
-    for i in range(10):
-        f.write(str(randint(0, 10)) + '\n')
-    f.close()
+z = app()
 
-    f = open("data.txt", "r")
-    data = f.readlines()
-    f.close()
-
-    l = []
-    for i in range(len(data)):
-        l.append(int(data[i].rstrip("\n")))
-    return l
-
-
-def app():
-    # initialise a window.
-    root = Tk()
-    root.config(background='white')
-    root.geometry("1000x700")
-
-    lab = Label(root, text="Live Plotting", bg='white').pack()
-
-    fig = Figure()
-
-    ax = fig.add_subplot(111)
-    ax.set_xlabel("X axis")
-    ax.set_ylabel("Y axis")
-    ax.grid()
-
-    graph = FigureCanvasTkAgg(fig, master=root)
-    graph.get_tk_widget().pack(side="top", fill='both', expand=True)
-
-    def plotter():
-        while continuePlotting:
-            ax.cla()
-            ax.grid()
-            dpts = data_points()
-            ax.plot(range(10), dpts, marker='o', color='orange')
-            graph.draw()
-            time.sleep(1)
-
-    def gui_handler():
-        change_state()
-        threading.Thread(target=plotter).start()
-
-    b = Button(root, text="Start/Stop", command=gui_handler, bg="red", fg="white")
-    b.pack()
-
-    root.mainloop()
-
-
-if __name__ == '__main__':
-    app()
