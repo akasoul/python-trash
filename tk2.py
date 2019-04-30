@@ -9,21 +9,27 @@ import os
 import time
 
 spath='data.txt'
+spath2='data2.txt'
 
 #a=2  # type: int
 
-def load_params():
-    return
+def load_params(fname,list,list_dtypes,list_values):
+    if(os.path.isfile(fname)):
+        f = open(fname, 'r')
+        a = f.read()
+        for i in range(list.__len__()):
+            x=a.find(list[i])
+            y=a.find(":",x)
+            z=a.find("\n",y)
+            list_values.append(list_dtypes[i](a[y+1:z]))
 
-def save_params():
-    whatlootfor="a:"
-    if(os.path.isfile(spath)):
-        f=open(spath,'r')
-        a=f.read()
-        x=a.find(whatlootfor)
-        y=x+len(whatlootfor)
-
-        c=np.genfromtxt(spath)
+def save_params(fname,list,list_dtypes,list_values):
+    if(os.path.isfile(fname)):
+        os.remove(fname)
+    f = open(fname, 'w+')
+    for i in range(list.__len__()):
+        s_value=list[i]+":"+str(list_values[i])+"\n"
+        f.write(s_value)
 
 
 class app:
@@ -134,8 +140,12 @@ class app:
         t = threading.Thread(target=self.checkpath_thread)
         t.daemon = True
         t.start()
+        params=["xxc","vvh","asd","qew"]
+        params_dtypes=[int,int,float,float]
+        params_values=list()
+        load_params("data.txt",params,params_dtypes,params_values)
+        save_params("data.txt",params,params_dtypes,params_values)
 
-        save_params()
         self.root.mainloop()
 
 
