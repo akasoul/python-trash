@@ -7,10 +7,24 @@ from matplotlib.backends.backend_tkagg import (
 import threading
 import os
 import time
-a = 2
 
+spath='data.txt'
 
 #a=2  # type: int
+
+def load_params():
+    return
+
+def save_params():
+    whatlootfor="a:"
+    if(os.path.isfile(spath)):
+        f=open(spath,'r')
+        a=f.read()
+        x=a.find(whatlootfor)
+        y=x+len(whatlootfor)
+
+        c=np.genfromtxt(spath)
+
 
 class app:
 
@@ -121,6 +135,7 @@ class app:
         t.daemon = True
         t.start()
 
+        save_params()
         self.root.mainloop()
 
 
