@@ -1,11 +1,13 @@
 from tkinter import *
 import matplotlib as plt
 import numpy as np
+import matplotlib.animation as animation
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 import threading
 import os
+import random
 import time
 
 spath='data.txt'
@@ -19,17 +21,21 @@ def load_params(fname,list,list_dtypes,list_values):
         a = f.read()
         for i in range(list.__len__()):
             x=a.find(list[i])
-            y=a.find(":",x)
-            z=a.find("\n",y)
-            list_values.append(list_dtypes[i](a[y+1:z]))
+            if(x!=-1):
+                y=a.find(":",x)
+                if(y!=-1):
+                    z=a.find("\n",y)
+                    if(z!=-1):
+                        list_values.append(list_dtypes[i](a[y+1:z]))
 
 def save_params(fname,list,list_dtypes,list_values):
     if(os.path.isfile(fname)):
         os.remove(fname)
     f = open(fname, 'w+')
-    for i in range(list.__len__()):
-        s_value=list[i]+":"+str(list_values[i])+"\n"
-        f.write(s_value)
+    if(list.__len__()==list_dtypes.__len__() and list_dtypes.__len__()==list_values.__len__()):
+        for i in range(list.__len__()):
+            s_value=list[i]+":"+str(list_values[i])+"\n"
+            f.write(s_value)
 
 
 class app:
@@ -95,10 +101,18 @@ class app:
             self.s_inputpath = fpath
             self.new_path=True
 
+    def add_data_thread(self):
+        while True:
+            self.tdata=np.append(self.tdata,random.randint(0,10))
+
+    def draw_thread(self,i):
+        self.trainingplot.clear()
+        self.trainingplot.plot(self.tdata)
+
 
     def __init__(self):
         self.root = Tk()
-        self.root.minsize(500,500)
+        self.root.minsize(width=600,height=500)
 
         self.s_indatapath=''
         self.s_outdatapath=''
@@ -109,6 +123,9 @@ class app:
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
         self.lbl_inputpath=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='input fname   :',anchor=W, justify=LEFT)
+
+        self.frm=Frame(self.root,bg='white',bd=5,height=200, width=300)
+
         #self.btn = Button(self.root,  # родительское окно
         #             text="Click me",  # надпись на кнопке
         #             width=10, height=5,  # ширина и высота
@@ -132,11 +149,13 @@ class app:
         self.ed_outdatapath.place(x=120, y=40)
         self.ed_inputpath.place(x=120, y=70)
 
+        self.frm.place(x=250, y=10)
         #self.btn.place(x=10, y=5)
         self.lbl_indatapath.place(x=10, y=10)
         self.lbl_outdatapath.place(x=10, y=40)
         self.lbl_inputpath.place(x=10, y=70)
 
+#settings input\output
         t = threading.Thread(target=self.checkpath_thread)
         t.daemon = True
         t.start()
@@ -146,9 +165,40 @@ class app:
         load_params("data.txt",params,params_dtypes,params_values)
         save_params("data.txt",params,params_dtypes,params_values)
 
+
+        #plot
+        self.fig = Figure(figsize=(5, 4), dpi=50)
+        self.trainingplot=self.fig.add_subplot(111)
+
+        self.tdata=np.array(5)
+        for index in range(0,5):
+            zzz=random.randint(0,10)
+            self.tdata=np.append(self.tdata,zzz)
+
+
+        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frm)  # A tk.DrawingArea.
+        self.canvas.get_tk_widget().pack(expand=0)
+        #self.canvas.show()
+
+        dt = threading.Thread(target=self.add_data_thread)
+        dt.daemon = True
+        dt.start()
+
+        self.ani=animation.FuncAnimation(self.fig,self.draw_thread,interval=1000)
+
+
+
+#        t = np.arange(0, 3, .01)
+#        self.trainingplot.plot(t)#, 2 * np.sin(2 * np.pi * t))
+#        canvas = FigureCanvasTkAgg(self.fig, master=self.frm)  # A tk.DrawingArea.
+#        canvas.draw()
+#        canvas.get_tk_widget().pack(expand=0)
+
+        #run
         self.root.mainloop()
 
 
 
 z = app()
-
+#z.ani = animation.FuncAnimation(z.fig, drawthread, interval=1000)
+#z.root.mainloop()
