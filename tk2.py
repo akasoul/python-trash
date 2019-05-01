@@ -41,7 +41,7 @@ def save_params(fname,list,list_dtypes,list_values):
 class app:
 
     def checkpath_thread(self):
-        print('thread start')
+        #print('thread start')
         while(True):
             if(self.new_path==True):
                 if(os.path.isfile(self.s_indatapath)):
@@ -104,6 +104,7 @@ class app:
     def add_data_thread(self):
         while True:
             self.tdata=np.append(self.tdata,random.randint(0,10))
+            time.sleep(1)
 
     def draw_thread(self,i):
         self.trainingplot.clear()
@@ -196,6 +197,7 @@ class app:
 
         #run
         self.root.mainloop()
+        #self.root.withdraw()
 
 
 
