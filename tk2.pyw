@@ -1,150 +1,420 @@
 from tkinter import *
 import tensorflow as tf
-import matplotlib as plt
+from sklearn.model_selection import train_test_split
 import numpy as np
 import matplotlib.animation as animation
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
+from sklearn import preprocessing
 import threading
 import os
 import random
 import time
+import msvcrt
 
-spath='data.txt'
-spath2='data2.txt'
 
-#a=2  # type: int
+# defines
+elu         = tf.nn.elu
+sig         = tf.nn.sigmoid
+tan         = tf.nn.tanh
+relu        = tf.nn.relu
+softsign    = tf.nn.softsign
 
-def load_params(fname,list,list_dtypes,list_values):
-    if(os.path.isfile(fname)):
-        f = open(fname, 'r')
-        a = f.read()
-        for i in range(list.__len__()):
-            x=a.find(list[i])
-            if(x!=-1):
-                y=a.find(":",x)
-                if(y!=-1):
-                    z=a.find("\n",y)
-                    if(z!=-1):
-                        list_values.append(list_dtypes[i](a[y+1:z]))
+#nn structure
+f_l_f = elu
+neurons=50
+struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
+                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
+outputs_af = tan
 
-def save_params(fname,list,list_dtypes,list_values):
-    if(os.path.isfile(fname)):
-        os.remove(fname)
-    f = open(fname, 'w+')
-    if(list.__len__()==list_dtypes.__len__() and list_dtypes.__len__()==list_values.__len__()):
-        for i in range(list.__len__()):
-            s_value=list[i]+":"+str(list_values[i])+"\n"
-            f.write(s_value)
+Preprocessing_Min=-1.0
+Preprocessing_Max=1.0
+TestSizePercent = 0.1
+TestErrorMod = 0.7
+
+
+
 
 
 class app:
-    def thread_check_path(self):
-        while(True):
-            if(self.new_path==True):
-                if(os.path.isfile(self.s_indatapath)):
-                    self.ed_indatapath['bg']= 'green'
-                else:
-                    self.ed_indatapath['bg'] = 'red'
 
-                if(os.path.isfile(self.s_outdatapath)):
-                    self.ed_outdatapath['bg']= 'green'
-                else:
-                    self.ed_outdatapath['bg'] = 'red'
 
-                if(os.path.isfile(self.s_inputpath)):
-                    self.ed_inputpath['bg']= 'green'
-                else:
-                    self.ed_inputpath['bg'] = 'red'
-
-                self.new_path=False
-
-    def run_tf(self):
-        with tf.Session() as self.sess:
-            # Model init
-            self.sess.run(tf.global_variables_initializer())
-
-    def block_trs_ui(self):
-        ui=[self.ed_trs_droprate,
-            self.ed_trs_l1,
-            self.ed_trs_l2,
-            self.ed_trs_ls]
-        for i in ui:
-            i['state']='disabled'
-            i['bg']='silver'
-
-    def unblock_trs_ui(self):
-        ui=[self.ed_trs_droprate,
-            self.ed_trs_l1,
-            self.ed_trs_l2,
-            self.ed_trs_ls]
-        for i in ui:
-            i['state']='enabled'
-            i['bg']='white'
-
-    def on_click_run_btn(self,event):
-        self.block_trs_ui()
-
-    def on_changed_path(self, event):
+    def try_load_data(self):
+        self.path_is_valid=False
         fpath=self.ed_indatapath.get(1.0, END)
         fpath=fpath.rstrip()
         fpath=fpath.lstrip()
-        if(self.s_indatapath!=fpath):
-            self.s_indatapath = fpath
-            self.new_path=True
+        self.s_indatapath = fpath
 
         fpath=self.ed_outdatapath.get(1.0, END)
         fpath=fpath.rstrip()
         fpath=fpath.lstrip()
-        if(self.s_outdatapath!=fpath):
-            self.s_outdatapath = fpath
-            self.new_path=True
+        self.s_outdatapath = fpath
 
-        fpath=self.ed_inputpath.get(1.0, END)
-        fpath=fpath.rstrip()
-        fpath=fpath.lstrip()
-        if(self.s_inputpath!=fpath):
-            self.s_inputpath = fpath
-            self.new_path=True
 
-    def check_for_dtype(self, event, ui_index, format):
-        ui_trs = [
-            self.ed_trs_epoches,
-            self.ed_trs_stoperror,
-            self.ed_trs_ls,
-            self.ed_trs_l1,
-            self.ed_trs_l2,
-            self.ed_trs_droprate]
+        #while(self.path_is_valid==False):
+        if(os.path.isfile(self.s_indatapath)):
+            self.ed_indatapath['bg']= 'green'
+            if (os.path.isfile(self.s_outdatapath)):
+                self.ed_outdatapath['bg'] = 'green'
+                self.path_is_valid=True
+                self.load_data()
+                self.init_model_variables()
+            else:
+                self.ed_outdatapath['bg'] = 'red'
+
+        else:
+            self.ed_indatapath['bg'] = 'red'
+            if (os.path.isfile(self.s_outdatapath)):
+                self.ed_outdatapath['bg'] = 'green'
+            else:
+                self.ed_outdatapath['bg'] = 'red'
+            print('no data')
+
+
+    def model(self,x):
+        net = tf.layers.dense(inputs=x, units=struct[0][0], activation=struct[1][0], kernel_regularizer=self.regularizer,
+                              bias_regularizer=self.regularizer, kernel_initializer=self.initializer,
+                              bias_initializer=self.initializer)
+
+        for i in range(struct.shape[1] - 1):
+            net = tf.layers.dense(inputs=net, units=struct[0][i + 1], activation=struct[1][i + 1],
+                                  kernel_regularizer=self.regularizer,
+                                  bias_regularizer=self.regularizer, kernel_initializer=self.initializer,
+                                  bias_initializer=self.initializer)
+
+            if (self.batch_normalization_active == True):
+                net = tf.layers.batch_normalization(inputs=net)
+
+            net = tf.layers.dropout(net, rate=self.drop_rate)
+
+        net = tf.layers.dense(inputs=net, units=self.n_outputs, activation=outputs_af, kernel_regularizer=self.regularizer,
+                              bias_regularizer=self.regularizer, kernel_initializer=self.initializer,
+                              bias_initializer=self.initializer)
+
+        return net
+
+    def init_model_variables(self):
+        # create a placeholder to dynamically switch between batch sizes
+        self.batch_size = tf.placeholder(tf.int64)
+        self.drop_rate = tf.placeholder(tf.float32)
+        self.batch_normalization_active = tf.placeholder(tf.bool)
+        self.x, self.y = tf.placeholder(tf.float32, shape=[None, self.n_inputs]), tf.placeholder(tf.float32, shape=[None, self.n_outputs])
+        self.dataset = tf.data.Dataset.from_tensor_slices((self.x, self.y)).batch(self.batch_size).shuffle(1).repeat()
+
+        self.iter = self.dataset.make_initializable_iterator()
+        self.features, self.labels = self.iter.get_next()
+
+        self.regularizer = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        self.initializer = tf.contrib.layers.xavier_initializer()
+
+        self.prediction = self.model(self.features)
+        self.ans = tf.argmax(self.model(self.features), 1)
+        self.wb = tf.trainable_variables()
+        self.reg_l1_l2 = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        self.rp_l1_l2 = tf.contrib.layers.apply_regularization(self.reg_l1_l2, self.wb)
+
+        self.reg_l1 = tf.contrib.layers.l1_regularizer(scale=self.settings['l1'])
+        self.rp_l1 = tf.contrib.layers.apply_regularization(self.reg_l1, self.wb)
+
+        self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
+        self.rp_l2 = tf.contrib.layers.apply_regularization(self.reg_l2, self.wb)
+
+        self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
+        if self.settings['l1'] > 0 and self.settings['l2'] == 0:
+            self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l1
+        if self.settings['l2'] > 0 and self.settings['l1'] == 0:
+            self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l2
+        if self.settings['l1'] == 0 and self.settings['l2'] == 0:
+            self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
+        if self.settings['l1'] > 0 and self.settings['l2'] > 0:
+            self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l1_l2
+
+        # train_op = tf.train.RMSPropOptimizer(learning_rate=LearningRate).minimize(loss_reg)
+        # train_op = tf.train.AdagradOptimizer(learning_rate=LearningRate).minimize(loss_reg)
+        self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.loss_reg)
+
+        self.saver = tf.train.Saver()
+        self.sess=tf.Session()
+        self.sess.run(tf.global_variables_initializer())
+
+    def init_model_name(self):
+        self.model_path="models/"
+        self.model_name = str(self.n_inputs)
+        for index in range(struct.shape[1]):
+            self.model_name += "_"
+            self.model_name += str(struct[0][index])
+            self.model_name += "_"
+            self.model_name += str(self.n_outputs)
+
+
+    def load_model(self):
+        if os.path.isfile(self.model_path + self.model_name + '.skpt.meta'):
+            if os.path.isfile(self.model_path + self.model_name + '.skpt.index'):
+                if os.path.isfile(self.model_path + self.model_name + '_error.txt'):
+                    self.save_path = self.saver.restore(self.sess, self.model_path + self.model_name + '.skpt')
+                    self.restored_error = np.genfromtxt(self.model_path + self.model_name + '_error.txt')
+                else:
+                    printnomodel = True
+
+            else:
+                printnomodel = True
+
+        else:
+            printnomodel=True
+        if printnomodel==True:
+            print('no model')
+
+    def set_ui_blocking(self,type,state):
+        if type=='run':
+            ui = [
+                  self.btn_train,
+                    ]
+        if type=='train':
+            ui = [self.ed_indatapath,
+                  self.ed_outdatapath,
+                  self.ed_inputpath,
+                  self.btn_run,
+                  self.ed_trs_ls,
+                  self.ed_trs_l1,
+                  self.ed_trs_l2,
+                  self.ed_trs_droprate
+                  ]
+        for i in ui:
+            if(state=='block'):
+                i['state']='disabled'
+                i['bg']='silver'
+            if(state=='unblock'):
+                i['state'] = 'enabled'
+                i['bg'] = 'white'
+
+
+
+    def on_click_run_btn(self,event):
+        return
+
+
+    def on_click_train_btn(self,event):
+        if self.training_is_launched==False:
+            tt = threading.Thread(target=self.thread_train)
+            tt.daemon = True
+            tt.start()
+
+    def on_change_path(self, event):
+        self.try_load_data()
+        #fpath=self.ed_indatapath.get(1.0, END)
+        #fpath=fpath.rstrip()
+        #fpath=fpath.lstrip()
+        #if(self.s_indatapath!=fpath):
+        #    self.s_indatapath = fpath
+        #    self.new_path=True
+        #
+        #fpath=self.ed_outdatapath.get(1.0, END)
+        #fpath=fpath.rstrip()
+        #fpath=fpath.lstrip()
+        #if(self.s_outdatapath!=fpath):
+        #    self.s_outdatapath = fpath
+        #    self.new_path=True
+        #
+        #fpath=self.ed_inputpath.get(1.0, END)
+        #fpath=fpath.rstrip()
+        #fpath=fpath.lstrip()
+        #if(self.s_inputpath!=fpath):
+        #    self.s_inputpath = fpath
+        #    self.new_path=True
+
+    def on_change_settings(self, event, ui_index, format):
         i=ui_index
-        value=ui_trs[i].get(1.0,END)
+        value=self.settingsui[i].get(1.0,END)
         value = value.rstrip()
         try:
             format(value)
         except:
-            ui_trs[i]['bg']='red'
+            self.settingsui[i]['bg']='red'
         else:
-            ui_trs[i]['bg']='white'
+            self.settingsui[i]['bg']='white'
+            self.settings[i]=format(value)
 
-    def thread_add_data(self):
-        mod=1
-        while True:
-            self.tdata=np.append(self.tdata,random.randint(0-mod,10+mod))
-            mod=mod+1
-            time.sleep(1)
+    def thread_train(self):
+        # plt.ion()
+        self.training_is_launched=True
+        self.TrainingData = np.empty(shape=[0, 2])
+        # initialise iterator with train data
+        self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
+                                                   self.batch_normalization_active: True})
+        print('Training...')
+        p_train = np.float32(99999999999)
+        p_test = np.float32(99999999999)
+        p_global = np.float32(99999999999)
+        p_epoch = 0
+        epoch = 0
+        of_counter = 0
+        for i in range(self.settings['epochs']):
+            self.sess.run(self.iter.initializer,
+                     feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
+                                self.batch_normalization_active: True})
+            tot_loss = 0
+            for _ in range(self.n_batches_train):
+                _, loss_value = self.sess.run([self.train_op, self.loss])
+                tot_loss += loss_value
+            tot_loss /= self.n_batches_train
+            if TestSizePercent > 0.0:
+                self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size, self.drop_rate: 0,
+                                                           self.batch_normalization_active: True})
+                test_loss = self.sess.run(self.loss)
+                global_loss = (1 - TestErrorMod) * tot_loss + TestErrorMod * test_loss
+                print("Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}".format(i, tot_loss, test_loss))
+                # print(threading.active_count())
+                self.TrainingData = np.append(self.TrainingData, [[tot_loss, test_loss]])
+            else:
+                global_loss = tot_loss
+                print("Iter: {0:4d} Loss: {1:.10f}".format(i, tot_loss, ))
+                self.TrainingData = np.append(self.TrainingData, [[tot_loss, 0]])
+            self.TrainingData = np.reshape(self.TrainingData, [2, i + 1])
+            epoch = epoch + 1
+            if (global_loss < p_global and i > 0):
+                p_epoch = i
+                p_global = global_loss
+                save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+
+                of_counter = 0
+            else:
+                of_counter = of_counter + 1
+
+            if (of_counter > self.settings['overfit_epochs']):
+                break
+
+            if (global_loss < self.settings['stop_error']):
+                break
+        self.training_is_launched=False
+        return
+
+
+    def thread_run(self):
+        return
+
+
 
     def thread_draw(self, i):
         self.trainingplot.clear()
-        min_index=np.argmin(self.tdata)
-        self.trainingplot.plot(self.tdata)
-        ymin,ymax=self.trainingplot.get_ylim()
-        #self.trainingplot.plot([ymin,ymax])
-        self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
+        try:
+            min_index=np.argmin(self.TrainingData)
+        except:
+            return
+        else:
+            self.trainingplot.plot(self.TrainingData)
+            ymin,ymax=self.trainingplot.get_ylim()
+            #self.trainingplot.plot([ymin,ymax])
+            self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
 
+    def save_settings(self):
+        fname='settings.txt'
+        keys=self.settings.keys()
+        values=self.settings.values()
+        f=open(fname,'w')
+        for i in keys:
+            s_value=str(i)+":"+str(self.settings[i])+"\n"
+            f.write(s_value)
+
+
+    def load_settings(self):
+        keys=self.settings.keys()
+        values = self.settings.values()
+        fname='settings.txt'
+        if (os.path.isfile(fname)):
+            f = open(fname, 'r')
+            a = f.read()
+            for i in keys:
+                x = a.find(i)
+                if (x != -1):
+                    y = a.find(":", x)
+                    if (y != -1):
+                        z = a.find("\n", y)
+                        if (z != -1):
+                            self.settings[i]=self.settingsdtypes[i](a[y + 1:z])
+                            self.settingsui[i].insert(1.0, a[y + 1:z])
+                        else:
+                            return False
+                    else:
+                        return False
+                else:
+                    return False
+
+        else:
+            return False
+
+    def load_model_structure(self):
+        fname='model.txt'
+        if (os.path.isfile(fname)):
+            f = open(fname, 'r')
+            a = f.read()
+            n=a.split('\n')
+
+    def init_structure(self):
+        return
+
+    def init_settings(self):
+        self.settings={
+            'epochs':          0,
+            'stop_error':       0,
+            'ls':               0,
+            'l1':               0,
+            'l2':               0,
+            'drop_rate':        0,
+            'overfit_epochs':  0
+        }
+        self.settingsui={
+            'epochs'          :self.ed_trs_epochs,
+            'stop_error'       :self.ed_trs_stoperror,
+            'ls'               :self.ed_trs_ls,
+            'l1'               :self.ed_trs_l1,
+            'l2'               :self.ed_trs_l2,
+            'drop_rate'        :self.ed_trs_droprate,
+            'overfit_epochs'  :self.ed_trs_ovf_epochs
+        }
+        self.settingsdtypes={
+            'epochs'          :int,
+            'stop_error'       :np.float32,
+            'ls'               :np.float32,
+            'l1'               :np.float32,
+            'l2'               :np.float32,
+            'drop_rate'        :np.float32,
+            'overfit_epochs'  :int
+        }
+        if self.load_settings()==False:
+            self.settings = {
+                'epochs': 10000,
+                'stop_error': 0.00000001,
+                'ls': 0.0001,
+                'l1': 0.001,
+                'l2': 0.01,
+                'drop_rate': 0.15,
+                'overfit_epochs':2000
+            }
+        self.training_is_launched=False
+
+    def on_change_layers_count(self,event):
+        #a1=self.list_ns_layers.getint(ACTIVE)
+        if self.layers_count!=self.list_ns_layers.get(ACTIVE):
+            self.layers_count = self.list_ns_layers.get(ACTIVE)
+            j=len(self.layers)
+            for i in range(0,j):
+                self.layers[i].place_forget()
+                self.layers_af[i].place_forget()
+            self.lbl_out_label.place_forget()
+            self.ed_ns_out_af.place_forget()
+            border=10;
+            for i in range(0,self.layers_count):
+                self.layers[i].place(x=border, y=550)
+                self.layers_af[i].place(x=border, y=590)
+                border=border+50
+            self.lbl_out_label.place(x=border, y=550)
+            self.ed_ns_out_af.place(x=border, y=590)
 
     def init_interface(self):
         self.root = Tk()
-        self.root.minsize(width=600,height=500)
+        self.root.minsize(width=790,height=430)
 
         self.s_indatapath=''
         self.s_outdatapath=''
@@ -154,7 +424,7 @@ class app:
 
         self.frm=Frame(self.root,bg='white',bd=5,height=200, width=300)
         self.btn_train=         Button(self.root,height=1,width=10,text='train')
-        self.btn_run=         Button(self.root,height=1,width=10,text='run')
+        self.btn_run=           Button(self.root,height=1,width=10,text='run')
         #file paths
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
@@ -164,47 +434,72 @@ class app:
         self.ed_inputpath   = Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
         #training settings
         self.lbl_trainingsettings=  Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training settings:',anchor=W, justify=LEFT)
-        self.lbl_trs_epoches=       Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epoches:',anchor=W, justify=LEFT)
+        self.lbl_trs_epochs=       Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epochs:',anchor=W, justify=LEFT)
         self.lbl_trs_stoperror=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='stop error:',anchor=W, justify=LEFT)
         self.lbl_trs_ls=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training speed:',anchor=W, justify=LEFT)
         self.lbl_trs_l1=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='l1:',anchor=W, justify=LEFT)
         self.lbl_trs_l2=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='l2:',anchor=W, justify=LEFT)
         self.lbl_trs_droprate=      Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='drop rate:',anchor=W, justify=LEFT)
-        self.ed_trs_epoches=        Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+        self.lbl_trs_ovf_epochs=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='ovf epochs:',anchor=W, justify=LEFT)
+        self.ed_trs_epochs=        Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_stoperror=      Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_ls=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_l1=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_l2=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_droprate=       Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+        self.ed_trs_ovf_epochs=     Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+
+        #self.ed_ns_l1_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.ed_ns_l2_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.ed_ns_l3_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.ed_ns_l4_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.#ed_ns_l5_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.ed_ns_l6_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.ed_ns_l7_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
+        #self.lbl_out_label=         Label(self.root, height=1, width=5, font='Arial 11', bg="silver", fg="black", text='out:', anchor=W, justify=LEFT)
+        #
+        #self.ed_ns_l1_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l2_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l3_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l4_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l5_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l6_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_l7_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
+        #self.ed_ns_out_af=    Listbox(self.root,height=5,width=6, selectmode=SINGLE)
 
 
         self.ed_indatapath.insert(1.0, 'in_data.txt')
         self.ed_outdatapath.insert(1.0, 'out_data.txt')
         self.ed_inputpath.insert(1.0, 'input.txt')
 
-        self.ed_indatapath.bind('<Key>', self.on_changed_path)
-        self.ed_outdatapath.bind('<Key>', self.on_changed_path)
-        self.ed_inputpath.bind('<Key>', self.on_changed_path)
-        self.ed_indatapath.bind('<Button 1>', self.on_changed_path)
-        self.ed_outdatapath.bind('<Button 1>', self.on_changed_path)
-        self.ed_inputpath.bind('<Button 1>', self.on_changed_path)
+        self.ed_indatapath.bind('<Key>', self.on_change_path)
+        self.ed_outdatapath.bind('<Key>', self.on_change_path)
+        self.ed_inputpath.bind('<Key>', self.on_change_path)
+        self.ed_indatapath.bind('<Button 1>', self.on_change_path)
+        self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
+        self.ed_inputpath.bind('<Button 1>', self.on_change_path)
+
         #training settings
-        self.ed_trs_epoches     .bind('<Key>', lambda event, u_index=0, format=int:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<Key>', lambda event, u_index=1, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_ls          .bind('<Key>', lambda event, u_index=2, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_l1          .bind('<Key>', lambda event, u_index=3, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_l2          .bind('<Key>', lambda event, u_index=4, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index=5, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_epoches     .bind('<BackSpace>', lambda event, u_index=0, format=int:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<BackSpace>', lambda event, u_index=1, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_ls          .bind('<BackSpace>', lambda event, u_index=2, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_l1          .bind('<BackSpace>', lambda event, u_index=3, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_l2          .bind('<BackSpace>', lambda event, u_index=4, format=float:self.check_for_dtype(event, u_index, format))
-        self.ed_trs_droprate    .bind('<BackSpace>', lambda event, u_index=5, format=float:self.check_for_dtype(event, u_index, format))
+        self.ed_trs_epochs     .bind('<Key>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<Key>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ls          .bind('<Key>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l1          .bind('<Key>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l2          .bind('<Key>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<Key>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
-        self.btn_run            .bind('<Button 1>', self.on_click_run_btn)
+        self.ed_trs_epochs     .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<FocusOut>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ls          .bind('<FocusOut>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l1          .bind('<FocusOut>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l2          .bind('<FocusOut>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
-        self.ed_indatapath      .place(x=1440, y=10)
+        self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
+
+
+        self.ed_indatapath      .place(x=140, y=10)
         self.ed_outdatapath     .place(x=140, y=40)
         self.ed_inputpath       .place(x=140, y=70)
         self.btn_train.place(x=10, y=110)
@@ -217,20 +512,64 @@ class app:
         self.lbl_trainingsettings.place(x=10, y=150)
 
         self.lbl_trainingsettings   .place(x=10, y=170)
-        self.lbl_trs_epoches        .place(x=10, y=200)
+        self.lbl_trs_epochs        .place(x=10, y=200)
         self.lbl_trs_stoperror      .place(x=10, y=230)
-        self.lbl_trs_ls             .place(x=10, y=260)
-        self.lbl_trs_l1             .place(x=10, y=290)
-        self.lbl_trs_l2             .place(x=10, y=320)
-        self.lbl_trs_droprate       .place(x=10, y=350)
-        self.ed_trs_epoches         .place(x=140, y=200)
+        self.lbl_trs_ovf_epochs     .place(x=10, y=260)
+        self.lbl_trs_ls             .place(x=10, y=290)
+        self.lbl_trs_l1             .place(x=10, y=320)
+        self.lbl_trs_l2             .place(x=10, y=350)
+        self.lbl_trs_droprate       .place(x=10, y=380)
+
+        self.ed_trs_epochs         .place(x=140, y=200)
         self.ed_trs_stoperror       .place(x=140, y=230)
-        self.ed_trs_ls              .place(x=140, y=260)
-        self.ed_trs_l1              .place(x=140, y=290)
-        self.ed_trs_l2              .place(x=140, y=320)
-        self.ed_trs_droprate        .place(x=140, y=350)
+        self.ed_trs_ovf_epochs      .place(x=140, y=260)
+        self.ed_trs_ls              .place(x=140, y=290)
+        self.ed_trs_l1              .place(x=140, y=320)
+        self.ed_trs_l2              .place(x=140, y=350)
+        self.ed_trs_droprate        .place(x=140, y=380)
 
-
+        #structure ui
+        #self.list_ns_layers         =Listbox(self.root,height=5,width=15,selectmode=SINGLE)
+        #self.layers_list            =[1,2,3,4,5,6,7]
+        #self.af=['elu',
+        #         'sigmoid',
+        #         'tanh',
+        #         'relu'
+        #         ]
+        #self.af_func=[tf.nn.elu,
+        #         tf.nn.sigmoid,
+        #         tf.nn.tanh,
+        #         tf.nn.relu
+        #         ]
+        #
+        #self.layers=[
+        #    self.ed_ns_l1_neurons,
+        #    self.ed_ns_l2_neurons,
+        #    self.ed_ns_l3_neurons,
+        #    self.ed_ns_l4_neurons,
+        #    self.ed_ns_l5_neurons,
+        #    self.ed_ns_l6_neurons,
+        #    self.ed_ns_l7_neurons
+        #]
+        #self.layers_af=[self.ed_ns_l1_af,
+        #                self.ed_ns_l2_af,
+        #                self.ed_ns_l3_af,
+        #                self.ed_ns_l4_af,
+        #                self.ed_ns_l5_af,
+        #                self.ed_ns_l6_af,
+        #                self.ed_ns_l7_af
+        #                ]
+        #
+        #for i in self.layers_list:
+        #    self.list_ns_layers.insert(END,i)
+        #for i in self.layers_af:
+        #    for j in self.af:
+        #        i.insert(END,j)
+        #for j in self.af:
+        #    self.ed_ns_out_af.insert(END,j)
+        #
+        #self.list_ns_layers.place(x=10, y=430)
+        #self.list_ns_layers.bind('<Button 1>', self.on_change_layers_count)
 
     def load_data(self):
         _file = False
@@ -238,39 +577,38 @@ class app:
             if os.path.isfile(self.s_indatapath):
                 if os.path.isfile(self.s_outdatapath):
                     _file = True
-        # import data and preprocess
+        # import data
         self.X = np.genfromtxt(self.s_indatapath)
         self.Y = np.genfromtxt(self.s_outdatapath)
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
-        data_size = self.ns_datasize
+
         self.n_inputs = self.X.shape[1]
-        self.ns_datasize = self.X.shape[0]
-        X = np.reshape(self.X, [data_size, self.ns_inputs])
-        Y = np.reshape(self.Y, [data_size, self.ns_outputs])
+        try:
+            self.n_outputs = self.Y.shape[1]
+        except:
+            self.n_outputs=1
+        self.n_datasize = self.X.shape[0]
+        self.X = np.reshape(self.X, [self.n_datasize, self.n_inputs])
+        self.Y = np.reshape(self.Y, [self.n_datasize, self.n_outputs])
 
-    def __init__(self):
-        self.init_interface()
+        self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
 
-        network_settings={'data_size': 0,
-                          'data_size': 0,
-                          'data_size': 0,
-                          'data_size': 0,
-                          }
+        self.X = self.scaler.fit_transform(self.X)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y, test_size=TestSizePercent, shuffle=True)
 
-#settings input\output
-        t = threading.Thread(target=self.thread_check_path)
-        t.daemon = True
-        t.start()
-        params=["xxc","vvh","asd","qew"]
-        params_dtypes=[int,int,float,float]
-        params_values=list()
-        load_params("data.txt",params,params_dtypes,params_values)
-        save_params("data.txt",params,params_dtypes,params_values)
+        self.train_size = self.X_train.shape[0]
+        self.test_size = self.X_test.shape[0]
 
+        for i in range(self.train_size - 1, 0, -1):
+            if (self.train_size % i == 0):  # and i < 1000):
+                self.batchsize = i
+                self.n_batches_train = int(self.train_size / self.batchsize)
+                break
 
+    def init_plots(self):
         #plot
-        self.fig = Figure(figsize=(5, 4), dpi=50)
+        self.fig = Figure(figsize=(5, 4), dpi=100)
         self.trainingplot=self.fig.add_subplot(111)
 
         self.tdata=np.array(5)
@@ -278,28 +616,30 @@ class app:
             zzz=random.randint(0,10)
             self.tdata=np.append(self.tdata,zzz)
 
-
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frm)  # A tk.DrawingArea.
         self.canvas.get_tk_widget().pack(expand=0)
-        #self.canvas.show()
-
-        dt = threading.Thread(target=self.thread_add_data)
-        dt.daemon = True
-        dt.start()
-
         self.ani=animation.FuncAnimation(self.fig, self.thread_draw, interval=1000)
 
 
 
-#        t = np.arange(0, 3, .01)
-#        self.trainingplot.plot(t)#, 2 * np.sin(2 * np.pi * t))
-#        canvas = FigureCanvasTkAgg(self.fig, master=self.frm)  # A tk.DrawingArea.
-#        canvas.draw()
-#        canvas.get_tk_widget().pack(expand=0)
+
+    def __init__(self):
+        self.init_interface()
+        self.init_plots()
+        self.init_settings()
+        self.save_settings()
+
+        #load_data
+        self.try_load_data()
+
+        #tf && model
+        self.init_model_variables()
+        self.init_model_name()
+        self.load_model()
 
         #run
-        self.run_tf()
         self.root.mainloop()
+        self.save_settings()
         #self.root.withdraw()
 
 
