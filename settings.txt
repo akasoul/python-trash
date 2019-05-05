@@ -1,6 +1,6 @@
-epochs:10000
+epochs:20
 stop_error:1e-08
-ls:1e-04
+ls:1e-06
 l1:0.001
 l2:0.01
 drop_rate:0.15

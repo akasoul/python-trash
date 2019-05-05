@@ -31,7 +31,6 @@ outputs_af = tan
 Preprocessing_Min=-1.0
 Preprocessing_Max=1.0
 TestSizePercent = 0.1
-TestErrorMod = 0.7
 
 
 
@@ -60,7 +59,7 @@ class app:
                 self.ed_outdatapath['bg'] = 'green'
                 self.path_is_valid=True
                 self.load_data()
-                self.init_model_variables()
+                #self.init_model_variables()
             else:
                 self.ed_outdatapath['bg'] = 'red'
 
@@ -99,6 +98,7 @@ class app:
         # create a placeholder to dynamically switch between batch sizes
         self.batch_size = tf.placeholder(tf.int64)
         self.drop_rate = tf.placeholder(tf.float32)
+        self.learning_rate_placeholder = tf.placeholder(tf.float32)
         self.batch_normalization_active = tf.placeholder(tf.bool)
         self.x, self.y = tf.placeholder(tf.float32, shape=[None, self.n_inputs]), tf.placeholder(tf.float32, shape=[None, self.n_outputs])
         self.dataset = tf.data.Dataset.from_tensor_slices((self.x, self.y)).batch(self.batch_size).shuffle(1).repeat()
@@ -133,11 +133,22 @@ class app:
 
         # train_op = tf.train.RMSPropOptimizer(learning_rate=LearningRate).minimize(loss_reg)
         # train_op = tf.train.AdagradOptimizer(learning_rate=LearningRate).minimize(loss_reg)
-        self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.loss_reg)
+        #self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.loss_reg)
+        self.train_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate_placeholder).minimize(self.loss_reg)
 
         self.saver = tf.train.Saver()
         self.sess=tf.Session()
         self.sess.run(tf.global_variables_initializer())
+
+        #init arrays for training
+        self.trainingdata_train_error = np.empty(shape=0)
+        self.trainingdata_test_error = np.empty(shape=0)
+
+
+        #if not os.path.exists(self.model_path + '/init/' + self.model_name):
+            #os.makedirs(self.model_path + '/init/'  + self.model_name)
+
+        #save_path = self.saver.save(self.sess, self.model_path + '/init/' + self.model_name + '.skpt')
 
     def init_model_name(self):
         self.model_path="models/"
@@ -145,11 +156,16 @@ class app:
         for index in range(struct.shape[1]):
             self.model_name += "_"
             self.model_name += str(struct[0][index])
-            self.model_name += "_"
-            self.model_name += str(self.n_outputs)
+        self.model_name += "_"
+        self.model_name += str(self.n_outputs)
+        self.model_path=self.model_path+self.model_name+'/'
+
+        if not os.path.exists(self.model_path):
+            os.makedirs(self.model_path)
 
 
     def load_model(self):
+        printnomodel=False
         if os.path.isfile(self.model_path + self.model_name + '.skpt.meta'):
             if os.path.isfile(self.model_path + self.model_name + '.skpt.index'):
                 if os.path.isfile(self.model_path + self.model_name + '_error.txt'):
@@ -192,7 +208,12 @@ class app:
 
 
     def on_click_run_btn(self,event):
-        return
+        if self.run_is_launched==False:
+            tt = threading.Thread(target=self.thread_run)
+            tt.daemon = True
+            tt.start()
+        else:
+            self.stop_run_is_pressed=True
 
 
     def on_click_train_btn(self,event):
@@ -200,29 +221,28 @@ class app:
             tt = threading.Thread(target=self.thread_train)
             tt.daemon = True
             tt.start()
+        else:
+            self.stop_train_is_pressed=True
+
+
+    def on_click_select_plot(self, event):
+        if self.selectedplot==False:
+            self.frm_testing.place_forget()
+            self.frm_testing.place(x=270, y=40)
+            self.selectedplot=True
+            return
+        else:
+            self.frm_testing.place_forget()
+            self.frm_testing.place(x=270, y=40)
+            self.selectedplot=False
+            return
+
+
+
 
     def on_change_path(self, event):
-        self.try_load_data()
-        #fpath=self.ed_indatapath.get(1.0, END)
-        #fpath=fpath.rstrip()
-        #fpath=fpath.lstrip()
-        #if(self.s_indatapath!=fpath):
-        #    self.s_indatapath = fpath
-        #    self.new_path=True
-        #
-        #fpath=self.ed_outdatapath.get(1.0, END)
-        #fpath=fpath.rstrip()
-        #fpath=fpath.lstrip()
-        #if(self.s_outdatapath!=fpath):
-        #    self.s_outdatapath = fpath
-        #    self.new_path=True
-        #
-        #fpath=self.ed_inputpath.get(1.0, END)
-        #fpath=fpath.rstrip()
-        #fpath=fpath.lstrip()
-        #if(self.s_inputpath!=fpath):
-        #    self.s_inputpath = fpath
-        #    self.new_path=True
+        if self.data_is_loaded==False:
+            self.try_load_data()
 
     def on_change_settings(self, event, ui_index, format):
         i=ui_index
@@ -237,15 +257,16 @@ class app:
             self.settings[i]=format(value)
 
     def thread_train(self):
-        # plt.ion()
         self.training_is_launched=True
-        self.TrainingData = np.empty(shape=[0, 2])
+        self.stop_train_is_pressed=False
+        self.btn_train.config(text="stop")
+
         # initialise iterator with train data
         self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
                                                    self.batch_normalization_active: True})
         print('Training...')
-        p_train = np.float32(99999999999)
-        p_test = np.float32(99999999999)
+        p_train_loss = np.float32(99999999999)
+        p_test_loss = np.float32(99999999999)
         p_global = np.float32(99999999999)
         p_epoch = 0
         epoch = 0
@@ -254,59 +275,168 @@ class app:
             self.sess.run(self.iter.initializer,
                      feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
                                 self.batch_normalization_active: True})
-            tot_loss = 0
+            train_loss = 0
             for _ in range(self.n_batches_train):
-                _, loss_value = self.sess.run([self.train_op, self.loss])
-                tot_loss += loss_value
-            tot_loss /= self.n_batches_train
+                _, loss_value = self.sess.run([self.train_op, self.loss],feed_dict={self.learning_rate_placeholder: self.settings['ls']})
+                train_loss += loss_value
+            train_loss /= self.n_batches_train
+            self.trainingdata_train_error = np.append(self.trainingdata_train_error, train_loss)
+            #if i==0:
+            #    self.trainingdata_train_error = [train_loss]
+            #else:
+            #    self.trainingdata_train_error=np.append(self.trainingdata_train_error,train_loss)
             if TestSizePercent > 0.0:
                 self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size, self.drop_rate: 0,
                                                            self.batch_normalization_active: True})
                 test_loss = self.sess.run(self.loss)
-                global_loss = (1 - TestErrorMod) * tot_loss + TestErrorMod * test_loss
-                print("Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}".format(i, tot_loss, test_loss))
+                print("Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}".format(i, train_loss, test_loss))
                 # print(threading.active_count())
-                self.TrainingData = np.append(self.TrainingData, [[tot_loss, test_loss]])
+                self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
+                #if i==0:
+                #    self.trainingdata_test_error=[test_loss]
+                #else:
+                #    self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
             else:
-                global_loss = tot_loss
-                print("Iter: {0:4d} Loss: {1:.10f}".format(i, tot_loss, ))
-                self.TrainingData = np.append(self.TrainingData, [[tot_loss, 0]])
-            self.TrainingData = np.reshape(self.TrainingData, [2, i + 1])
-            epoch = epoch + 1
-            if (global_loss < p_global and i > 0):
-                p_epoch = i
-                p_global = global_loss
-                save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+                print("Iter: {0:4d} Loss: {1:.10f}".format(i, train_loss, ))
 
-                of_counter = 0
+            epoch = epoch + 1
+            if TestSizePercent>0.0:
+                if (test_loss < p_test_loss and i > 0):
+                    p_epoch = i
+                    p_test_loss = test_loss
+                    save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+                    of_counter = 0
+                else:
+                    of_counter = of_counter + 1
             else:
-                of_counter = of_counter + 1
+                if (train_loss < p_train_loss and i > 0):
+                    p_epoch = i
+                    p_train_loss = train_loss
+                    save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+                    of_counter = 0
+                else:
+                    of_counter = of_counter + 1
 
             if (of_counter > self.settings['overfit_epochs']):
                 break
 
-            if (global_loss < self.settings['stop_error']):
+            if (test_loss < self.settings['stop_error']):
                 break
+
+            if (self.stop_train_is_pressed == True):
+                break
+
+        save_path = self.saver.restore(self.sess, self.model_path + self.model_name + '.skpt')
+        self.sess.run(self.iter.initializer,
+                 feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0, self.batch_normalization_active: False})
+        tot_loss = self.sess.run(self.loss)
+
+        file = open(self.model_path + self.model_name + '_error.txt', 'w')
+        file.write(str(tot_loss))
+        file.close()
+
+        if TestSizePercent>0.0:
+            print("Selected Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}"
+                    .format(p_epoch,self.trainingdata_train_error[p_epoch],self.trainingdata_test_error[p_epoch]))
+        else:
+            print("Selected Iter: {0:4d} TrainLoss: {1:.10f}"
+                    .format(p_epoch,self.trainingdata_train_error[p_epoch]))
+
         self.training_is_launched=False
+        self.btn_train.config(text="start")
         return
 
 
     def thread_run(self):
-        return
+        self.run_is_launched=True
+        self.stop_run_is_pressed=False
+        self.btn_run.config(text="stop")
+        self.input_path_is_valid=False
+        fpath=self.ed_inputpath.get(1.0, END)
+        fpath=fpath.rstrip()
+        fpath=fpath.lstrip()
+        self.s_inputpath = fpath
 
+        while True:
+            if (os.path.isfile(self.s_inputpath)):
+                self.ed_inputpath['bg'] = 'green'
+                self.input_path_is_valid=True
+
+                try:
+                    X0 = np.genfromtxt(self.s_inputpath)
+                except:
+                    time.sleep(1)
+                else:
+                    X0 = np.float32(X0)
+                    X0 = np.reshape(X0, [1, self.n_inputs])
+                    X0 = self.scaler.transform(X0)
+
+                    Y0 = np.zeros(shape=[1, self.n_outputs])
+                    Y0 = np.reshape(Y0, [1, self.n_outputs])
+
+                    os.remove(self.s_inputpath)
+
+                    self.sess.run(self.iter.initializer,
+                             feed_dict={self.x: X0, self.y: Y0, self.batch_size: 1, self.drop_rate: 0, self.batch_normalization_active: False})
+
+                    p = self.sess.run(self.prediction)
+                    output = ""
+                    for i in range(self.n_outputs):
+                        output += " "
+                        output += str(p[0][i])
+                        file = open('answer' + str(i) + '.txt', 'w')
+                        file.write(str(p[0][i]))
+                        file.close()
+                    print(output)
+            else:
+                self.ed_inputpath['bg'] = 'red'
+
+            if self.stop_run_is_pressed==True:
+                break
+
+        self.btn_run.config(text="start")
 
 
     def thread_draw(self, i):
         self.trainingplot.clear()
-        try:
-            min_index=np.argmin(self.TrainingData)
-        except:
-            return
+        if TestSizePercent>0.0:
+            try:
+                min_index=np.argmin(self.trainingdata_test_error)
+            except:
+                return
+            else:
+                self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
+                self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='test loss')
+                self.trainingplot.legend(loc='upper right')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
         else:
-            self.trainingplot.plot(self.TrainingData)
-            ymin,ymax=self.trainingplot.get_ylim()
-            #self.trainingplot.plot([ymin,ymax])
-            self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
+            try:
+                min_index=np.argmin(self.trainingdata_train_error)
+            except:
+                return
+            else:
+                self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
+                self.trainingplot.legend(loc='upper right')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
+
+    def thread_draw2(self, i):
+        self.sess.run(self.iter.initializer,
+                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
+                                 self.batch_normalization_active: False})
+        zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+        #net_outputs = np.empty(shape=[self.n_datasize])
+        #targets = np.empty(shape=[self.n_datasize])
+        net_outputs = zout
+        targets = self.Y
+        if(len(net_outputs)!=len(targets)):
+            return
+        self.testingplot.clear()
+        #for j in range(self.n_datasize):
+        #    net_outputs[j] = zout[j][0]
+        #    targets[j] = self.Y[j][0]
+            # plt.figure(i + 1)
+        self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
+        self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
 
     def save_settings(self):
         fname='settings.txt'
@@ -393,6 +523,9 @@ class app:
                 'overfit_epochs':2000
             }
         self.training_is_launched=False
+        self.run_is_launched=False
+        self.data_is_loaded=False
+
 
     def on_change_layers_count(self,event):
         #a1=self.list_ns_layers.getint(ACTIVE)
@@ -421,10 +554,15 @@ class app:
         self.s_inputpath=''
 
         self.new_path=True
-
-        self.frm=Frame(self.root,bg='white',bd=5,height=200, width=300)
-        self.btn_train=         Button(self.root,height=1,width=10,text='train')
-        self.btn_run=           Button(self.root,height=1,width=10,text='run')
+        self.selectedplot=True
+        self.btn_trainingplot=  Radiobutton(self.root,var=self.selectedplot,value=1,text='training data')
+        self.btn_testingplot=   Radiobutton(self.root,var=self.selectedplot,value=0,text='test model')
+        self.frm_training=      Frame(self.root, bg='white', bd=5, height=200, width=300)
+        self.frm_testing=       Frame(self.root, bg='white', bd=5, height=200, width=300)
+        self.lbl_train=         Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Train model',anchor=W, justify=LEFT)
+        self.lbl_run=           Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Run model',anchor=W, justify=LEFT)
+        self.btn_train=         Button(self.root,height=1,width=10,text='start')
+        self.btn_run=           Button(self.root,height=1,width=10,text='start')
         #file paths
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
@@ -479,6 +617,9 @@ class app:
         self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
         self.ed_inputpath.bind('<Button 1>', self.on_change_path)
 
+        self.btn_trainingplot.bind('<Button 1>', self.on_click_select_plot)
+        self.btn_testingplot.bind('<Button 1>', self.on_click_select_plot)
+
         #training settings
         self.ed_trs_epochs     .bind('<Key>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
         self.ed_trs_stoperror   .bind('<Key>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
@@ -497,15 +638,21 @@ class app:
         self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
         self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
+        self.btn_run          .bind('<Button 1>', self.on_click_run_btn)
 
 
         self.ed_indatapath      .place(x=140, y=10)
         self.ed_outdatapath     .place(x=140, y=40)
         self.ed_inputpath       .place(x=140, y=70)
-        self.btn_train.place(x=10, y=110)
-        self.btn_run.place(x=100, y=110)
 
-        self.frm.place(x=270, y=10)
+        self.lbl_train.place(x=10, y=110)
+        self.btn_train.place(x=140, y=110)
+        self.lbl_run.place(x=10, y=140)
+        self.btn_run.place(x=140, y=140)
+
+        self.btn_trainingplot.place(x=270,y=10)
+        self.btn_testingplot.place(x=400,y=10)
+        self.frm_training.place(x=270, y=40)
         self.lbl_indatapath.place(x=10, y=10)
         self.lbl_outdatapath.place(x=10, y=40)
         self.lbl_inputpath.place(x=10, y=70)
@@ -600,6 +747,8 @@ class app:
         self.train_size = self.X_train.shape[0]
         self.test_size = self.X_test.shape[0]
 
+        self.data_is_loaded=True
+
         for i in range(self.train_size - 1, 0, -1):
             if (self.train_size % i == 0):  # and i < 1000):
                 self.batchsize = i
@@ -608,17 +757,17 @@ class app:
 
     def init_plots(self):
         #plot
-        self.fig = Figure(figsize=(5, 4), dpi=100)
-        self.trainingplot=self.fig.add_subplot(111)
+        self.trainingfig = Figure(figsize=(7, 5), dpi=70)
+        self.trainingplot=self.trainingfig.add_subplot(111)
+        self.trainingcanvas = FigureCanvasTkAgg(self.trainingfig, master=self.frm_training)  # A tk.DrawingArea.
+        self.trainingcanvas.get_tk_widget().pack(expand=0)
+        self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
 
-        self.tdata=np.array(5)
-        for index in range(0,5):
-            zzz=random.randint(0,10)
-            self.tdata=np.append(self.tdata,zzz)
-
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frm)  # A tk.DrawingArea.
-        self.canvas.get_tk_widget().pack(expand=0)
-        self.ani=animation.FuncAnimation(self.fig, self.thread_draw, interval=1000)
+        self.testingfig = Figure(figsize=(7, 5), dpi=70)
+        self.testingplot=self.testingfig.add_subplot(111)
+        self.testingcanvas = FigureCanvasTkAgg(self.testingfig, master=self.frm_testing)  # A tk.DrawingArea.
+        self.testingcanvas.get_tk_widget().pack(expand=0)
+        self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
 
 
 
@@ -633,8 +782,8 @@ class app:
         self.try_load_data()
 
         #tf && model
-        self.init_model_variables()
         self.init_model_name()
+        self.init_model_variables()
         self.load_model()
 
         #run
