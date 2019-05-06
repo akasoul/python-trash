@@ -281,21 +281,12 @@ class app:
                 train_loss += loss_value
             train_loss /= self.n_batches_train
             self.trainingdata_train_error = np.append(self.trainingdata_train_error, train_loss)
-            #if i==0:
-            #    self.trainingdata_train_error = [train_loss]
-            #else:
-            #    self.trainingdata_train_error=np.append(self.trainingdata_train_error,train_loss)
             if TestSizePercent > 0.0:
                 self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size, self.drop_rate: 0,
                                                            self.batch_normalization_active: True})
                 test_loss = self.sess.run(self.loss)
                 print("Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}".format(i, train_loss, test_loss))
-                # print(threading.active_count())
                 self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
-                #if i==0:
-                #    self.trainingdata_test_error=[test_loss]
-                #else:
-                #    self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
             else:
                 print("Iter: {0:4d} Loss: {1:.10f}".format(i, train_loss, ))
 
@@ -365,7 +356,7 @@ class app:
                 try:
                     X0 = np.genfromtxt(self.s_inputpath)
                 except:
-                    time.sleep(1)
+                    pass
                 else:
                     X0 = np.float32(X0)
                     X0 = np.reshape(X0, [1, self.n_inputs])
@@ -407,8 +398,9 @@ class app:
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
                 self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='test loss')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_test_error[min_index]))
+                self.trainingplot.axhline(y=self.trainingdata_test_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
         else:
             try:
                 min_index=np.argmin(self.trainingdata_train_error)
@@ -416,25 +408,20 @@ class app:
                 return
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_train_error[min_index]))
+                self.trainingplot.axhline(y=self.trainingdata_train_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
 
     def thread_draw2(self, i):
         self.sess.run(self.iter.initializer,
                       feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
                                  self.batch_normalization_active: False})
         zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
-        #net_outputs = np.empty(shape=[self.n_datasize])
-        #targets = np.empty(shape=[self.n_datasize])
         net_outputs = zout
         targets = self.Y
         if(len(net_outputs)!=len(targets)):
             return
         self.testingplot.clear()
-        #for j in range(self.n_datasize):
-        #    net_outputs[j] = zout[j][0]
-        #    targets[j] = self.Y[j][0]
-            # plt.figure(i + 1)
         self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
         self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
 
