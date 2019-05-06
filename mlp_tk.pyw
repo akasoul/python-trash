@@ -145,10 +145,6 @@ class app:
         self.trainingdata_test_error = np.empty(shape=0)
 
 
-        #if not os.path.exists(self.model_path + '/init/' + self.model_name):
-            #os.makedirs(self.model_path + '/init/'  + self.model_name)
-
-        #save_path = self.saver.save(self.sess, self.model_path + '/init/' + self.model_name + '.skpt')
 
     def init_model_name(self):
         self.model_path="models/"
