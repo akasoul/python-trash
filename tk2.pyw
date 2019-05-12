@@ -23,7 +23,7 @@ softsign    = tf.nn.softsign
 
 #nn structure
 f_l_f = elu
-neurons=50
+neurons=100
 struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
                    [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
 outputs_af = tan
@@ -98,6 +98,8 @@ class app:
         # create a placeholder to dynamically switch between batch sizes
         self.batch_size = tf.placeholder(tf.int64)
         self.drop_rate = tf.placeholder(tf.float32)
+        self.l1_ph=tf.placeholder(tf.float32)
+        self.l2_ph=tf.placeholder(tf.float32)
         self.learning_rate_placeholder = tf.placeholder(tf.float32)
         self.batch_normalization_active = tf.placeholder(tf.bool)
         self.x, self.y = tf.placeholder(tf.float32, shape=[None, self.n_inputs]), tf.placeholder(tf.float32, shape=[None, self.n_outputs])
@@ -107,18 +109,22 @@ class app:
         self.features, self.labels = self.iter.get_next()
 
         self.regularizer = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        #self.regularizer = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
         self.initializer = tf.contrib.layers.xavier_initializer()
 
         self.prediction = self.model(self.features)
         self.ans = tf.argmax(self.model(self.features), 1)
         self.wb = tf.trainable_variables()
         self.reg_l1_l2 = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        #self.reg_l1_l2 = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
         self.rp_l1_l2 = tf.contrib.layers.apply_regularization(self.reg_l1_l2, self.wb)
 
         self.reg_l1 = tf.contrib.layers.l1_regularizer(scale=self.settings['l1'])
+        #self.reg_l1 = tf.contrib.layers.l1_regularizer(scale=self.settings['l1'])
         self.rp_l1 = tf.contrib.layers.apply_regularization(self.reg_l1, self.wb)
 
         self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
+        #self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
         self.rp_l2 = tf.contrib.layers.apply_regularization(self.reg_l2, self.wb)
 
         self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
@@ -145,10 +151,6 @@ class app:
         self.trainingdata_test_error = np.empty(shape=0)
 
 
-        #if not os.path.exists(self.model_path + '/init/' + self.model_name):
-            #os.makedirs(self.model_path + '/init/'  + self.model_name)
-
-        #save_path = self.saver.save(self.sess, self.model_path + '/init/' + self.model_name + '.skpt')
 
     def init_model_name(self):
         self.model_path="models/"
@@ -160,6 +162,7 @@ class app:
         self.model_name += str(self.n_outputs)
         self.model_path=self.model_path+self.model_name+'/'
 
+        self.model_name='model'
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
@@ -225,16 +228,16 @@ class app:
             self.stop_train_is_pressed=True
 
 
-    def on_click_select_plot(self, event):
-        if self.selectedplot==False:
+    def on_click_select_plot(self):#, event):
+        if self.selectedplot.get()==0:
             self.frm_testing.place_forget()
-            self.frm_testing.place(x=270, y=40)
-            self.selectedplot=True
+            self.frm_training.place(x=270, y=40)
+            #self.selectedplot.set(1)
             return
-        else:
-            self.frm_testing.place_forget()
+        if self.selectedplot.get()==1:
+            self.frm_training.place_forget()
             self.frm_testing.place(x=270, y=40)
-            self.selectedplot=False
+            #self.selectedplot.set(0)
             return
 
 
@@ -281,21 +284,12 @@ class app:
                 train_loss += loss_value
             train_loss /= self.n_batches_train
             self.trainingdata_train_error = np.append(self.trainingdata_train_error, train_loss)
-            #if i==0:
-            #    self.trainingdata_train_error = [train_loss]
-            #else:
-            #    self.trainingdata_train_error=np.append(self.trainingdata_train_error,train_loss)
             if TestSizePercent > 0.0:
                 self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size, self.drop_rate: 0,
                                                            self.batch_normalization_active: True})
                 test_loss = self.sess.run(self.loss)
                 print("Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}".format(i, train_loss, test_loss))
-                # print(threading.active_count())
                 self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
-                #if i==0:
-                #    self.trainingdata_test_error=[test_loss]
-                #else:
-                #    self.trainingdata_test_error = np.append(self.trainingdata_test_error, test_loss)
             else:
                 print("Iter: {0:4d} Loss: {1:.10f}".format(i, train_loss, ))
 
@@ -350,6 +344,7 @@ class app:
     def thread_run(self):
         self.run_is_launched=True
         self.stop_run_is_pressed=False
+        self.load_model()
         self.btn_run.config(text="stop")
         self.input_path_is_valid=False
         fpath=self.ed_inputpath.get(1.0, END)
@@ -365,7 +360,7 @@ class app:
                 try:
                     X0 = np.genfromtxt(self.s_inputpath)
                 except:
-                    time.sleep(1)
+                    pass
                 else:
                     X0 = np.float32(X0)
                     X0 = np.reshape(X0, [1, self.n_inputs])
@@ -407,8 +402,9 @@ class app:
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
                 self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='test loss')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_test_error[min_index]))
+                self.trainingplot.axhline(y=self.trainingdata_test_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
         else:
             try:
                 min_index=np.argmin(self.trainingdata_train_error)
@@ -416,25 +412,20 @@ class app:
                 return
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_train_error[min_index]))
+                self.trainingplot.axhline(y=self.trainingdata_train_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
 
     def thread_draw2(self, i):
         self.sess.run(self.iter.initializer,
                       feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
                                  self.batch_normalization_active: False})
         zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
-        #net_outputs = np.empty(shape=[self.n_datasize])
-        #targets = np.empty(shape=[self.n_datasize])
         net_outputs = zout
         targets = self.Y
         if(len(net_outputs)!=len(targets)):
             return
         self.testingplot.clear()
-        #for j in range(self.n_datasize):
-        #    net_outputs[j] = zout[j][0]
-        #    targets[j] = self.Y[j][0]
-            # plt.figure(i + 1)
         self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
         self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
 
@@ -554,9 +545,10 @@ class app:
         self.s_inputpath=''
 
         self.new_path=True
-        self.selectedplot=True
-        self.btn_trainingplot=  Radiobutton(self.root,var=self.selectedplot,value=1,text='training data')
-        self.btn_testingplot=   Radiobutton(self.root,var=self.selectedplot,value=0,text='test model')
+        self.selectedplot=IntVar()
+        self.selectedplot.set(0)
+        self.btn_trainingplot=  Radiobutton(self.root,var=self.selectedplot,value=0,text='training data',command=self.on_click_select_plot)
+        self.btn_testingplot=   Radiobutton(self.root,var=self.selectedplot,value=1,text='testing model',command=self.on_click_select_plot)
         self.frm_training=      Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.frm_testing=       Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.lbl_train=         Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Train model',anchor=W, justify=LEFT)
@@ -567,19 +559,19 @@ class app:
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
         self.lbl_inputpath=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='input fname   :',anchor=W, justify=LEFT)
-        self.ed_indatapath  = Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
-        self.ed_outdatapath = Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
-        self.ed_inputpath   = Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
+        self.ed_indatapath=     Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
+        self.ed_outdatapath=    Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
+        self.ed_inputpath=      Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
         #training settings
         self.lbl_trainingsettings=  Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training settings:',anchor=W, justify=LEFT)
-        self.lbl_trs_epochs=       Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epochs:',anchor=W, justify=LEFT)
+        self.lbl_trs_epochs=        Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epochs:',anchor=W, justify=LEFT)
         self.lbl_trs_stoperror=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='stop error:',anchor=W, justify=LEFT)
         self.lbl_trs_ls=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training speed:',anchor=W, justify=LEFT)
         self.lbl_trs_l1=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='l1:',anchor=W, justify=LEFT)
         self.lbl_trs_l2=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='l2:',anchor=W, justify=LEFT)
         self.lbl_trs_droprate=      Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='drop rate:',anchor=W, justify=LEFT)
         self.lbl_trs_ovf_epochs=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='ovf epochs:',anchor=W, justify=LEFT)
-        self.ed_trs_epochs=        Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+        self.ed_trs_epochs=         Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_stoperror=      Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_ls=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_l1=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
@@ -610,26 +602,26 @@ class app:
         self.ed_outdatapath.insert(1.0, 'out_data.txt')
         self.ed_inputpath.insert(1.0, 'input.txt')
 
-        self.ed_indatapath.bind('<Key>', self.on_change_path)
-        self.ed_outdatapath.bind('<Key>', self.on_change_path)
-        self.ed_inputpath.bind('<Key>', self.on_change_path)
-        self.ed_indatapath.bind('<Button 1>', self.on_change_path)
-        self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
-        self.ed_inputpath.bind('<Button 1>', self.on_change_path)
+        self.ed_indatapath.bind('<KeyRelease>', self.on_change_path)
+        self.ed_outdatapath.bind('<KeyRelease>', self.on_change_path)
+        self.ed_inputpath.bind('<KeyRelease>', self.on_change_path)
+        #self.ed_indatapath.bind('<Button 1>', self.on_change_path)
+        #self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
+        #self.ed_inputpath.bind('<Button 1>', self.on_change_path)
 
-        self.btn_trainingplot.bind('<Button 1>', self.on_click_select_plot)
-        self.btn_testingplot.bind('<Button 1>', self.on_click_select_plot)
+        #self.btn_trainingplot.bind('<Button 1>', self.on_click_select_plot)
+        #self.btn_testingplot.bind('<Button 1>', self.on_click_select_plot)
 
         #training settings
-        self.ed_trs_epochs     .bind('<Key>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<Key>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ls          .bind('<Key>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l1          .bind('<Key>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l2          .bind('<Key>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ovf_epochs  .bind('<Key>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_epochs      .bind('<KeyRelease>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<KeyRelease>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ls          .bind('<KeyRelease>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l1          .bind('<KeyRelease>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l2          .bind('<KeyRelease>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<KeyRelease>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<KeyRelease>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
-        self.ed_trs_epochs     .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_epochs      .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
         self.ed_trs_stoperror   .bind('<FocusOut>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_ls          .bind('<FocusOut>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_l1          .bind('<FocusOut>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
@@ -638,7 +630,7 @@ class app:
         self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
         self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
-        self.btn_run          .bind('<Button 1>', self.on_click_run_btn)
+        self.btn_run            .bind('<Button 1>', self.on_click_run_btn)
 
 
         self.ed_indatapath      .place(x=140, y=10)
@@ -760,13 +752,13 @@ class app:
         self.trainingfig = Figure(figsize=(7, 5), dpi=70)
         self.trainingplot=self.trainingfig.add_subplot(111)
         self.trainingcanvas = FigureCanvasTkAgg(self.trainingfig, master=self.frm_training)  # A tk.DrawingArea.
-        self.trainingcanvas.get_tk_widget().pack(expand=0)
+        self.trainingcanvas.get_tk_widget().pack(expand=True)
         self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
 
         self.testingfig = Figure(figsize=(7, 5), dpi=70)
         self.testingplot=self.testingfig.add_subplot(111)
         self.testingcanvas = FigureCanvasTkAgg(self.testingfig, master=self.frm_testing)  # A tk.DrawingArea.
-        self.testingcanvas.get_tk_widget().pack(expand=0)
+        self.testingcanvas.get_tk_widget().pack(expand=True)
         self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
 
 
