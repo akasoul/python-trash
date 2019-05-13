@@ -98,6 +98,8 @@ class app:
         # create a placeholder to dynamically switch between batch sizes
         self.batch_size = tf.placeholder(tf.int64)
         self.drop_rate = tf.placeholder(tf.float32)
+        self.l1_ph=tf.placeholder(tf.float32)
+        self.l2_ph=tf.placeholder(tf.float32)
         self.learning_rate_placeholder = tf.placeholder(tf.float32)
         self.batch_normalization_active = tf.placeholder(tf.bool)
         self.x, self.y = tf.placeholder(tf.float32, shape=[None, self.n_inputs]), tf.placeholder(tf.float32, shape=[None, self.n_outputs])
@@ -107,18 +109,22 @@ class app:
         self.features, self.labels = self.iter.get_next()
 
         self.regularizer = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        #self.regularizer = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
         self.initializer = tf.contrib.layers.xavier_initializer()
 
         self.prediction = self.model(self.features)
         self.ans = tf.argmax(self.model(self.features), 1)
         self.wb = tf.trainable_variables()
         self.reg_l1_l2 = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
+        #self.reg_l1_l2 = tf.contrib.layers.l1_l2_regularizer(scale_l1=self.settings['l1'], scale_l2=self.settings['l2'])
         self.rp_l1_l2 = tf.contrib.layers.apply_regularization(self.reg_l1_l2, self.wb)
 
         self.reg_l1 = tf.contrib.layers.l1_regularizer(scale=self.settings['l1'])
+        #self.reg_l1 = tf.contrib.layers.l1_regularizer(scale=self.settings['l1'])
         self.rp_l1 = tf.contrib.layers.apply_regularization(self.reg_l1, self.wb)
 
         self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
+        #self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
         self.rp_l2 = tf.contrib.layers.apply_regularization(self.reg_l2, self.wb)
 
         self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
@@ -135,6 +141,7 @@ class app:
         # train_op = tf.train.AdagradOptimizer(learning_rate=LearningRate).minimize(loss_reg)
         #self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.loss_reg)
         self.train_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate_placeholder).minimize(self.loss_reg)
+        #self.train_op = tf.train.RMSPropOptimizer(learning_rate=self.learning_rate_placeholder).minimize(self.loss_reg)
 
         self.saver = tf.train.Saver()
         self.sess=tf.Session()
@@ -156,6 +163,7 @@ class app:
         self.model_name += str(self.n_outputs)
         self.model_path=self.model_path+self.model_name+'/'
 
+        self.model_name='model'
         if not os.path.exists(self.model_path):
             os.makedirs(self.model_path)
 
@@ -337,6 +345,7 @@ class app:
     def thread_run(self):
         self.run_is_launched=True
         self.stop_run_is_pressed=False
+        self.load_model()
         self.btn_run.config(text="stop")
         self.input_path_is_valid=False
         fpath=self.ed_inputpath.get(1.0, END)
@@ -594,24 +603,24 @@ class app:
         self.ed_outdatapath.insert(1.0, 'out_data.txt')
         self.ed_inputpath.insert(1.0, 'input.txt')
 
-        self.ed_indatapath.bind('<Key>', self.on_change_path)
-        self.ed_outdatapath.bind('<Key>', self.on_change_path)
-        self.ed_inputpath.bind('<Key>', self.on_change_path)
-        self.ed_indatapath.bind('<Button 1>', self.on_change_path)
-        self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
-        self.ed_inputpath.bind('<Button 1>', self.on_change_path)
+        self.ed_indatapath.bind('<KeyRelease>', self.on_change_path)
+        self.ed_outdatapath.bind('<KeyRelease>', self.on_change_path)
+        self.ed_inputpath.bind('<KeyRelease>', self.on_change_path)
+        #self.ed_indatapath.bind('<Button 1>', self.on_change_path)
+        #self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
+        #self.ed_inputpath.bind('<Button 1>', self.on_change_path)
 
         #self.btn_trainingplot.bind('<Button 1>', self.on_click_select_plot)
         #self.btn_testingplot.bind('<Button 1>', self.on_click_select_plot)
 
         #training settings
-        self.ed_trs_epochs      .bind('<Key>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<Key>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ls          .bind('<Key>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l1          .bind('<Key>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l2          .bind('<Key>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ovf_epochs  .bind('<Key>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_epochs      .bind('<KeyRelease>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<KeyRelease>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ls          .bind('<KeyRelease>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l1          .bind('<KeyRelease>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_l2          .bind('<KeyRelease>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<KeyRelease>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<KeyRelease>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
         self.ed_trs_epochs      .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
         self.ed_trs_stoperror   .bind('<FocusOut>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
