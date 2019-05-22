@@ -24,8 +24,8 @@ softsign    = tf.nn.softsign
 #nn structure
 f_l_f = elu
 neurons=50
-struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
-                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
+struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons,neurons,neurons],
+                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
 outputs_af = tan
 
 Preprocessing_Min=-1.0
@@ -296,7 +296,7 @@ class app:
 
             epoch = epoch + 1
             if TestSizePercent>0.0:
-                if (test_loss < p_test_loss and i > 0):
+                if (test_loss < p_test_loss and i > 0 and train_loss<=test_loss):
                     p_epoch = i
                     p_test_loss = test_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
@@ -401,9 +401,14 @@ class app:
             except:
                 return
             else:
-                self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
-                self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='test loss')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_test_error[min_index]))
+                self.trainingplot.plot(self.trainingdata_train_error,color='b',
+                                       label='train_loss='+("%.4f" % self.trainingdata_train_error[self.trainingdata_train_error.size-1]))
+                self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',
+                                       label='test_loss='+("%.4f" % self.trainingdata_test_error[self.trainingdata_test_error.size-1]))
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',
+                                          label='epoch='+str(min_index)
+                                                +'\ntrain_loss=' + ("%.4f" % self.trainingdata_train_error[min_index])
+                                                +'\ntest_loss=' + ("%.4f" % self.trainingdata_test_error[min_index]))
                 self.trainingplot.axhline(y=self.trainingdata_test_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
         else:
@@ -412,8 +417,9 @@ class app:
             except:
                 return
             else:
-                self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\nloss='+("%.4f" % self.trainingdata_train_error[min_index]))
+                self.trainingplot.plot(self.trainingdata_train_error,color='b',
+                                       label='train_loss='+("%.4f" % self.trainingdata_train_error[self.trainingdata_train_error.size-1]))
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\ntrain_loss='+("%.4f" % self.trainingdata_train_error[min_index]))
                 self.trainingplot.axhline(y=self.trainingdata_train_error[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
 
@@ -743,7 +749,7 @@ class app:
         self.data_is_loaded=True
 
         for i in range(self.train_size - 1, 0, -1):
-            if (self.train_size % i == 0):  # and i < 1000):
+            if (self.train_size % i == 0 and i < 500):
                 self.batchsize = i
                 self.n_batches_train = int(self.train_size / self.batchsize)
                 break
