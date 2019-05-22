@@ -272,7 +272,7 @@ class app:
         p_train_loss = np.float32(99999999999)
         p_test_loss = np.float32(99999999999)
         p_global = np.float32(99999999999)
-        p_epoch = 0
+        self.p_epoch = 0
         epoch = 0
         of_counter = 0
         for i in range(self.settings['epochs']):
@@ -297,7 +297,7 @@ class app:
             epoch = epoch + 1
             if TestSizePercent>0.0:
                 if (test_loss < p_test_loss and i > 0 and train_loss<=test_loss):
-                    p_epoch = i
+                    self.p_epoch = i
                     p_test_loss = test_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
@@ -305,7 +305,7 @@ class app:
                     of_counter = of_counter + 1
             else:
                 if (train_loss < p_train_loss and i > 0):
-                    p_epoch = i
+                    self.p_epoch = i
                     p_train_loss = train_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
@@ -332,10 +332,10 @@ class app:
 
         if TestSizePercent>0.0:
             print("Selected Iter: {0:4d} TrainLoss: {1:.10f} TestLoss: {2:.10f}"
-                    .format(p_epoch,self.trainingdata_train_error[p_epoch],self.trainingdata_test_error[p_epoch]))
+                    .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch],self.trainingdata_test_error[self.p_epoch]))
         else:
             print("Selected Iter: {0:4d} TrainLoss: {1:.10f}"
-                    .format(p_epoch,self.trainingdata_train_error[p_epoch]))
+                    .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch]))
 
         self.training_is_launched=False
         self.btn_train.config(text="start")
@@ -405,11 +405,11 @@ class app:
                                        label='train_loss='+("%.4f" % self.trainingdata_train_error[self.trainingdata_train_error.size-1]))
                 self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',
                                        label='test_loss='+("%.4f" % self.trainingdata_test_error[self.trainingdata_test_error.size-1]))
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',
-                                          label='epoch='+str(min_index)
-                                                +'\ntrain_loss=' + ("%.4f" % self.trainingdata_train_error[min_index])
-                                                +'\ntest_loss=' + ("%.4f" % self.trainingdata_test_error[min_index]))
-                self.trainingplot.axhline(y=self.trainingdata_test_error[min_index], color='k', linestyle='--')
+                self.trainingplot.axvline(x=self.p_epoch, color='k', linestyle='--',
+                                          label='epoch='+str(self.p_epoch)
+                                                +'\ntrain_loss=' + ("%.4f" % self.trainingdata_train_error[self.p_epoch])
+                                                +'\ntest_loss=' + ("%.4f" % self.trainingdata_test_error[self.p_epoch]))
+                self.trainingplot.axhline(y=self.trainingdata_test_error[self.p_epoch], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
         else:
             try:
@@ -419,8 +419,8 @@ class app:
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',
                                        label='train_loss='+("%.4f" % self.trainingdata_train_error[self.trainingdata_train_error.size-1]))
-                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',label='epoch='+str(min_index)+'\ntrain_loss='+("%.4f" % self.trainingdata_train_error[min_index]))
-                self.trainingplot.axhline(y=self.trainingdata_train_error[min_index], color='k', linestyle='--')
+                self.trainingplot.axvline(x=self.p_epoch, color='k', linestyle='--',label='epoch='+str(self.p_epoch)+'\ntrain_loss='+("%.4f" % self.trainingdata_train_error[self.p_epoch]))
+                self.trainingplot.axhline(y=self.trainingdata_train_error[self.p_epoch], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
 
     def thread_draw2(self, i):
