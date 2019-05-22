@@ -127,7 +127,8 @@ class app:
         #self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
         self.rp_l2 = tf.contrib.layers.apply_regularization(self.reg_l2, self.wb)
 
-        self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
+        #self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
+        self.loss = tf.losses.absolute_difference(predictions=self.prediction, labels=self.labels)
         if self.settings['l1'] > 0 and self.settings['l2'] == 0:
             self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l1
         if self.settings['l2'] > 0 and self.settings['l1'] == 0:
