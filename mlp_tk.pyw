@@ -127,8 +127,8 @@ class app:
         #self.reg_l2 = tf.contrib.layers.l2_regularizer(scale=self.settings['l2'])
         self.rp_l2 = tf.contrib.layers.apply_regularization(self.reg_l2, self.wb)
 
-        #self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
-        self.loss = tf.losses.absolute_difference(predictions=self.prediction, labels=self.labels)
+        self.loss = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels)
+        #self.loss = tf.losses.absolute_difference(predictions=self.prediction, labels=self.labels)
         if self.settings['l1'] > 0 and self.settings['l2'] == 0:
             self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l1
         if self.settings['l2'] > 0 and self.settings['l1'] == 0:
@@ -260,6 +260,20 @@ class app:
         else:
             self.settingsui[i]['bg']='white'
             self.settings[i]=format(value)
+            if self.saving_is_launched == False:
+                self.saving_is_launched=True
+                ts = threading.Thread(target=self.thread_save_settings)
+                ts.daemon = True
+                ts.start()
+
+    def thread_save_settings(self):
+        while(self.training_is_launched):
+            pass
+        while(self.run_is_launched):
+            pass
+        self.save_settings()
+        self.saving_is_launched=False
+
 
     def thread_train(self):
         self.training_is_launched=True
@@ -390,7 +404,7 @@ class app:
 
             if self.stop_run_is_pressed==True:
                 break
-
+        self.run_is_launched=False
         self.btn_run.config(text="start")
 
 
@@ -523,6 +537,7 @@ class app:
             }
         self.training_is_launched=False
         self.run_is_launched=False
+        self.saving_is_launched=False
         self.data_is_loaded=False
 
 
