@@ -1,4 +1,5 @@
 from tkinter import *
+from tkinter import filedialog
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import numpy as np
@@ -40,6 +41,7 @@ class app:
 
 
     def try_load_data(self):
+        self.data_is_loading=True;
         self.path_is_valid=False
         fpath=self.ed_indatapath.get(1.0, END)
         fpath=fpath.rstrip()
@@ -70,6 +72,9 @@ class app:
             else:
                 self.ed_outdatapath['bg'] = 'red'
             print('no data')
+            self.data_is_loading=False
+            return False
+        self.data_is_loading=False
 
 
     def model(self,x):
@@ -220,6 +225,23 @@ class app:
         else:
             self.stop_run_is_pressed=True
 
+    def on_click_saveplot_btn(self,event):
+        if self.selectedplot.get()==1:
+            self.root.filename = filedialog.asksaveasfilename(initialdir = "",title = "Select file",filetypes = (("png files","*.png"),("all files","*.*")))
+            print (self.root.filename)
+            self.testingfig.savefig(self.root.filename+".png", dpi=1000, facecolor='w', edgecolor='w',
+            orientation='portrait', papertype=None, format=None,
+            transparent=False, bbox_inches=None, pad_inches=0.1,
+            frameon=None, metadata=None)
+
+        if self.selectedplot.get() == 0:
+            self.root.filename = filedialog.asksaveasfilename(initialdir="", title="Select file",
+                                                              filetypes=(("png files", "*.png"), ("all files", "*.*")))
+            print(self.root.filename)
+            self.trainingfig.savefig(self.root.filename + ".png", dpi=1000, facecolor='w', edgecolor='w',
+                                    orientation='portrait', papertype=None, format=None,
+                                    transparent=False, bbox_inches=None, pad_inches=0.1,
+                                    frameon=None, metadata=None)
 
     def on_click_train_btn(self,event):
         if self.training_is_launched==False:
@@ -228,6 +250,13 @@ class app:
             tt.start()
         else:
             self.stop_train_is_pressed=True
+
+    def on_click_reloaddata_btn(self,event):
+        self.btn_reloaddata['bg']='grey'
+        if(self.try_load_data()==False):
+            self.btn_reloaddata['bg']='red'
+        else:
+            self.btn_reloaddata['bg']='white'
 
 
     def on_click_select_plot(self):#, event):
@@ -439,17 +468,18 @@ class app:
                 self.trainingplot.legend(loc='upper right')
 
     def thread_draw2(self, i):
-        self.sess.run(self.iter.initializer,
-                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
-                                 self.batch_normalization_active: False})
-        zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
-        net_outputs = zout
-        targets = self.Y
-        if(len(net_outputs)!=len(targets)):
-            return
-        self.testingplot.clear()
-        self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
-        self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+        if(self.data_is_loading==False):
+            self.sess.run(self.iter.initializer,
+                          feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
+                                     self.batch_normalization_active: False})
+            zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+            net_outputs = zout
+            targets = self.Y
+            if(len(net_outputs)!=len(targets)):
+                return
+            self.testingplot.clear()
+            self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
+            self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
 
     def save_settings(self):
         fname='settings.txt'
@@ -576,8 +606,11 @@ class app:
         self.frm_testing=       Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.lbl_train=         Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Train model',anchor=W, justify=LEFT)
         self.lbl_run=           Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Run model',anchor=W, justify=LEFT)
+        self.lbl_reloaddata=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Reload data',anchor=W, justify=LEFT)
         self.btn_train=         Button(self.root,height=1,width=10,text='start')
         self.btn_run=           Button(self.root,height=1,width=10,text='start')
+        self.btn_reloaddata=    Button(self.root,height=1,width=10,text='start')
+        self.btn_saveplot=      Button(self.root,height=1,width=10,text='Save plot')
         #file paths
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
@@ -586,7 +619,7 @@ class app:
         self.ed_outdatapath=    Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
         self.ed_inputpath=      Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
         #training settings
-        self.lbl_trainingsettings=  Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training settings:',anchor=W, justify=LEFT)
+        #self.lbl_trainingsettings=  Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training settings:',anchor=W, justify=LEFT)
         self.lbl_trs_epochs=        Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epochs:',anchor=W, justify=LEFT)
         self.lbl_trs_stoperror=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='stop error:',anchor=W, justify=LEFT)
         self.lbl_trs_ls=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training speed:',anchor=W, justify=LEFT)
@@ -654,26 +687,31 @@ class app:
 
         self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
         self.btn_run            .bind('<Button 1>', self.on_click_run_btn)
+        self.btn_reloaddata     .bind('<Button 1>', self.on_click_reloaddata_btn)
+        self.btn_saveplot       .bind('<Button 1>', self.on_click_saveplot_btn)
 
 
         self.ed_indatapath      .place(x=140, y=10)
         self.ed_outdatapath     .place(x=140, y=40)
         self.ed_inputpath       .place(x=140, y=70)
 
-        self.lbl_train.place(x=10, y=110)
-        self.btn_train.place(x=140, y=110)
-        self.lbl_run.place(x=10, y=140)
-        self.btn_run.place(x=140, y=140)
+        self.lbl_reloaddata.place(x=10, y=100)
+        self.btn_reloaddata.place(x=140, y=100)
+        self.lbl_train.place(x=10, y=130)
+        self.btn_train.place(x=140, y=130)
+        self.lbl_run.place(x=10, y=160)
+        self.btn_run.place(x=140, y=160)
 
         self.btn_trainingplot.place(x=270,y=10)
         self.btn_testingplot.place(x=400,y=10)
+        self.btn_saveplot.place(x=600,y=10)
         self.frm_training.place(x=270, y=40)
         self.lbl_indatapath.place(x=10, y=10)
         self.lbl_outdatapath.place(x=10, y=40)
         self.lbl_inputpath.place(x=10, y=70)
-        self.lbl_trainingsettings.place(x=10, y=150)
+        #self.lbl_trainingsettings.place(x=10, y=150)
 
-        self.lbl_trainingsettings   .place(x=10, y=170)
+        #self.lbl_trainingsettings   .place(x=10, y=170)
         self.lbl_trs_epochs        .place(x=10, y=200)
         self.lbl_trs_stoperror      .place(x=10, y=230)
         self.lbl_trs_ovf_epochs     .place(x=10, y=260)
