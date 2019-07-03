@@ -29,10 +29,21 @@ struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons,neurons,neur
                    [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
 outputs_af = tan
 
+
+##nn structure
+#f_l_f = elu
+#neurons=500
+#struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
+#                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
+#outputs_af = tan
+
+
+
+
 Preprocessing_Min=-1.0
 Preprocessing_Max=1.0
 TestSizePercent = 0.1
-
+MaxBatchSize=2000
 
 
 
@@ -61,7 +72,21 @@ class app:
                 self.ed_outdatapath['bg'] = 'green'
                 self.path_is_valid=True
                 self.load_data()
-                #self.init_model_variables()
+                # init arrays for training
+
+                try:
+                    self.trainingdata_train_error = np.empty(shape=0)
+                except:
+                    self.trainingdata_train_error.reshape(0)
+                else:
+                    pass
+
+                try:
+                    self.trainingdata_test_error = np.empty(shape=0)
+                except:
+                    self.trainingdata_test_error.reshape(0)
+                else:
+                    pass
             else:
                 self.ed_outdatapath['bg'] = 'red'
 
@@ -74,6 +99,8 @@ class app:
             print('no data')
             self.data_is_loading=False
             return False
+
+
         self.data_is_loading=False
 
 
@@ -153,9 +180,6 @@ class app:
         self.sess=tf.Session()
         self.sess.run(tf.global_variables_initializer())
 
-        #init arrays for training
-        self.trainingdata_train_error = np.empty(shape=0)
-        self.trainingdata_test_error = np.empty(shape=0)
 
 
 
@@ -226,22 +250,21 @@ class app:
             self.stop_run_is_pressed=True
 
     def on_click_saveplot_btn(self,event):
-        if self.selectedplot.get()==1:
-            self.root.filename = filedialog.asksaveasfilename(initialdir = "",title = "Select file",filetypes = (("png files","*.png"),("all files","*.*")))
-            print (self.root.filename)
-            self.testingfig.savefig(self.root.filename+".png", dpi=1000, facecolor='w', edgecolor='w',
-            orientation='portrait', papertype=None, format=None,
-            transparent=False, bbox_inches=None, pad_inches=0.1,
-            frameon=None, metadata=None)
+        if self.savepng_is_launched==False:
+            tt = threading.Thread(target=self.thread_savepng)
+            tt.daemon = True
+            tt.start()
 
         if self.selectedplot.get() == 0:
             self.root.filename = filedialog.asksaveasfilename(initialdir="", title="Select file",
                                                               filetypes=(("png files", "*.png"), ("all files", "*.*")))
             print(self.root.filename)
-            self.trainingfig.savefig(self.root.filename + ".png", dpi=1000, facecolor='w', edgecolor='w',
-                                    orientation='portrait', papertype=None, format=None,
+            self.trainingfig.set_size_inches(40,20)
+            self.trainingfig.savefig(self.root.filename + ".png", dpi=100, facecolor='w', edgecolor='w',
+                                    orientation='portrait', papertype="a0", format=None,
                                     transparent=False, bbox_inches=None, pad_inches=0.1,
                                     frameon=None, metadata=None)
+            self.trainingfig.set_size_inches(7,5)
 
     def on_click_train_btn(self,event):
         if self.training_is_launched==False:
@@ -252,12 +275,9 @@ class app:
             self.stop_train_is_pressed=True
 
     def on_click_reloaddata_btn(self,event):
-        self.btn_reloaddata['bg']='grey'
-        if(self.try_load_data()==False):
-            self.btn_reloaddata['bg']='red'
-        else:
-            self.btn_reloaddata['bg']='white'
-
+        tt = threading.Thread(target=self.thread_reloaddata)
+        tt.daemon = True
+        tt.start()
 
     def on_click_select_plot(self):#, event):
         if self.selectedplot.get()==0:
@@ -290,16 +310,16 @@ class app:
             self.settingsui[i]['bg']='white'
             self.settings[i]=format(value)
             if self.saving_is_launched == False:
-                self.saving_is_launched=True
                 ts = threading.Thread(target=self.thread_save_settings)
                 ts.daemon = True
                 ts.start()
 
     def thread_save_settings(self):
-        while(self.training_is_launched):
-            pass
-        while(self.run_is_launched):
-            pass
+        #while(self.training_is_launched):
+            #pass
+        #while(self.run_is_launched):
+            #pass
+        self.saving_is_launched=True
         self.save_settings()
         self.saving_is_launched=False
 
@@ -309,13 +329,43 @@ class app:
         self.stop_train_is_pressed=False
         self.btn_train.config(text="stop")
 
+        try:
+            self.trainingdata_train_error = np.empty(shape=0)
+        except:
+            self.trainingdata_train_error.reshape(0)
+        else:
+            pass
+
+        try:
+            self.trainingdata_test_error = np.empty(shape=0)
+        except:
+            self.trainingdata_test_error.reshape(0)
+        else:
+            pass
+
+
         # initialise iterator with train data
         self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
                                                    self.batch_normalization_active: True})
         print('Training...')
-        p_train_loss = np.float32(99999999999)
-        p_test_loss = np.float32(99999999999)
-        p_global = np.float32(99999999999)
+
+        save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+
+        self.sess.run(self.iter.initializer,
+                      feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.train_size,
+                                 self.drop_rate: 0,
+                                 self.batch_normalization_active: False})
+        p_train_loss = self.sess.run(self.loss)
+        self.trainingdata_train_error = np.append(self.trainingdata_train_error, p_train_loss)
+
+        if (TestSizePercent > 0.0):
+            self.sess.run(self.iter.initializer,
+                          feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size,
+                                     self.drop_rate: 0,
+                                     self.batch_normalization_active: False})
+            p_test_loss = self.sess.run(self.loss)
+            self.trainingdata_test_error = np.append(self.trainingdata_test_error, p_test_loss)
+
         self.p_epoch = 0
         epoch = 0
         of_counter = 0
@@ -380,10 +430,34 @@ class app:
         else:
             print("Selected Iter: {0:4d} TrainLoss: {1:.10f}"
                     .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch]))
-
+        self.update_error()
         self.training_is_launched=False
         self.btn_train.config(text="start")
         return
+
+    def thread_savepng(self):
+        self.savepng_is_launched=True
+        if self.selectedplot.get()==1:
+            self.root.filename = filedialog.asksaveasfilename(initialdir = "",title = "Select file",filetypes = (("png files","*.png"),("all files","*.*")))
+            print (self.root.filename)
+            self.testingfig.set_size_inches(40,20)
+            self.testingfig.savefig(self.root.filename, dpi=100, facecolor='w', edgecolor='w',
+            orientation='portrait', papertype="a0", format=None,
+            transparent=False, bbox_inches=None, pad_inches=0.1,
+            frameon=None, metadata=None)
+            self.testingfig.set_size_inches(7,5)
+
+        if self.selectedplot.get() == 0:
+            self.root.filename = filedialog.asksaveasfilename(initialdir="", title="Select file",
+                                                              filetypes=(("png files", "*.png"), ("all files", "*.*")))
+            print(self.root.filename)
+            self.trainingfig.set_size_inches(40,20)
+            self.trainingfig.savefig(self.root.filename , dpi=100, facecolor='w', edgecolor='w',
+                                    orientation='portrait', papertype="a0", format=None,
+                                    transparent=False, bbox_inches=None, pad_inches=0.1,
+                                    frameon=None, metadata=None)
+            self.trainingfig.set_size_inches(7,5)
+        self.savepng_is_launched=False
 
 
     def thread_run(self):
@@ -436,6 +510,12 @@ class app:
         self.run_is_launched=False
         self.btn_run.config(text="start")
 
+    def thread_reloaddata(self):
+        self.btn_reloaddata['state']='disabled'
+        if(self.try_load_data()==False):
+            self.btn_reloaddata['bg']='red'
+        self.btn_reloaddata['state'] = 'normal'
+        self.update_error()
 
     def thread_draw(self, i):
         self.trainingplot.clear()
@@ -477,9 +557,19 @@ class app:
             targets = self.Y
             if(len(net_outputs)!=len(targets)):
                 return
+
+
             self.testingplot.clear()
             self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
             self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+
+    def update_error(self):
+        self.sess.run(self.iter.initializer,
+                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
+                                 self.drop_rate: 0,
+                                 self.batch_normalization_active: False})
+        self.losses = self.sess.run(self.loss)
+        self.lbl_losses.config(text=self.losses)
 
     def save_settings(self):
         fname='settings.txt'
@@ -569,7 +659,7 @@ class app:
         self.run_is_launched=False
         self.saving_is_launched=False
         self.data_is_loaded=False
-
+        self.savepng_is_launched=False
 
     def on_change_layers_count(self,event):
         #a1=self.list_ns_layers.getint(ACTIVE)
@@ -598,10 +688,12 @@ class app:
         self.s_inputpath=''
 
         self.new_path=True
+
         self.selectedplot=IntVar()
         self.selectedplot.set(0)
         self.btn_trainingplot=  Radiobutton(self.root,var=self.selectedplot,value=0,text='training data',command=self.on_click_select_plot)
         self.btn_testingplot=   Radiobutton(self.root,var=self.selectedplot,value=1,text='testing model',command=self.on_click_select_plot)
+
         self.frm_training=      Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.frm_testing=       Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.lbl_train=         Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Train model',anchor=W, justify=LEFT)
@@ -634,6 +726,8 @@ class app:
         self.ed_trs_l2=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_droprate=       Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_ovf_epochs=     Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+
+        self.lbl_losses=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='',anchor=W, justify=LEFT)
 
         #self.ed_ns_l1_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
         #self.ed_ns_l2_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
@@ -704,7 +798,8 @@ class app:
 
         self.btn_trainingplot.place(x=270,y=10)
         self.btn_testingplot.place(x=400,y=10)
-        self.btn_saveplot.place(x=600,y=10)
+        self.lbl_losses.place(x=550,y=10)
+        self.btn_saveplot.place(x=700,y=10)
         self.frm_training.place(x=270, y=40)
         self.lbl_indatapath.place(x=10, y=10)
         self.lbl_outdatapath.place(x=10, y=40)
@@ -802,8 +897,10 @@ class app:
 
         self.data_is_loaded=True
 
+        self.losses=0
+
         for i in range(self.train_size - 1, 0, -1):
-            if (self.train_size % i == 0 and i < 500):
+            if (self.train_size % i == 0 and i < MaxBatchSize):
                 self.batchsize = i
                 self.n_batches_train = int(self.train_size / self.batchsize)
                 break
@@ -838,6 +935,7 @@ class app:
         self.init_model_name()
         self.init_model_variables()
         self.load_model()
+        self.update_error()
 
         #run
         self.root.mainloop()

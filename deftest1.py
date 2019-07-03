@@ -1,14 +1,6 @@
-from time import sleep
-a=1;
+import os, msvcrt
+while 1:
+    a = msvcrt.getch()
+    os.system("cls")
+    print(a)
 
-
-def someshit(somedata):
-
-    global a
-    a = somedata*2
-
-
-while(True):
-        someshit(a)
-        print(a)
-        sleep(1)
