@@ -22,20 +22,20 @@ tan         = tf.nn.tanh
 relu        = tf.nn.relu
 softsign    = tf.nn.softsign
 
-#nn structure
-f_l_f = elu
-neurons=50
-struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons,neurons,neurons],
-                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
-outputs_af = tan
-
-
 ##nn structure
 #f_l_f = elu
-#neurons=500
-#struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
-#                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
-#outputs_af = tan
+#neurons=50
+#struct = np.array([[neurons,neurons,neurons,neurons,neurons],
+#                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
+#outputs_af = None
+
+
+#nn structure
+f_l_f = elu
+neurons=100
+struct = np.array([[neurons,neurons,neurons],
+                   [f_l_f,f_l_f,f_l_f]])
+outputs_af = None
 
 
 
@@ -43,7 +43,7 @@ outputs_af = tan
 Preprocessing_Min=-1.0
 Preprocessing_Max=1.0
 TestSizePercent = 0.1
-MaxBatchSize=2000
+MaxBatchSize=300
 
 
 
@@ -390,19 +390,36 @@ class app:
 
             epoch = epoch + 1
             if TestSizePercent>0.0:
-                if (test_loss < p_test_loss and i > 0 and train_loss<=test_loss):
-                    self.p_epoch = i
+                if (test_loss < p_test_loss and i > 0 and train_loss < p_train_loss):
+                    self.p_epoch = i+1
                     p_test_loss = test_loss
+                    p_train_loss = train_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
+                    if (self.test_model == True):
+                        self.model_is_tested=False
+                        self.sess.run(self.iter.initializer,
+                                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
+                                                 self.drop_rate: 0,
+                                                 self.batch_normalization_active: False})
+                        self.test_outputs = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                        self.model_is_tested=True
                 else:
                     of_counter = of_counter + 1
             else:
                 if (train_loss < p_train_loss and i > 0):
-                    self.p_epoch = i
+                    self.p_epoch = i+1
                     p_train_loss = train_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
+                    if (self.test_model == True):
+                        self.model_is_tested=False
+                        self.sess.run(self.iter.initializer,
+                                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
+                                                 self.drop_rate: 0,
+                                                 self.batch_normalization_active: False})
+                        self.test_outputs = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                        self.model_is_tested=True
                 else:
                     of_counter = of_counter + 1
 
@@ -518,6 +535,8 @@ class app:
         self.update_error()
 
     def thread_draw(self, i):
+        if(self.testing_model==True):
+            self.testing_model=False
         self.trainingplot.clear()
         if TestSizePercent>0.0:
             try:
@@ -548,20 +567,29 @@ class app:
                 self.trainingplot.legend(loc='upper right')
 
     def thread_draw2(self, i):
+        if(self.test_model==False):
+            self.test_model = True
         if(self.data_is_loading==False):
-            self.sess.run(self.iter.initializer,
-                          feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
-                                     self.batch_normalization_active: False})
-            zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
-            net_outputs = zout
-            targets = self.Y
-            if(len(net_outputs)!=len(targets)):
-                return
+            if(self.training_is_launched==False):
+                self.sess.run(self.iter.initializer,
+                              feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
+                                         self.batch_normalization_active: False})
+                zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                net_outputs = zout
+                targets = self.Y
+                if(len(net_outputs)!=len(targets)):
+                    return
 
 
-            self.testingplot.clear()
-            self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
-            self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+                self.testingplot.clear()
+                self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
+                self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+            if(self.training_is_launched==True):
+                if(self.model_is_tested==True):
+                    if (len(self.test_outputs) == len(self.Y)):
+                        self.testingplot.clear()
+                        self.testingplot.plot(self.test_outputs, linewidth=1.0, label="outputs", color='r')
+                        self.testingplot.plot(self.Y, linewidth=1.0, label="targets", color='b')
 
     def update_error(self):
         self.sess.run(self.iter.initializer,
@@ -660,6 +688,9 @@ class app:
         self.saving_is_launched=False
         self.data_is_loaded=False
         self.savepng_is_launched=False
+        self.test_model=False
+        self.model_is_tested = True
+        self.testing_model=False
 
     def on_change_layers_count(self,event):
         #a1=self.list_ns_layers.getint(ACTIVE)
@@ -886,6 +917,8 @@ class app:
         self.n_datasize = self.X.shape[0]
         self.X = np.reshape(self.X, [self.n_datasize, self.n_inputs])
         self.Y = np.reshape(self.Y, [self.n_datasize, self.n_outputs])
+        self.test_outputs=self.Y
+        #self.test_outputs.fill(0)
 
         self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
 
