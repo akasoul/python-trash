@@ -31,13 +31,25 @@ def get_response(input,speech_speed,language):
     response = client.synthesize_speech(synthesis_input, voice, audio_config)
     return response.audio_content
 
+def get_audio_params(data):
+    out1=2
+    out2=1
+    for i in range(2,20):
+        for j in range(1,20):
+            if(len(data)%(i*j)==0):
+                out1 = i
+                out2 = j
+                return [out1,out2]
+    return [out1, out2]
+
+
 #data
 data_to_translate=np.genfromtxt('data.txt', dtype=str, delimiter=';')
 size=data_to_translate.shape[0]
 
 
 #pause in speech
-silence_duration = 1000
+silence_duration = 3000
 silence_segment = AudioSegment.silent(duration=silence_duration)  # duration in milliseconds
 silence = silence_segment.raw_data
 
@@ -54,25 +66,29 @@ for i in range(1, size):
     speech_translated = np.append(speech_translated,get_response(data_translated[i],speech_speed, 'ru-RU'))
 
 
-
-audio_out = AudioSegment(data=str(speech_to_translate[0]),sample_width=1,channels=1,frame_rate=44100)
-audio_out = audio_out.append(silence_segment,crossfade=0)
-audio_out = AudioSegment(data=str(speech_translated[0]),sample_width=1,channels=1,frame_rate=44100)
-audio_out = audio_out.append(silence_segment,crossfade=0)
+params=get_audio_params(speech_to_translate[0])
+audio_out = AudioSegment(data=str(speech_to_translate[0]),sample_width=params[0],channels=params[1],frame_rate=44100)
+audio_out = audio_out.append(silence_segment,crossfade=10)
+params=get_audio_params(speech_translated[0])
+temp_segment = AudioSegment(data=str(speech_translated[0]),sample_width=params[0],channels=params[1],frame_rate=44100)
+audio_out = audio_out.append(temp_segment, crossfade=10)
+audio_out = audio_out.append(silence_segment,crossfade=10)
 
 for i in range(1, data_to_translate.shape[0]):
     fname = 'output' + str(i) + '.mp3'
-    temp_segment = AudioSegment(data=str(speech_to_translate[i]),sample_width=1,channels=1,frame_rate=44100)
-    audio_out = audio_out.append(temp_segment,crossfade=0)
-    audio_out = audio_out.append(silence_segment,crossfade=0)
-    temp_segment = AudioSegment(data=str(speech_translated[i]),sample_width=1,channels=1,frame_rate=44100)
-    audio_out = audio_out.append(temp_segment,crossfade=0)
-    audio_out = audio_out.append(silence_segment,crossfade=0)
+    params = get_audio_params(speech_to_translate[i])
+    temp_segment = AudioSegment(data=str(speech_to_translate[i]),sample_width=params[0],channels=params[1],frame_rate=44100)
+    audio_out = audio_out.append(temp_segment,crossfade=10)
+    audio_out = audio_out.append(silence_segment,crossfade=10)
+    params = get_audio_params(speech_translated[i])
+    temp_segment = AudioSegment(data=str(speech_translated[i]),sample_width=params[0],channels=params[1],frame_rate=44100)
+    audio_out = audio_out.append(temp_segment,crossfade=10)
+    audio_out = audio_out.append(silence_segment,crossfade=10)
 
 
 audio_out.export("mainout.mp3", format="mp3")
 
-audio_out = AudioSegment(data=speech_to_translate[0],sample_width=1,channels=1,frame_rate=44100)
+audio_out = AudioSegment(data=speech_to_translate[0],sample_width=2,channels=1,frame_rate=44100)
 audio_out.export("mainout1.mp3", format="mp3")
 
 with open('output.mp3', 'wb') as out:
