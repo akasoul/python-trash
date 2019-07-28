@@ -1,53 +1,39 @@
-"""
-=====
-Decay
-=====
-
-This example showcases a sinusoidal decay animation.
-"""
+#import pyttsx
+#engine = pyttsx.init()
+#engine.say('Ich lebe in Russland')
+#engine.runAndWait()
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
+#from gtts import gTTS
+#tts = gTTS('Ich lebe in Russland','de')
+#tts.save('hello.mp3')
 
 
-def data_gen(t=0):
-    cnt = 0
-    while cnt < 1000:
-        cnt += 1
-        t += 0.1
-        yield t, np.sin(2*np.pi*t) * np.exp(-t/10.)
 
+from google.cloud import texttospeech
 
-def init():
-    ax.set_ylim(-1.1, 1.1)
-    ax.set_xlim(0, 10)
-    del xdata[:]
-    del ydata[:]
-    line.set_data(xdata, ydata)
-    return line,
+# Instantiates a client
+client = texttospeech.TextToSpeechClient()
 
-fig, ax = plt.subplots()
-line, = ax.plot([], [], lw=2)
-ax.grid()
-xdata, ydata = [], []
+# Set the text input to be synthesized
+synthesis_input = texttospeech.types.SynthesisInput(text="Hello, World!")
 
+# Build the voice request, select the language code ("en-US") and the ssml
+# voice gender ("neutral")
+voice = texttospeech.types.VoiceSelectionParams(
+    language_code='en-US',
+    ssml_gender=texttospeech.enums.SsmlVoiceGender.NEUTRAL)
 
-def run(data):
-    # update the data
-    t, y = data
-    xdata.append(t)
-    ydata.append(y)
-    xmin, xmax = ax.get_xlim()
+# Select the type of audio file you want returned
+audio_config = texttospeech.types.AudioConfig(
+    audio_encoding=texttospeech.enums.AudioEncoding.MP3)
 
-    if t >= xmax:
-        ax.set_xlim(xmin, 2*xmax)
-        ax.figure.canvas.draw()
-    line.set_data(xdata, ydata)
+# Perform the text-to-speech request on the text input with the selected
+# voice parameters and audio file type
+response = client.synthesize_speech(synthesis_input, voice, audio_config)
 
-    return line,
-
-ani = animation.FuncAnimation(fig, run, data_gen, blit=False, interval=10,
-                              repeat=False, init_func=init)
-plt.show()
+# The response's audio_content is binary.
+with open('output.mp3', 'wb') as out:
+    # Write the response to the output file.
+    out.write(response.audio_content)
+    print('Audio content written to file "output.mp3"')
