@@ -6,18 +6,34 @@ import os
 import sys
 
 speech_speed=0.9
+silence_duration = 0
+delimiter=';'
 
 
-def translate_text(input,language):
+
+pair=['ru','de']
+
+dict={'ru':'ru-RU',
+      'de':'de-DE'
+      }
+
+
+def translate_text(input):
     translate_client = translate.Client()
     text_original = input
+    original_language = translate_client.detect_language(text_original)['language']
+    if(original_language!=pair[0]):
+        target_language=pair[0]
+    else:
+        target_language=pair[1]
+
     translation = translate_client.translate(
         text_original,
-        target_language=language)
-    text_translated=translation['translatedText'].encode('utf-8')
-    return text_translated
+        target_language=target_language)
+    text_translated=str(translation['translatedText'])#.encode('utf-8'))
+    return text_translated,original_language,target_language
 
-def get_response(input,speech_speed,language):
+def get_speech(input, speech_speed, language):
     client = texttospeech.TextToSpeechClient()
     synthesis_input = texttospeech.types.SynthesisInput(text=input)
     voice = texttospeech.types.VoiceSelectionParams(
@@ -31,73 +47,67 @@ def get_response(input,speech_speed,language):
     response = client.synthesize_speech(synthesis_input, voice, audio_config)
     return response.audio_content
 
-def get_audio_params(data):
-    out1=2
-    out2=1
-    for i in range(2,20):
-        for j in range(1,20):
-            if(len(data)%(i*j)==0):
-                out1 = i
-                out2 = j
-                return [out1,out2]
-    return [out1, out2]
 
 
 #data
-data_to_translate=np.genfromtxt('data.txt', dtype=str, delimiter=';')
+data_to_translate=np.genfromtxt('data.txt', dtype=str, delimiter=delimiter)
 size=data_to_translate.shape[0]
 
 
 #pause in speech
-silence_duration = 3000
-silence_segment = AudioSegment.silent(duration=silence_duration)  # duration in milliseconds
-silence = silence_segment.raw_data
+silence_segment = AudioSegment.silent(duration=silence_duration,frame_rate=44100)  # duration in milliseconds
 
 
-data_translated=np.array(translate_text(data_to_translate[0],'ru'))
+
+[text,original_language,target_language]=translate_text(data_to_translate[0])
+data_translated=np.array(text)
+speech_to_translate=np.array(get_speech(data_to_translate[0], speech_speed,
+                                        dict[original_language]))
+speech_translated=np.array(get_speech(text, speech_speed, dict[target_language]))
+
 for i in range(1,size):
-    data_translated=np.append(data_translated,translate_text(data_to_translate[i],'ru'))
+    [text, original_language, target_language] = translate_text(data_to_translate[i])
+    data_translated=np.append(data_translated,text)
+    speech_to_translate = np.append(speech_to_translate, get_speech(data_to_translate[i], speech_speed, dict[original_language]))
+    speech_translated = np.append(speech_translated, get_speech(text, speech_speed, dict[target_language]))
 
 
-speech_to_translate=np.array(get_response(data_to_translate[0],speech_speed,'de-DE'))
-speech_translated=np.array(get_response(data_translated[0],speech_speed,'ru-RU'))
-for i in range(1, size):
-    speech_to_translate = np.append(speech_to_translate,get_response(data_to_translate[i],speech_speed, 'de-DE'))
-    speech_translated = np.append(speech_translated,get_response(data_translated[i],speech_speed, 'ru-RU'))
 
 
-params=get_audio_params(speech_to_translate[0])
-audio_out = AudioSegment(data=str(speech_to_translate[0]),sample_width=params[0],channels=params[1],frame_rate=44100)
-audio_out = audio_out.append(silence_segment,crossfade=10)
-params=get_audio_params(speech_translated[0])
-temp_segment = AudioSegment(data=str(speech_translated[0]),sample_width=params[0],channels=params[1],frame_rate=44100)
-audio_out = audio_out.append(temp_segment, crossfade=10)
-audio_out = audio_out.append(silence_segment,crossfade=10)
+if(silence_duration>0):
 
-for i in range(1, data_to_translate.shape[0]):
-    fname = 'output' + str(i) + '.mp3'
-    params = get_audio_params(speech_to_translate[i])
-    temp_segment = AudioSegment(data=str(speech_to_translate[i]),sample_width=params[0],channels=params[1],frame_rate=44100)
-    audio_out = audio_out.append(temp_segment,crossfade=10)
-    audio_out = audio_out.append(silence_segment,crossfade=10)
-    params = get_audio_params(speech_translated[i])
-    temp_segment = AudioSegment(data=str(speech_translated[i]),sample_width=params[0],channels=params[1],frame_rate=44100)
-    audio_out = audio_out.append(temp_segment,crossfade=10)
-    audio_out = audio_out.append(silence_segment,crossfade=10)
-
-
-audio_out.export("mainout.mp3", format="mp3")
-
-audio_out = AudioSegment(data=speech_to_translate[0],sample_width=2,channels=1,frame_rate=44100)
-audio_out.export("mainout1.mp3", format="mp3")
-
-with open('output.mp3', 'wb') as out:
     for i in range(0,size):
-        out.write(speech_to_translate[i])
-        out.write(speech_translated[i])
+        fname1='out'+str(i*2)+'.mp3'
+        fname2='out'+str(i*2+1)+'.mp3'
+        with open(fname1, 'wb') as output:
+            output.write(speech_to_translate[i])
+        with open(fname2, 'wb') as output:
+            output.write(speech_translated[i])
 
-for i in range(0, data_to_translate.shape[0]):
-    fname = 'output' + str(i) + '.mp3'
-    if(os.path.isfile(fname)):
-        os.remove(fname)
+    audio_out=AudioSegment.empty()
+    for i in range(0,size):
+        fname1='out'+str(i*2)+'.mp3'
+        fname2='out'+str(i*2+1)+'.mp3'
+        audio_out=audio_out+AudioSegment.from_mp3(fname1)
+        audio_out=audio_out+silence_segment
+        audio_out=audio_out+AudioSegment.from_mp3(fname2)
+        audio_out=audio_out+silence_segment
+
+
+    audio_out.export("output.mp3",format="mp3")
+
+
+    for i in range(0, size):
+        fname1='out'+str(i*2)+'.mp3'
+        fname2='out'+str(i*2+1)+'.mp3'
+        if(os.path.isfile(fname1)):
+            os.remove(fname1)
+        if(os.path.isfile(fname2)):
+            os.remove(fname2)
+else:
+    fname = 'output.mp3'
+    with open(fname, 'wb') as output:
+        for i in range(0,size):
+            output.write(speech_to_translate[i])
+            output.write(speech_translated[i])
 
