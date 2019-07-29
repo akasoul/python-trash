@@ -6,8 +6,8 @@ import os
 import sys
 
 speech_speed=0.9
-silence_duration = 0
-delimiter=';'
+silence_duration = 500
+delimiter='\n'
 
 
 
@@ -22,11 +22,12 @@ def translate_text(input):
     translate_client = translate.Client()
     text_original = input
     original_language = translate_client.detect_language(text_original)['language']
-    if(original_language!=pair[0]):
-        target_language=pair[0]
-    else:
-        target_language=pair[1]
-
+    #if(original_language!=pair[0]):
+    #    target_language=pair[0]
+    #else:
+    #    target_language=pair[1]
+    original_language=pair[0]
+    target_language=pair[1]
     translation = translate_client.translate(
         text_original,
         target_language=target_language)
@@ -44,13 +45,21 @@ def get_speech(input, speech_speed, language):
         audio_encoding=texttospeech.enums.AudioEncoding.MP3,
         speaking_rate = speech_speed
     )
-    response = client.synthesize_speech(synthesis_input, voice, audio_config)
-    return response.audio_content
+    if(language!=-1):
+        response = client.synthesize_speech(synthesis_input, voice, audio_config)
+        return response.audio_content
+    else:
+        return 0
 
-
+def compare_with_dict(input):
+    for i in dict.keys():
+        if(i==input):
+            return dict[input]
+    return -1
 
 #data
-data_to_translate=np.genfromtxt('data.txt', dtype=str, delimiter=delimiter)
+fname='data.txt'
+data_to_translate=np.loadtxt(fname,delimiter=delimiter,dtype=str,encoding='utf-8')
 size=data_to_translate.shape[0]
 
 
@@ -89,7 +98,6 @@ if(silence_duration>0):
         fname1='out'+str(i*2)+'.mp3'
         fname2='out'+str(i*2+1)+'.mp3'
         audio_out=audio_out+AudioSegment.from_mp3(fname1)
-        audio_out=audio_out+silence_segment
         audio_out=audio_out+AudioSegment.from_mp3(fname2)
         audio_out=audio_out+silence_segment
 
