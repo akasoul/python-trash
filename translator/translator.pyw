@@ -5,13 +5,13 @@ from google.cloud import translate
 import os
 import sys
 
-speech_speed=0.9
-silence_duration = 500
+speech_speed=0.8
+silence_duration = 0
 delimiter='\n'
 
 
 
-pair=['ru','de']
+pair=['de','ru']
 
 dict={'ru':'ru-RU',
       'de':'de-DE'
