@@ -1,6 +1,8 @@
 import socket
 import time
 import threading
+import sys
+
 
 class SockConnection:
 
@@ -24,38 +26,87 @@ class SockConnection:
                 self.sock.listen(1)
             except:
                 pass
-            self.Loop()
+            self.mainThread()
 
-    def Log(self,data):
+    def writeLog(self,data):
         file = open(self.log_fname, 'a+')
         file.write(data)
         file.close()
 
-    def AnswerThread(self,conn,addr):
+    # def connThread(self,conn,addr):
+    #     _SIZE=32
+    #     try:
+    #         data = conn.recv(_SIZE)
+    #     except:
+    #         pass
+    #     else:
+    #         size=sys.getsizeof(data)
+    #         pwd = data[0:6].decode()
+    #         data = data[6:len(data)].decode()
+    #         data_available=True
+    #         while(data_available==True):
+    #                 new_data=conn.recv(_SIZE)
+    #                 data += new_data.decode()
+    #                 if(len(new_data)<_SIZE):
+    #                     data_available=False
+    #         if (pwd == self.code):
+    #             self.writeLog(" " + data)
+    #             ans = str(addr) + str(data)
+    #             ans = ans.encode()
+    #             conn.send(ans.upper())
+    #             conn.close()
+    def connThread(self,conn,addr):
+        _SIZE=32
         try:
-            data = conn.recv(1024)
+            data = conn.recv(_SIZE)
         except:
             pass
         else:
+            cmd=data[0:2].decode()
+            language_original=None
+            language_target=None
+            mes_count=None
+            sound_speed=None
+            if(cmd=='tr'):
+                language_original=data[3:5].decode()
+                language_target=data[6:8].decode()
+                mes_count=int(data[9:10].decode())
+            if(cmd=='sp'):
+                language_original=data[3:8].decode()
+                sound_speed=float(data[9:13].decode())
+                mes_count=int(data[14:15].decode())
+
+            message=data[15:len(data)]
+            for i in range(0,mes_count-1):
+                message+=conn.recv(_SIZE)
+            message=message.decode('utf-8')
+            conn.send(b' ')
             pwd = data[0:6].decode()
-            data = data[6:len(data)].decode()
+            data = data[7:len(data)].decode()
+            data_available=True
+            while(data_available==True):
+                    new_data=conn.recv(_SIZE)
+                    data += new_data.decode()
+                    if(len(new_data)<_SIZE):
+                        data_available=False
             if (pwd == self.code):
-                self.Log(" " + data)
-                ans = str(addr) + str(data)
+                self.writeLog(" " + data)
+                #ans = str(addr) + str(data)
+                ans = str(data)
                 ans = ans.encode()
                 conn.send(ans.upper())
                 conn.close()
 
-    def Loop(self):
+    def mainThread(self):
         while True:
             try:
                 conn,addr=self.sock.accept()
             except:
                 pass
             else:
-                self.Log("\n"+str(time.ctime())+" "+str(addr))
+                self.writeLog("\n"+str(time.ctime())+" "+str(addr))
                 print('connected:', addr)
-                tt = threading.Thread(target=self.AnswerThread, args=(conn, addr))
+                tt = threading.Thread(target=self.connThread, args=(conn, addr))
                 tt.daemon = True
                 tt.start()
 
