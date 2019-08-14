@@ -80,22 +80,12 @@ class SockConnection:
             for i in range(0,mes_count-1):
                 message+=conn.recv(_SIZE)
             message=message.decode('utf-8')
-            conn.send(b' ')
-            pwd = data[0:6].decode()
-            data = data[7:len(data)].decode()
-            data_available=True
-            while(data_available==True):
-                    new_data=conn.recv(_SIZE)
-                    data += new_data.decode()
-                    if(len(new_data)<_SIZE):
-                        data_available=False
-            if (pwd == self.code):
-                self.writeLog(" " + data)
-                #ans = str(addr) + str(data)
-                ans = str(data)
-                ans = ans.encode()
-                conn.send(ans.upper())
-                conn.close()
+            if(cmd=='tr'):
+                pass
+            if(cmd=='sp'):
+                pass
+
+
 
     def mainThread(self):
         while True:
