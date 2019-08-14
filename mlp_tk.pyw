@@ -126,6 +126,27 @@ class app:
 
         return net
 
+#    def model(self,x):
+#        net = tf.keras.layers.Convolution1D(inputs=x,filters=10,activation=elu,kernel_size=10,
+#                              kernel_regularizer=self.regularizer,bias_regularizer=self.regularizer,
+#                               kernel_initializer=self.initializer,bias_initializer=self.initializer)
+#
+#        for i in range(struct.shape[1] - 1):
+#            net = tf.keras.layers.Convolution1D(inputs=net, filters=10, activation=elu,kernel_size=10,
+#            kernel_regularizer = self.regularizer, bias_regularizer = self.regularizer,
+#                                                                      kernel_initializer = self.initializer, bias_initializer = self.initializer)
+#
+#            if (self.batch_normalization_active == True):
+#                net = tf.layers.batch_normalization(inputs=net)
+#
+#            net = tf.layers.dropout(net, rate=self.drop_rate)
+#
+#        net = tf.layers.dense(inputs=net, units=self.n_outputs, activation=None, kernel_regularizer=self.regularizer,
+#                              bias_regularizer=self.regularizer, kernel_initializer=self.initializer,
+#                              bias_initializer=self.initializer)
+#
+#        return net
+
     def init_model_variables(self):
         # create a placeholder to dynamically switch between batch sizes
         self.batch_size = tf.placeholder(tf.int64)
