@@ -110,15 +110,16 @@ class SockConnection:
 
     def parseString(self,data,delimiter):
         prevIndex=0
-        arrayCmd=None
         decodedData=data#.decode('utf-8')
-        #delimiter=delimiter.encode()
+        delimiter=delimiter.encode()[0]
+        arrayCmd=np.empty([4,],dtype=str)
+        index=0
         for i in range(0,len(decodedData)):
-            if(decodedData[i].encode()==delimiter):
-                arrayCmd=np.append(arrayCmd,decodedData[prevIndex:i])
+            if(decodedData[i]==delimiter):
+                arrayCmd[index,]=decodedData[prevIndex:i].decode()
                 prevIndex=i
-            if(arrayCmd!=None):
-                if(len(arrayCmd)==4):
+                index=index+1
+                if(index==5):
                     break
         return arrayCmd,prevIndex
 

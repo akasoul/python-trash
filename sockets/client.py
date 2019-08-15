@@ -9,10 +9,11 @@ _SIZE=32
 #
 mes="О моих волосах можно сказать следующее: ранняя седина или облысение, тонкие, блестящие, прямые, светлые, рыжие или соломенного цвета. Тест."
 mes=mes.encode('utf-8')
-cmd=b'tr ru de '
+cmd="tr ru de "
 count=int(0.99+((len(mes)+len(cmd))/_SIZE))
-cmd+=str( count ).encode('utf-8')
-cmd+=b' '
+cmd+=str( count )
+cmd+=" "
+cmd=cmd.encode('utf-8')
 #
 
 sock = socket.socket()
