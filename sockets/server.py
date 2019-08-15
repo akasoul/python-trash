@@ -45,23 +45,18 @@ class SockConnection:
                 pass
             self.mainThread()
 
-    def translate_text(self,input):
+    def getTranslate(self,input,originalLanguage,targetLanguage):
         translate_client = translate.Client()
         text_original = input
-        original_language = translate_client.detect_language(text_original)['language']
-        # if(original_language!=pair[0]):
-        #    target_language=pair[0]
-        # else:
-        #    target_language=pair[1]
-        original_language = pair[0]
-        target_language = pair[1]
+        original_language = originalLanguage
+        target_language = targetLanguage
         translation = translate_client.translate(
             text_original,
             target_language=target_language)
         text_translated = str(translation['translatedText'])  # .encode('utf-8'))
-        return text_translated, original_language, target_language
+        return text_translated
 
-    def get_speech(self,input, speech_speed, language):
+    def getSpeech(self,input, speech_speed, language):
         client = texttospeech.TextToSpeechClient()
         synthesis_input = texttospeech.types.SynthesisInput(text=input)
         voice = texttospeech.types.VoiceSelectionParams(
@@ -112,6 +107,21 @@ class SockConnection:
     #             ans = ans.encode()
     #             conn.send(ans.upper())
     #             conn.close()
+
+    def parseString(self,data,delimiter):
+        prevIndex=0
+        arrayCmd=None
+        decodedData=data#.decode('utf-8')
+        #delimiter=delimiter.encode()
+        for i in range(0,len(decodedData)):
+            if(decodedData[i].encode()==delimiter):
+                arrayCmd=np.append(arrayCmd,decodedData[prevIndex:i])
+                prevIndex=i
+            if(arrayCmd!=None):
+                if(len(arrayCmd)==4):
+                    break
+        return arrayCmd,prevIndex
+
     def connThread(self,conn,addr):
         _SIZE=32
         try:
@@ -119,11 +129,13 @@ class SockConnection:
         except:
             pass
         else:
+            t1,t2=self.parseString(data," ")
             cmd=data[0:2].decode()
             language_original=None
             language_target=None
             mes_count=None
             sound_speed=None
+            message=None
             if(cmd=='tr'):
                 language_original=data[3:5].decode()
                 language_target=data[6:8].decode()
@@ -132,16 +144,20 @@ class SockConnection:
                 language_original=data[3:8].decode()
                 sound_speed=float(data[9:13].decode())
                 mes_count=int(data[14:15].decode())
+                message=data[15:len(data)]
 
-            message=data[15:len(data)]
             for i in range(0,mes_count-1):
                 message+=conn.recv(_SIZE)
             message=message.decode('utf-8')
+            answer=None
             if(cmd=='tr'):
-                pass
-            if(cmd=='sp'):
-                pass
+                answer=self.getTranslate(message,language_original,language_target)
 
+            if(cmd=='sp'):
+                answer=self.getSpeech(message,sound_speed,language_original)
+
+            conn.send(answer)
+            conn.close()
 
 
     def mainThread(self):

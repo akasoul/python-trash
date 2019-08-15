@@ -9,9 +9,10 @@ _SIZE=32
 #
 mes="О моих волосах можно сказать следующее: ранняя седина или облысение, тонкие, блестящие, прямые, светлые, рыжие или соломенного цвета. Тест."
 mes=mes.encode('utf-8')
-cmd=b'sp ru-RU 0.95 '
+cmd=b'tr ru de '
 count=int(0.99+((len(mes)+len(cmd))/_SIZE))
 cmd+=str( count ).encode('utf-8')
+cmd+=b' '
 #
 
 sock = socket.socket()
@@ -21,7 +22,7 @@ sock.connect((addr, 9071))
 sock.send(cmd)
 sock.send(mes)
 
-data = sock.recv(144)
+data = sock.recv(1024)
 sock.close()
 
 print(len(mes)," ",sys.getsizeof(mes)," ",mes)
