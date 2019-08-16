@@ -152,7 +152,7 @@ class SockConnection:
                 answer = self.getTranslate(data, language_original, language_target)
             if(cmd[0]=='sp'):
                 language_original=cmd[1]
-                sound_speed=cmd[2]
+                sound_speed=int(cmd[2])
                 answer = self.getSpeech(data, sound_speed, language_original)
 
             conn.send(answer.encode())

@@ -6,31 +6,44 @@ addr='localhost'
 
 _SIZE=32
 
-#
+
 mes="О моих волосах можно сказать следующее: ранняя седина или облысение, тонкие, блестящие, прямые, светлые, рыжие или соломенного цвета. Тест."
 mes=mes.encode('utf-8')
-
-##mes=mes.decode('utf-8')
-#mes=mes[0:len(mes)]
-##mes=mes.encode('utf-8')
-#mes=mes.decode('utf-8')
 
 cmd="tr ru de "
 count=int(0.99+((len(mes)+len(cmd))/_SIZE))
 cmd+=str( count )
 cmd+=" "
 cmd=cmd.encode('utf-8')
-#
+
+
+
 
 sock = socket.socket()
 sock.connect((addr, 9071))
-
-
 sock.send(cmd)
 sock.send(mes)
-
 data = sock.recv(1024)
 sock.close()
+
+cmd="sp de-DE 0.9 "
+count=int(0.99+((len(data)+len(cmd))/_SIZE))
+cmd+=str( count )
+cmd+=" "
+cmd=cmd.encode('utf-8')
+
+mes=data
+
+sock = socket.socket()
+sock.connect((addr, 9071))
+sock.send(cmd)
+sock.send(mes)
+data = sock.recv(1024)
+sock.close()
+
+fname = 'output.mp3'
+with open(fname, 'wb') as output:
+        output.write(data)
 
 print(len(mes)," ",sys.getsizeof(mes)," ",mes)
 print(len(data)," ",sys.getsizeof(data)," ",data)
