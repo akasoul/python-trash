@@ -1,5 +1,7 @@
 import socket
 import sys
+from google.cloud import texttospeech
+
 
 #addr='194.67.87.166'
 addr='localhost'
@@ -41,7 +43,8 @@ sock.send(mes)
 data = sock.recv(1024)
 sock.close()
 
-fname = 'output.mp3'
+#data=audioresponse
+fname = '1608out.mp3'
 with open(fname, 'wb') as output:
         output.write(data)
 
