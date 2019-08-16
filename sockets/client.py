@@ -9,6 +9,12 @@ _SIZE=32
 #
 mes="О моих волосах можно сказать следующее: ранняя седина или облысение, тонкие, блестящие, прямые, светлые, рыжие или соломенного цвета. Тест."
 mes=mes.encode('utf-8')
+
+##mes=mes.decode('utf-8')
+#mes=mes[0:len(mes)]
+##mes=mes.encode('utf-8')
+#mes=mes.decode('utf-8')
+
 cmd="tr ru de "
 count=int(0.99+((len(mes)+len(cmd))/_SIZE))
 cmd+=str( count )

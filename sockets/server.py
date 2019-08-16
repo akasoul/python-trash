@@ -112,16 +112,21 @@ class SockConnection:
         prevIndex=0
         decodedData=data#.decode('utf-8')
         delimiter=delimiter.encode()[0]
-        arrayCmd=np.empty([4,],dtype=str)
+        arrayCmd=None
         index=0
         for i in range(0,len(decodedData)):
             if(decodedData[i]==delimiter):
-                arrayCmd[index,]=decodedData[prevIndex:i].decode()
-                prevIndex=i
+                if(index==0):
+                    arrayCmd = np.array([decodedData[prevIndex:i].decode()], dtype=str)
+                else:
+                    arrayCmd = np.append(arrayCmd, decodedData[prevIndex:i].decode())
+
+                prevIndex=i+1
                 index=index+1
-                if(index==5):
+                if(index==4):
                     break
-        return arrayCmd,prevIndex
+        data=data[prevIndex:len(data)]
+        return arrayCmd,data
 
     def connThread(self,conn,addr):
         _SIZE=32
@@ -130,34 +135,27 @@ class SockConnection:
         except:
             pass
         else:
-            t1,t2=self.parseString(data," ")
-            cmd=data[0:2].decode()
+            cmd,data=self.parseString(data," ")
+
+            for i in range(0,int(cmd[3])-1):
+                data+=conn.recv(_SIZE)
+            data=data.decode('utf-8')
+
             language_original=None
             language_target=None
-            mes_count=None
             sound_speed=None
-            message=None
-            if(cmd=='tr'):
-                language_original=data[3:5].decode()
-                language_target=data[6:8].decode()
-                mes_count=int(data[9:10].decode())
-            if(cmd=='sp'):
-                language_original=data[3:8].decode()
-                sound_speed=float(data[9:13].decode())
-                mes_count=int(data[14:15].decode())
-                message=data[15:len(data)]
-
-            for i in range(0,mes_count-1):
-                message+=conn.recv(_SIZE)
-            message=message.decode('utf-8')
             answer=None
-            if(cmd=='tr'):
-                answer=self.getTranslate(message,language_original,language_target)
 
-            if(cmd=='sp'):
-                answer=self.getSpeech(message,sound_speed,language_original)
+            if(cmd[0]=='tr'):
+                language_original=cmd[1]
+                language_target=cmd[2]
+                answer = self.getTranslate(data, language_original, language_target)
+            if(cmd[0]=='sp'):
+                language_original=cmd[1]
+                sound_speed=cmd[2]
+                answer = self.getSpeech(data, sound_speed, language_original)
 
-            conn.send(answer)
+            conn.send(answer.encode())
             conn.close()
 
 
