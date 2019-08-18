@@ -2,11 +2,16 @@ import socket
 import time
 import threading
 import numpy as np
-from pydub import AudioSegment
 from google.cloud import texttospeech
 from google.cloud import translate
 import os
 
+
+#формат посылок
+#tr ru de xxxxx yyyyy
+#sp de-DE 0.9 xxxxx yyyyy
+# xxxxx - (размер посылки \ _SIZE)
+# yyyyy - посылка для обработки
 
 speech_speed=0.8
 silence_duration = 0
@@ -85,28 +90,6 @@ class SockConnection:
         file.write(data)
         file.close()
 
-    # def connThread(self,conn,addr):
-    #     _SIZE=32
-    #     try:
-    #         data = conn.recv(_SIZE)
-    #     except:
-    #         pass
-    #     else:
-    #         size=sys.getsizeof(data)
-    #         pwd = data[0:6].decode()
-    #         data = data[6:len(data)].decode()
-    #         data_available=True
-    #         while(data_available==True):
-    #                 new_data=conn.recv(_SIZE)
-    #                 data += new_data.decode()
-    #                 if(len(new_data)<_SIZE):
-    #                     data_available=False
-    #         if (pwd == self.code):
-    #             self.writeLog(" " + data)
-    #             ans = str(addr) + str(data)
-    #             ans = ans.encode()
-    #             conn.send(ans.upper())
-    #             conn.close()
 
     def parseString(self,data,delimiter):
         prevIndex=0
@@ -129,6 +112,7 @@ class SockConnection:
         return arrayCmd,data
 
     def connThread(self,conn,addr):
+        print('Receiving thread is started')
         _SIZE=32
         try:
             data = conn.recv(_SIZE)
@@ -140,7 +124,7 @@ class SockConnection:
             for i in range(0,int(cmd[3])-1):
                 data+=conn.recv(_SIZE)
             data=data.decode('utf-8')
-
+            print('Data is received: ',data)
             language_original=None
             language_target=None
             sound_speed=None
@@ -150,12 +134,17 @@ class SockConnection:
                 language_original=cmd[1]
                 language_target=cmd[2]
                 answer = self.getTranslate(data, language_original, language_target)
-                conn.send(answer.encode())
+                answer=answer.encode()
             if(cmd[0]=='sp'):
                 language_original=cmd[1]
                 sound_speed=float(cmd[2])
                 answer = self.getSpeech(data, sound_speed, language_original)
-                conn.send(answer)
+
+            count = int(0.99 + ((len(answer) + len("00000")) / _SIZE))
+            data = str('%.5d' % count).encode()
+            data+=" ".encode()
+            data+=answer
+            conn.send(data)
 
             conn.close()
 
@@ -175,4 +164,4 @@ class SockConnection:
 
             continue
 
-z=SockConnection(9071,"log.txt","qwerty")
+z=SockConnection(9072,"log.txt","qwerty")
