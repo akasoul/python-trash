@@ -55,7 +55,7 @@ sock.close()
 #data=data.decode()
 
 cmd="sp de-DE 0.9 "
-count=int(0.99+((len(data)+len(cmd))/_SIZE))
+count=int(0.99+((len(data.decode())+len(cmd)+len("00000"))/_SIZE))
 cmd+=str( count )
 cmd+=" "
 cmd=cmd.encode('utf-8')
@@ -68,9 +68,11 @@ sock.send(cmd)
 sock.send(mes)
 data = sock.recv(_SIZE)
 count,data=parseString(data," ")
-if(count>1):
-        for i in range(0,count-1):
-                data+=sock.recv(_SIZE)
+print("Receiving ",count)
+
+for i in range(0, count - 1):
+        data += sock.recv(_SIZE)
+
 sock.close()
 #data=data.decode()
 sock.close()
@@ -81,5 +83,3 @@ fname = '1608cout.wav'
 with open(fname, 'wb') as output:
         output.write(data)
 
-print(len(mes)," ",sys.getsizeof(mes)," ",mes)
-print(len(data)," ",sys.getsizeof(data)," ",data)

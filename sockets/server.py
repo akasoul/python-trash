@@ -28,10 +28,9 @@ dict={'ru':'ru-RU',
 
 class SockConnection:
 
-    def __init__(self,_port,_log_fname,_code):
+    def __init__(self,_port,_log_fname):
         self.is_opened=False
         self.log_fname=_log_fname
-        self.code=_code
         self.port=_port
         try:
             self.sock = socket.socket()
@@ -50,6 +49,7 @@ class SockConnection:
                 pass
             self.mainThread()
 
+
     def getTranslate(self,input,originalLanguage,targetLanguage):
         translate_client = translate.Client()
         text_original = input
@@ -60,6 +60,7 @@ class SockConnection:
             target_language=target_language)
         text_translated = str(translation['translatedText'])  # .encode('utf-8'))
         return text_translated
+
 
     def getSpeech(self,input, speech_speed, language):
         client = texttospeech.TextToSpeechClient()
@@ -78,6 +79,7 @@ class SockConnection:
         else:
             return 0
 
+
     def compare_with_dict(self,input):
         for i in dict.keys():
             if (i == input):
@@ -90,6 +92,9 @@ class SockConnection:
         file.write(data)
         file.close()
 
+    def writeFile(self,fname,data):
+        with open(fname, 'wb') as output:
+            output.write(data)
 
     def parseString(self,data,delimiter):
         prevIndex=0
@@ -111,8 +116,10 @@ class SockConnection:
         data=data[prevIndex:len(data)]
         return arrayCmd,data
 
+
     def connThread(self,conn,addr):
-        print('Receiving thread is started')
+        self.writeLog(str(time.ctime()) +" " + str(addr) + " connected\n"  )
+        #print("New connection from ",addr)
         _SIZE=32
         try:
             data = conn.recv(_SIZE)
@@ -123,8 +130,12 @@ class SockConnection:
 
             for i in range(0,int(cmd[3])-1):
                 data+=conn.recv(_SIZE)
-            data=data.decode('utf-8')
-            print('Data is received: ',data)
+            data=data.decode()
+
+            self.writeLog(str(time.ctime()) + " received: "+data+"\n")
+            self.writeLog(str(time.ctime()) + " cmd: "+cmd[0]+" "+cmd[1]+" "+cmd[2]+" "+cmd[3]+" "+"\n")
+            #print('Data is received: ',data)
+
             language_original=None
             language_target=None
             sound_speed=None
@@ -133,20 +144,28 @@ class SockConnection:
             if(cmd[0]=='tr'):
                 language_original=cmd[1]
                 language_target=cmd[2]
+                self.writeLog(str(time.ctime()) + " translation started"+ "\n")
                 answer = self.getTranslate(data, language_original, language_target)
+                self.writeLog(str(time.ctime()) + " translation finished"+ "\n")
                 answer=answer.encode()
             if(cmd[0]=='sp'):
                 language_original=cmd[1]
                 sound_speed=float(cmd[2])
+                self.writeLog(str(time.ctime()) + " speech generation started"+ "\n")
                 answer = self.getSpeech(data, sound_speed, language_original)
+                self.writeLog(str(time.ctime()) + " speech generation finished"+ "\n")
+                #self.writeFile("speech_s.mp3",answer)
 
             count = int(0.99 + ((len(answer) + len("00000")) / _SIZE))
+
+            self.writeLog(str(time.ctime()) + str(count) + " sent\n")
+            #print("Sending ",count)
+
             data = str('%.5d' % count).encode()
             data+=" ".encode()
             data+=answer
             conn.send(data)
-
-            conn.close()
+            #conn.close()
 
 
     def mainThread(self):
@@ -156,12 +175,10 @@ class SockConnection:
             except:
                 pass
             else:
-                self.writeLog("\n"+str(time.ctime())+" "+str(addr))
-                print('connected:', addr)
                 tt = threading.Thread(target=self.connThread, args=(conn, addr))
                 tt.daemon = True
                 tt.start()
 
             continue
 
-z=SockConnection(9072,"log.txt","qwerty")
+z=SockConnection(9072,"log.txt")
