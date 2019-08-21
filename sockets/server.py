@@ -28,17 +28,35 @@ dict={'ru':'ru-RU',
 
 class SockConnection:
 
-    def __init__(self,_port,_log_fname):
-        self.is_opened=False
+    def __init__(self,_port,_servicePort,_log_fname):
         self.log_fname=_log_fname
         self.port=_port
+        self.servicePort=_servicePort
+
+        try:
+            self.serviceSock = socket.socket()
+        except:
+            pass
+        else:
+            try:
+                self.serviceSock.bind(('', self.servicePort))
+            except:
+                pass
+            try:
+                self.serviceSock.listen(1)
+            except:
+                tt = threading.Thread(target=self.serviceThread)
+                tt.daemon = True
+                tt.start()
+
+
+
+
         try:
             self.sock = socket.socket()
         except:
             pass
         else:
-            self.is_opened=True
-        if(self.is_opened==True):
             try:
                 self.sock.bind(('', self.port))
             except:
@@ -51,15 +69,23 @@ class SockConnection:
 
 
     def getTranslate(self,input,originalLanguage,targetLanguage):
-        translate_client = translate.Client()
-        text_original = input
-        original_language = originalLanguage
-        target_language = targetLanguage
-        translation = translate_client.translate(
-            text_original,
-            target_language=target_language)
-        text_translated = str(translation['translatedText'])  # .encode('utf-8'))
-        return text_translated
+        try:
+            translate_client = translate.Client()
+        except:
+            self.writeLog("translation client init error :",translate_client)
+        else:
+            text_original = input
+            target_language = targetLanguage
+            try:
+                translation = translate_client.translate(
+                    text_original,
+                    target_language=target_language)
+            except:
+                self.writeLog("translation request error")
+            else:
+                text_translated = str(translation['translatedText'])  # .encode('utf-8'))
+                return text_translated
+        return 0
 
 
     def getSpeech(self,input, speech_speed, language):
@@ -89,7 +115,7 @@ class SockConnection:
 
     def writeLog(self,data):
         file = open(self.log_fname, 'a+')
-        file.write(data)
+        file.write(time.ctime() + " " + data+"\n")
         file.close()
 
     def writeFile(self,fname,data):
@@ -118,7 +144,7 @@ class SockConnection:
 
 
     def connThread(self,conn,addr):
-        self.writeLog(str(time.ctime()) +" " + str(addr) + " connected\n"  )
+        self.writeLog(str(addr) + " connected")
         #print("New connection from ",addr)
         _SIZE=32
         try:
@@ -132,8 +158,8 @@ class SockConnection:
                 data+=conn.recv(_SIZE)
             data=data.decode()
 
-            self.writeLog(str(time.ctime()) + " received: "+data+"\n")
-            self.writeLog(str(time.ctime()) + " cmd: "+cmd[0]+" "+cmd[1]+" "+cmd[2]+" "+cmd[3]+" "+"\n")
+            self.writeLog("received: "+data)
+            self.writeLog("cmd: "+cmd[0]+" "+cmd[1]+" "+cmd[2]+" "+cmd[3])
             #print('Data is received: ',data)
 
             language_original=None
@@ -144,21 +170,21 @@ class SockConnection:
             if(cmd[0]=='tr'):
                 language_original=cmd[1]
                 language_target=cmd[2]
-                self.writeLog(str(time.ctime()) + " translation started"+ "\n")
+                self.writeLog("translation started")
                 answer = self.getTranslate(data, language_original, language_target)
-                self.writeLog(str(time.ctime()) + " translation finished"+ "\n")
+                self.writeLog("translation finished")
                 answer=answer.encode()
             if(cmd[0]=='sp'):
                 language_original=cmd[1]
                 sound_speed=float(cmd[2])
-                self.writeLog(str(time.ctime()) + " speech generation started"+ "\n")
+                self.writeLog("speech generation started")
                 answer = self.getSpeech(data, sound_speed, language_original)
-                self.writeLog(str(time.ctime()) + " speech generation finished"+ "\n")
+                self.writeLog("speech generation finished")
                 #self.writeFile("speech_s.mp3",answer)
 
             count = int(0.99 + ((len(answer) + len("00000")) / _SIZE))
 
-            self.writeLog(str(time.ctime()) + str(count) + " sent\n")
+            self.writeLog(str(time.ctime()) + " "+ str(count) + " sent\n")
             #print("Sending ",count)
 
             data = str('%.5d' % count).encode()
@@ -166,6 +192,18 @@ class SockConnection:
             data+=answer
             conn.send(data)
             #conn.close()
+
+
+
+    def serviceThread(self):
+        while True:
+            try:
+                conn,addr=self.sock.accept()
+            except:
+                pass
+            else:
+                conn.close()
+
 
 
     def mainThread(self):
@@ -181,4 +219,4 @@ class SockConnection:
 
             continue
 
-z=SockConnection(9072,"log.txt")
+z=SockConnection(9072,9073,"log.txt")
