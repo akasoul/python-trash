@@ -7,6 +7,8 @@ import matplotlib.animation as animation
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
+from matplotlib import pyplot as plt
+
 from sklearn import preprocessing
 import threading
 import os
@@ -32,10 +34,10 @@ softsign    = tf.nn.softsign
 
 #nn structure
 f_l_f = elu
-neurons=500
-struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons],
-                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
-outputs_af = tan
+neurons=1024
+struct = np.array([[neurons,neurons,neurons],
+                   [f_l_f,f_l_f,f_l_f]])
+outputs_af = None
 
 
 
@@ -240,13 +242,13 @@ class app:
     def set_ui_blocking(self,type,state):
         if type=='run':
             ui = [
-                  self.btn_train,
+                  self.btnTrain,
                     ]
         if type=='train':
             ui = [self.ed_indatapath,
                   self.ed_outdatapath,
                   self.ed_inputpath,
-                  self.btn_run,
+                  self.btnRun,
                   self.ed_trs_ls,
                   self.ed_trs_l1,
                   self.ed_trs_l2,
@@ -262,7 +264,7 @@ class app:
 
 
 
-    def on_click_run_btn(self,event):
+    def onClickRunBtn(self, event):
         if self.run_is_launched==False:
             tt = threading.Thread(target=self.thread_run)
             tt.daemon = True
@@ -270,24 +272,8 @@ class app:
         else:
             self.stop_run_is_pressed=True
 
-    def on_click_saveplot_btn(self,event):
-        if self.savepng_is_launched==False:
-            tt = threading.Thread(target=self.thread_savepng)
-            tt.daemon = True
-            tt.start()
 
-        if self.selectedplot.get() == 0:
-            self.root.filename = filedialog.asksaveasfilename(initialdir="", title="Select file",
-                                                              filetypes=(("png files", "*.png"), ("all files", "*.*")))
-            print(self.root.filename)
-            self.trainingfig.set_size_inches(40,20)
-            self.trainingfig.savefig(self.root.filename + ".png", dpi=100, facecolor='w', edgecolor='w',
-                                    orientation='portrait', papertype="a0", format=None,
-                                    transparent=False, bbox_inches=None, pad_inches=0.1,
-                                    frameon=None, metadata=None)
-            self.trainingfig.set_size_inches(7,5)
-
-    def on_click_train_btn(self,event):
+    def onClickTrainBtn(self, event):
         if self.training_is_launched==False:
             tt = threading.Thread(target=self.thread_train)
             tt.daemon = True
@@ -295,24 +281,24 @@ class app:
         else:
             self.stop_train_is_pressed=True
 
-    def on_click_reloaddata_btn(self,event):
+    def onClickReloadDataBtn(self, event):
         tt = threading.Thread(target=self.thread_reloaddata)
         tt.daemon = True
         tt.start()
 
-    def on_click_select_plot(self):#, event):
-        if self.selectedplot.get()==0:
-            self.frm_testing.place_forget()
-            self.frm_training.place(x=270, y=40)
-            #self.selectedplot.set(1)
-            return
-        if self.selectedplot.get()==1:
-            self.frm_training.place_forget()
-            self.frm_testing.place(x=270, y=40)
-            #self.selectedplot.set(0)
-            return
 
 
+    def onClickShowTrainingPlot(self,event):
+        self.trainingfig.show()
+        #if(plt.fignum_exists(self.trainingfignum)):
+        #    pass
+        #else:
+
+    def onClickShowTestingPlot(self,event):
+        self.testingfig.show()
+        #if(plt.fignum_exists(self.testingfignum)):
+        #    pass
+        #else:
 
 
     def on_change_path(self, event):
@@ -348,7 +334,7 @@ class app:
     def thread_train(self):
         self.training_is_launched=True
         self.stop_train_is_pressed=False
-        self.btn_train.config(text="stop")
+        self.btnTrain.config(text="stop")
 
         try:
             self.trainingdata_train_error = np.empty(shape=0)
@@ -438,7 +424,7 @@ class app:
                     .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch]))
         self.update_error()
         self.training_is_launched=False
-        self.btn_train.config(text="start")
+        self.btnTrain.config(text="start")
         return
 
     def thread_savepng(self):
@@ -470,7 +456,7 @@ class app:
         self.run_is_launched=True
         self.stop_run_is_pressed=False
         self.load_model()
-        self.btn_run.config(text="stop")
+        self.btnRun.config(text="stop")
         self.input_path_is_valid=False
         fpath=self.ed_inputpath.get(1.0, END)
         fpath=fpath.rstrip()
@@ -514,13 +500,13 @@ class app:
             if self.stop_run_is_pressed==True:
                 break
         self.run_is_launched=False
-        self.btn_run.config(text="start")
+        self.btnRun.config(text="start")
 
     def thread_reloaddata(self):
-        self.btn_reloaddata['state']='disabled'
+        self.btnReloadData['state']= 'disabled'
         if(self.try_load_data()==False):
-            self.btn_reloaddata['bg']='red'
-        self.btn_reloaddata['state'] = 'normal'
+            self.btnReloadData['bg']= 'red'
+        self.btnReloadData['state'] = 'normal'
         self.update_error()
 
     def thread_draw(self, i):
@@ -575,7 +561,7 @@ class app:
                                  self.drop_rate: 0,
                                  self.batch_normalization_active: False})
         self.losses = self.sess.run(self.loss)
-        self.lbl_losses.config(text=self.losses)
+        self.lbl_losses.config(text="Loss: "+str(self.losses))
 
     def save_settings(self):
         fname='settings.txt'
@@ -687,7 +673,7 @@ class app:
 
     def init_interface(self):
         self.root = Tk()
-        self.root.minsize(width=790,height=430)
+        self.root.minsize(width=430,height=330)
 
         self.s_indatapath=''
         self.s_outdatapath=''
@@ -695,29 +681,25 @@ class app:
 
         self.new_path=True
 
-        self.selectedplot=IntVar()
-        self.selectedplot.set(0)
-        self.btn_trainingplot=  Radiobutton(self.root,var=self.selectedplot,value=0,text='training data',command=self.on_click_select_plot)
-        self.btn_testingplot=   Radiobutton(self.root,var=self.selectedplot,value=1,text='testing model',command=self.on_click_select_plot)
 
         self.frm_training=      Frame(self.root, bg='white', bd=5, height=200, width=300)
         self.frm_testing=       Frame(self.root, bg='white', bd=5, height=200, width=300)
-        self.lbl_train=         Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Train model',anchor=W, justify=LEFT)
-        self.lbl_run=           Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Run model',anchor=W, justify=LEFT)
-        self.lbl_reloaddata=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='Reload data',anchor=W, justify=LEFT)
-        self.btn_train=         Button(self.root,height=1,width=10,text='start')
-        self.btn_run=           Button(self.root,height=1,width=10,text='start')
-        self.btn_reloaddata=    Button(self.root,height=1,width=10,text='start')
-        self.btn_saveplot=      Button(self.root,height=1,width=10,text='Save plot')
+
+        self.btnTrain=                  Button(self.root, height=2, width=20, text='Train model')
+        self.btnRun=                    Button(self.root, height=2, width=20, text='Run model')
+        self.btnReloadData=             Button(self.root, height=2, width=20, text='Reload data')
+        self.btnShowTrainingPlot=       Button(self.root, height=2, width=20, text='Show training plot')
+        self.btnShowTestingPlot=        Button(self.root, height=2, width=20, text='Show testing plot')
+
         #file paths
         self.lbl_indatapath=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='in_data fname :',anchor=W, justify=LEFT)
         self.lbl_outdatapath=   Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='out_data fname:',anchor=W, justify=LEFT)
         self.lbl_inputpath=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='input fname   :',anchor=W, justify=LEFT)
-        self.ed_indatapath=     Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
-        self.ed_outdatapath=    Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
-        self.ed_inputpath=      Text(self.root, height=1, width=15, font='Arial 11', wrap=WORD)
+        self.ed_indatapath=     Text(self.root, height=1, width=12, font='Arial 11', wrap=WORD)
+        self.ed_outdatapath=    Text(self.root, height=1, width=12, font='Arial 11', wrap=WORD)
+        self.ed_inputpath=      Text(self.root, height=1, width=12, font='Arial 11', wrap=WORD)
+
         #training settings
-        #self.lbl_trainingsettings=  Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training settings:',anchor=W, justify=LEFT)
         self.lbl_trs_epochs=        Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='epochs:',anchor=W, justify=LEFT)
         self.lbl_trs_stoperror=     Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='stop error:',anchor=W, justify=LEFT)
         self.lbl_trs_ls=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='training speed:',anchor=W, justify=LEFT)
@@ -725,6 +707,7 @@ class app:
         self.lbl_trs_l2=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='l2:',anchor=W, justify=LEFT)
         self.lbl_trs_droprate=      Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='drop rate:',anchor=W, justify=LEFT)
         self.lbl_trs_ovf_epochs=    Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='ovf epochs:',anchor=W, justify=LEFT)
+
         self.ed_trs_epochs=         Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_stoperror=      Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_ls=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
@@ -732,26 +715,8 @@ class app:
         self.ed_trs_l2=             Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_droprate=       Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
         self.ed_trs_ovf_epochs=     Text(self.root,height=1,width=12,font='Arial 11', wrap=WORD)
+        self.lbl_losses=            Label(self.root,height=1,width=16,font='Arial 11',bg="white", fg="black",text='',anchor=W, justify=LEFT)
 
-        self.lbl_losses=            Label(self.root,height=1,width=12,font='Arial 11',bg="white", fg="black",text='',anchor=W, justify=LEFT)
-
-        #self.ed_ns_l1_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.ed_ns_l2_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.ed_ns_l3_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.ed_ns_l4_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.#ed_ns_l5_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.ed_ns_l6_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.ed_ns_l7_neurons=     Text(self.root,height=1,width=5,font='Arial 11', wrap=WORD)
-        #self.lbl_out_label=         Label(self.root, height=1, width=5, font='Arial 11', bg="silver", fg="black", text='out:', anchor=W, justify=LEFT)
-        #
-        #self.ed_ns_l1_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l2_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l3_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l4_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l5_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l6_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_l7_af=     Listbox(self.root,height=5,width=6,selectmode=SINGLE)
-        #self.ed_ns_out_af=    Listbox(self.root,height=5,width=6, selectmode=SINGLE)
 
 
         self.ed_indatapath.insert(1.0, 'in_data.txt')
@@ -761,14 +726,8 @@ class app:
         self.ed_indatapath.bind('<KeyRelease>', self.on_change_path)
         self.ed_outdatapath.bind('<KeyRelease>', self.on_change_path)
         self.ed_inputpath.bind('<KeyRelease>', self.on_change_path)
-        #self.ed_indatapath.bind('<Button 1>', self.on_change_path)
-        #self.ed_outdatapath.bind('<Button 1>', self.on_change_path)
-        #self.ed_inputpath.bind('<Button 1>', self.on_change_path)
 
-        #self.btn_trainingplot.bind('<Button 1>', self.on_click_select_plot)
-        #self.btn_testingplot.bind('<Button 1>', self.on_click_select_plot)
-
-        #training settings
+        #training settings binds
         self.ed_trs_epochs      .bind('<KeyRelease>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
         self.ed_trs_stoperror   .bind('<KeyRelease>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_ls          .bind('<KeyRelease>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
@@ -785,92 +744,43 @@ class app:
         self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
-        self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
-        self.btn_run            .bind('<Button 1>', self.on_click_run_btn)
-        self.btn_reloaddata     .bind('<Button 1>', self.on_click_reloaddata_btn)
-        self.btn_saveplot       .bind('<Button 1>', self.on_click_saveplot_btn)
-
+        self.btnTrain          .bind('<Button 1>', self.onClickTrainBtn)
+        self.btnRun            .bind('<Button 1>', self.onClickRunBtn)
+        self.btnReloadData     .bind('<Button 1>', self.onClickReloadDataBtn)
+        self.btnShowTrainingPlot.bind('<Button 1>', self.onClickShowTrainingPlot)
+        self.btnShowTestingPlot.bind('<Button 1>', self.onClickShowTestingPlot)
 
         self.ed_indatapath      .place(x=140, y=10)
         self.ed_outdatapath     .place(x=140, y=40)
         self.ed_inputpath       .place(x=140, y=70)
 
-        self.lbl_reloaddata.place(x=10, y=100)
-        self.btn_reloaddata.place(x=140, y=100)
-        self.lbl_train.place(x=10, y=130)
-        self.btn_train.place(x=140, y=130)
-        self.lbl_run.place(x=10, y=160)
-        self.btn_run.place(x=140, y=160)
+        self.btnRun.place(x=270, y=80)
+        self.btnTrain.place(x=270, y=130)
+        self.btnReloadData.place(x=270, y=180)
+        self.btnShowTestingPlot.place(x=270, y=230)
+        self.btnShowTrainingPlot.place(x=270, y=280)
 
-        self.btn_trainingplot.place(x=270,y=10)
-        self.btn_testingplot.place(x=400,y=10)
-        self.lbl_losses.place(x=550,y=10)
-        self.btn_saveplot.place(x=700,y=10)
-        self.frm_training.place(x=270, y=40)
+        self.lbl_losses.place(x=270,y=10)
         self.lbl_indatapath.place(x=10, y=10)
         self.lbl_outdatapath.place(x=10, y=40)
         self.lbl_inputpath.place(x=10, y=70)
-        #self.lbl_trainingsettings.place(x=10, y=150)
 
-        #self.lbl_trainingsettings   .place(x=10, y=170)
-        self.lbl_trs_epochs        .place(x=10, y=200)
-        self.lbl_trs_stoperror      .place(x=10, y=230)
-        self.lbl_trs_ovf_epochs     .place(x=10, y=260)
-        self.lbl_trs_ls             .place(x=10, y=290)
-        self.lbl_trs_l1             .place(x=10, y=320)
-        self.lbl_trs_l2             .place(x=10, y=350)
-        self.lbl_trs_droprate       .place(x=10, y=380)
+        self.lbl_trs_epochs         .place(x=10, y=120)
+        self.lbl_trs_stoperror      .place(x=10, y=150)
+        self.lbl_trs_ovf_epochs     .place(x=10, y=180)
+        self.lbl_trs_ls             .place(x=10, y=210)
+        self.lbl_trs_l1             .place(x=10, y=240)
+        self.lbl_trs_l2             .place(x=10, y=270)
+        self.lbl_trs_droprate       .place(x=10, y=300)
 
-        self.ed_trs_epochs         .place(x=140, y=200)
-        self.ed_trs_stoperror       .place(x=140, y=230)
-        self.ed_trs_ovf_epochs      .place(x=140, y=260)
-        self.ed_trs_ls              .place(x=140, y=290)
-        self.ed_trs_l1              .place(x=140, y=320)
-        self.ed_trs_l2              .place(x=140, y=350)
-        self.ed_trs_droprate        .place(x=140, y=380)
+        self.ed_trs_epochs          .place(x=140, y=120)
+        self.ed_trs_stoperror       .place(x=140, y=150)
+        self.ed_trs_ovf_epochs      .place(x=140, y=180)
+        self.ed_trs_ls              .place(x=140, y=210)
+        self.ed_trs_l1              .place(x=140, y=240)
+        self.ed_trs_l2              .place(x=140, y=270)
+        self.ed_trs_droprate        .place(x=140, y=300)
 
-        #structure ui
-        #self.list_ns_layers         =Listbox(self.root,height=5,width=15,selectmode=SINGLE)
-        #self.layers_list            =[1,2,3,4,5,6,7]
-        #self.af=['elu',
-        #         'sigmoid',
-        #         'tanh',
-        #         'relu'
-        #         ]
-        #self.af_func=[tf.nn.elu,
-        #         tf.nn.sigmoid,
-        #         tf.nn.tanh,
-        #         tf.nn.relu
-        #         ]
-        #
-        #self.layers=[
-        #    self.ed_ns_l1_neurons,
-        #    self.ed_ns_l2_neurons,
-        #    self.ed_ns_l3_neurons,
-        #    self.ed_ns_l4_neurons,
-        #    self.ed_ns_l5_neurons,
-        #    self.ed_ns_l6_neurons,
-        #    self.ed_ns_l7_neurons
-        #]
-        #self.layers_af=[self.ed_ns_l1_af,
-        #                self.ed_ns_l2_af,
-        #                self.ed_ns_l3_af,
-        #                self.ed_ns_l4_af,
-        #                self.ed_ns_l5_af,
-        #                self.ed_ns_l6_af,
-        #                self.ed_ns_l7_af
-        #                ]
-        #
-        #for i in self.layers_list:
-        #    self.list_ns_layers.insert(END,i)
-        #for i in self.layers_af:
-        #    for j in self.af:
-        #        i.insert(END,j)
-        #for j in self.af:
-        #    self.ed_ns_out_af.insert(END,j)
-        #
-        #self.list_ns_layers.place(x=10, y=430)
-        #self.list_ns_layers.bind('<Button 1>', self.on_change_layers_count)
 
     def load_data(self):
         _file = False
@@ -913,18 +823,15 @@ class app:
 
     def init_plots(self):
         #plot
-        self.trainingfig = Figure(figsize=(7, 5), dpi=70)
+        self.trainingfig = plt.figure(figsize=(10, 7), dpi=80,num='Training plot')
         self.trainingplot=self.trainingfig.add_subplot(111)
-        self.trainingcanvas = FigureCanvasTkAgg(self.trainingfig, master=self.frm_training)  # A tk.DrawingArea.
-        self.trainingcanvas.get_tk_widget().pack(expand=True)
         self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
+        self.trainingfignum=self.trainingfig.number
 
-        self.testingfig = Figure(figsize=(7, 5), dpi=70)
+        self.testingfig = plt.figure(figsize=(10, 7), dpi=80,num='Testing plot')
         self.testingplot=self.testingfig.add_subplot(111)
-        self.testingcanvas = FigureCanvasTkAgg(self.testingfig, master=self.frm_testing)  # A tk.DrawingArea.
-        self.testingcanvas.get_tk_widget().pack(expand=True)
         self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
-
+        self.testingfignum=self.testingfig.number
 
 
 

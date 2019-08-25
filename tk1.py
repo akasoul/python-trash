@@ -1,63 +1,64 @@
-from tkinter import *
-import matplotlib as plt
 import numpy as np
+from matplotlib import pyplot as plt
+import matplotlib.animation as animation
+plt.style.use('seaborn-pastel')
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_tkagg import (
-    FigureCanvasTkAgg, NavigationToolbar2Tk)
+
+from tkinter import *
+import random
+import time
 import threading
 
-a = 2
+class tkChart:
 
 
-#a=2  # type: int
+    def threadDraw(self,i):
+        if(self.redraw==True):
+            self.redraw=False
+            self.plot.clear()
+            self.plot.plot(self.data, color='b',
+                                   label='blue')
+            self.plot.plot(self.data2, color='r',
+                                   label='red')
 
-class app:
-    root = Tk()
+
+    def threadAddData(self):
+        while True:
+            self.data=np.append(self.data,random.random()%10)
+            self.data2=np.append(self.data2,random.random()%10)
+            self.redraw=True
+            time.sleep(1)
+
+    def onClick(self,event):
+        self.trainingani=animation.FuncAnimation(self.fig, self.threadDraw, interval=1000)
+        self.fig.show()
+
 
     def __init__(self):
-        root = Tk()
-        root.minsize(500,500)
-        frame1=Frame(root,bg='green',bd=50)
+        self.root = Tk()
+        self.root.minsize(width=30,height=20)
 
-        redraw = True
+        self.btnRun=           Button(self.root,height=1,width=10,text='start')
+        self.btnRun.place(x=10, y=10)
+        self.btnRun            .bind('<Button 1>', self.onClick)
 
-        fig = Figure(figsize=(3, 2), dpi=100)
-        t = np.arange(0, 3, .01)
-        ax=fig.add_subplot(111)
-        ax.plot(t, a * np.sin(a * np.pi * t))
-        btn = Button(root,  # родительское окно
-                     text="Click me",  # надпись на кнопке
-                     width=30, height=5,  # ширина и высота
-                     bg="white", fg="black")  # цвет фона и надписи
+        self.redraw=False
 
-        btn.place(x=0, y=220)
+        self.data=np.array([1,2,3,2,1])
+        self.data2=np.array([3,2,1,2,3])
 
-        root.mainloop()
-
-        canvas = FigureCanvasTkAgg(fig, master=root)  # A tk.DrawingArea.
-        canvas.draw()
-        canvas.get_tk_widget().pack(side=TOP, fill=BOTH, expand=0)
-
-    def Hello(event,self):
-        print("someshit")
-        #a=1
-        global a
-        a *= 2
-        print(a)
-        self.ax.plot(self.t, a * np.sin(a * np.pi * self.t))
-        self.canvas.draw()
-
-    def redraw(self):
-            global a
-            print(a)
-            a *= 2
-            self.ax.cla()
-            self.ax.plot(self.t, a * np.sin(a * np.pi * self.t))
-            self.canvas.draw()
+        self.fig=plt.figure(figsize=(10, 7), dpi=80,num='title')
+        self.fig2=plt.figure(figsize=(10, 7), dpi=80,num='title')
+        self.plot=self.fig.add_subplot(111)
 
 
 
+        tt = threading.Thread(target=self.threadAddData)
+        tt.daemon = True
+        tt.start()
+
+        self.root.mainloop()
 
 
-z = app()
-z.__init__()
+
+z=tkChart()
