@@ -45,6 +45,7 @@ outputs_af = None
 Preprocessing_Min=-1.0
 Preprocessing_Max=1.0
 TestSizePercent = 0.1
+MaxBatchSize=300
 
 
 
@@ -289,12 +290,22 @@ class app:
 
 
     def onClickShowTrainingPlot(self,event):
+        self.trainingfig = plt.figure(figsize=(10, 7), dpi=80,num='Training plot')
+        self.trainingplot=self.trainingfig.add_subplot(111)
+        self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
+        self.trainingfignum=self.trainingfig.number
+
         self.trainingfig.show()
         #if(plt.fignum_exists(self.trainingfignum)):
         #    pass
         #else:
 
     def onClickShowTestingPlot(self,event):
+        self.testingfig = plt.figure(figsize=(10, 7), dpi=80,num='Testing plot')
+        self.testingplot=self.testingfig.add_subplot(111)
+        self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
+        self.testingfignum=self.testingfig.number
+
         self.testingfig.show()
         #if(plt.fignum_exists(self.testingfignum)):
         #    pass
@@ -334,7 +345,7 @@ class app:
     def thread_train(self):
         self.training_is_launched=True
         self.stop_train_is_pressed=False
-        self.btnTrain.config(text="stop")
+        self.btnTrain.config(text="Stop training")
 
         try:
             self.trainingdata_train_error = np.empty(shape=0)
@@ -355,9 +366,24 @@ class app:
         self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
                                                    self.batch_normalization_active: True})
         print('Training...')
-        p_train_loss = np.float32(99999999999)
-        p_test_loss = np.float32(99999999999)
-        p_global = np.float32(99999999999)
+
+        save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
+
+        self.sess.run(self.iter.initializer,
+                      feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.train_size,
+                                 self.drop_rate: 0,
+                                 self.batch_normalization_active: False})
+        p_train_loss = self.sess.run(self.loss)
+        self.trainingdata_train_error = np.append(self.trainingdata_train_error, p_train_loss)
+
+        if (TestSizePercent > 0.0):
+            self.sess.run(self.iter.initializer,
+                          feed_dict={self.x: self.X_test, self.y: self.Y_test, self.batch_size: self.test_size,
+                                     self.drop_rate: 0,
+                                     self.batch_normalization_active: False})
+            p_test_loss = self.sess.run(self.loss)
+            self.trainingdata_test_error = np.append(self.trainingdata_test_error, p_test_loss)
+
         self.p_epoch = 0
         epoch = 0
         of_counter = 0
@@ -382,19 +408,36 @@ class app:
 
             epoch = epoch + 1
             if TestSizePercent>0.0:
-                if (test_loss < p_test_loss and i > 0 and train_loss<=test_loss):
-                    self.p_epoch = i
+                if (test_loss < p_test_loss and i > 0 and train_loss < p_train_loss):
+                    self.p_epoch = i+1
                     p_test_loss = test_loss
+                    p_train_loss = train_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
+                    if (self.test_model == True):
+                        self.model_is_tested=False
+                        self.sess.run(self.iter.initializer,
+                                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
+                                                 self.drop_rate: 0,
+                                                 self.batch_normalization_active: False})
+                        self.test_outputs = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                        self.model_is_tested=True
                 else:
                     of_counter = of_counter + 1
             else:
                 if (train_loss < p_train_loss and i > 0):
-                    self.p_epoch = i
+                    self.p_epoch = i+1
                     p_train_loss = train_loss
                     save_path = self.saver.save(self.sess, self.model_path + self.model_name + '.skpt')
                     of_counter = 0
+                    if (self.test_model == True):
+                        self.model_is_tested=False
+                        self.sess.run(self.iter.initializer,
+                                      feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
+                                                 self.drop_rate: 0,
+                                                 self.batch_normalization_active: False})
+                        self.test_outputs = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                        self.model_is_tested=True
                 else:
                     of_counter = of_counter + 1
 
@@ -424,7 +467,7 @@ class app:
                     .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch]))
         self.update_error()
         self.training_is_launched=False
-        self.btnTrain.config(text="start")
+        self.btnTrain.config(text="Train model")
         return
 
     def thread_savepng(self):
@@ -456,7 +499,7 @@ class app:
         self.run_is_launched=True
         self.stop_run_is_pressed=False
         self.load_model()
-        self.btnRun.config(text="stop")
+        self.btnRun.config(text="Stop model")
         self.input_path_is_valid=False
         fpath=self.ed_inputpath.get(1.0, END)
         fpath=fpath.rstrip()
@@ -500,7 +543,7 @@ class app:
             if self.stop_run_is_pressed==True:
                 break
         self.run_is_launched=False
-        self.btnRun.config(text="start")
+        self.btnRun.config(text="Run model")
 
     def thread_reloaddata(self):
         self.btnReloadData['state']= 'disabled'
@@ -540,20 +583,29 @@ class app:
                 self.trainingplot.legend(loc='upper right')
 
     def thread_draw2(self, i):
+        if(self.test_model==False):
+            self.test_model = True
         if(self.data_is_loading==False):
-            self.sess.run(self.iter.initializer,
-                          feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
-                                     self.batch_normalization_active: False})
-            zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
-            net_outputs = zout
-            targets = self.Y
-            if(len(net_outputs)!=len(targets)):
-                return
+            if(self.training_is_launched==False):
+                self.sess.run(self.iter.initializer,
+                              feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
+                                         self.batch_normalization_active: False})
+                zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+                net_outputs = zout
+                targets = self.Y
+                if(len(net_outputs)!=len(targets)):
+                    return
 
 
-            self.testingplot.clear()
-            self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
-            self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+                self.testingplot.clear()
+                self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
+                self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+            if(self.training_is_launched==True):
+                if(self.model_is_tested==True):
+                    if (len(self.test_outputs) == len(self.Y)):
+                        self.testingplot.clear()
+                        self.testingplot.plot(self.test_outputs, linewidth=1.0, label="outputs", color='r')
+                        self.testingplot.plot(self.Y, linewidth=1.0, label="targets", color='b')
 
     def update_error(self):
         self.sess.run(self.iter.initializer,
@@ -652,6 +704,9 @@ class app:
         self.saving_is_launched=False
         self.data_is_loaded=False
         self.savepng_is_launched=False
+        self.test_model=False
+        self.model_is_tested = True
+        self.testing_model=False
 
     def on_change_layers_count(self,event):
         #a1=self.list_ns_layers.getint(ACTIVE)
@@ -802,6 +857,8 @@ class app:
         self.n_datasize = self.X.shape[0]
         self.X = np.reshape(self.X, [self.n_datasize, self.n_inputs])
         self.Y = np.reshape(self.Y, [self.n_datasize, self.n_outputs])
+        self.test_outputs=self.Y
+        #self.test_outputs.fill(0)
 
         self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
 
@@ -816,7 +873,7 @@ class app:
         self.losses=0
 
         for i in range(self.train_size - 1, 0, -1):
-            if (self.train_size % i == 0 and i < 500):
+            if (self.train_size % i == 0 and i < MaxBatchSize):
                 self.batchsize = i
                 self.n_batches_train = int(self.train_size / self.batchsize)
                 break
