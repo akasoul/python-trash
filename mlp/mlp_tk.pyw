@@ -344,6 +344,7 @@ class app:
 
     def thread_train(self):
         self.training_is_launched=True
+        plt.fignum_exists(self.testingfig.number)
         self.stop_train_is_pressed=False
         self.btnTrain.config(text="Stop training")
 
@@ -583,6 +584,7 @@ class app:
                 self.trainingplot.legend(loc='upper right')
 
     def thread_draw2(self, i):
+        fnum=self.testingfig.number
         if(self.test_model==False):
             self.test_model = True
         if(self.data_is_loading==False):
