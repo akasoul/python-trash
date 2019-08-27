@@ -54,7 +54,7 @@ MaxBatchSize=300
 class app:
 
 
-    def try_load_data(self):
+    def tryLoadData(self):
         self.data_is_loading=True;
         self.path_is_valid=False
         fpath=self.ed_indatapath.get(1.0, END)
@@ -74,7 +74,7 @@ class app:
             if (os.path.isfile(self.s_outdatapath)):
                 self.ed_outdatapath['bg'] = 'green'
                 self.path_is_valid=True
-                self.load_data()
+                self.loadData()
                 # init arrays for training
 
                 try:
@@ -150,7 +150,7 @@ class app:
 #
 #        return net
 
-    def init_model_variables(self):
+    def initModelVariables(self):
         # create a placeholder to dynamically switch between batch sizes
         self.batch_size = tf.placeholder(tf.int64)
         self.drop_rate = tf.placeholder(tf.float32)
@@ -207,7 +207,7 @@ class app:
 
 
 
-    def init_model_name(self):
+    def initModelName(self):
         self.model_path="models/"
         self.model_name = str(self.n_inputs)
         for index in range(struct.shape[1]):
@@ -222,7 +222,7 @@ class app:
             os.makedirs(self.model_path)
 
 
-    def load_model(self):
+    def loadModel(self):
         printnomodel=False
         if os.path.isfile(self.model_path + self.model_name + '.skpt.meta'):
             if os.path.isfile(self.model_path + self.model_name + '.skpt.index'):
@@ -240,7 +240,7 @@ class app:
         if printnomodel==True:
             print('no model')
 
-    def set_ui_blocking(self,type,state):
+    def setUiBlocking(self, type, state):
         if type=='run':
             ui = [
                   self.btnTrain,
@@ -267,7 +267,7 @@ class app:
 
     def onClickRunBtn(self, event):
         if self.run_is_launched==False:
-            tt = threading.Thread(target=self.thread_run)
+            tt = threading.Thread(target=self.theadRun)
             tt.daemon = True
             tt.start()
         else:
@@ -283,7 +283,7 @@ class app:
             self.stop_train_is_pressed=True
 
     def onClickReloadDataBtn(self, event):
-        tt = threading.Thread(target=self.thread_reloaddata)
+        tt = threading.Thread(target=self.threadReloadData)
         tt.daemon = True
         tt.start()
 
@@ -292,7 +292,7 @@ class app:
     def onClickShowTrainingPlot(self,event):
         self.trainingfig = plt.figure(figsize=(10, 7), dpi=80,num='Training plot')
         self.trainingplot=self.trainingfig.add_subplot(111)
-        self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
+        self.trainingani=animation.FuncAnimation(self.trainingfig, self.threadDrawTrainingPlot, interval=1000)
         self.trainingfignum=self.trainingfig.number
 
         self.trainingfig.show()
@@ -303,7 +303,7 @@ class app:
     def onClickShowTestingPlot(self,event):
         self.testingfig = plt.figure(figsize=(10, 7), dpi=80,num='Testing plot')
         self.testingplot=self.testingfig.add_subplot(111)
-        self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
+        self.testingani=animation.FuncAnimation(self.testingfig, self.theadDrawTestingPlot, interval=1000)
         self.testingfignum=self.testingfig.number
 
         self.testingfig.show()
@@ -312,11 +312,11 @@ class app:
         #else:
 
 
-    def on_change_path(self, event):
+    def onChangePath(self, event):
         if self.data_is_loaded==False:
-            self.try_load_data()
+            self.tryLoadData()
 
-    def on_change_settings(self, event, ui_index, format):
+    def onChangeSettings(self, event, ui_index, format):
         i=ui_index
         value=self.settingsui[i].get(1.0,END)
         value = value.rstrip()
@@ -328,17 +328,17 @@ class app:
             self.settingsui[i]['bg']='white'
             self.settings[i]=format(value)
             if self.saving_is_launched == False:
-                ts = threading.Thread(target=self.thread_save_settings)
+                ts = threading.Thread(target=self.threadSaveSettings)
                 ts.daemon = True
                 ts.start()
 
-    def thread_save_settings(self):
+    def threadSaveSettings(self):
         #while(self.training_is_launched):
             #pass
         #while(self.run_is_launched):
             #pass
         self.saving_is_launched=True
-        self.save_settings()
+        self.saveSettings()
         self.saving_is_launched=False
 
 
@@ -466,40 +466,17 @@ class app:
         else:
             print("Selected Iter: {0:4d} TrainLoss: {1:.10f}"
                     .format(self.p_epoch,self.trainingdata_train_error[self.p_epoch]))
-        self.update_error()
+        self.updateError()
         self.training_is_launched=False
         self.btnTrain.config(text="Train model")
         return
 
-    def thread_savepng(self):
-        self.savepng_is_launched=True
-        if self.selectedplot.get()==1:
-            self.root.filename = filedialog.asksaveasfilename(initialdir = "",title = "Select file",filetypes = (("png files","*.png"),("all files","*.*")))
-            print (self.root.filename)
-            self.testingfig.set_size_inches(40,20)
-            self.testingfig.savefig(self.root.filename, dpi=100, facecolor='w', edgecolor='w',
-            orientation='portrait', papertype="a0", format=None,
-            transparent=False, bbox_inches=None, pad_inches=0.1,
-            frameon=None, metadata=None)
-            self.testingfig.set_size_inches(7,5)
-
-        if self.selectedplot.get() == 0:
-            self.root.filename = filedialog.asksaveasfilename(initialdir="", title="Select file",
-                                                              filetypes=(("png files", "*.png"), ("all files", "*.*")))
-            print(self.root.filename)
-            self.trainingfig.set_size_inches(40,20)
-            self.trainingfig.savefig(self.root.filename , dpi=100, facecolor='w', edgecolor='w',
-                                    orientation='portrait', papertype="a0", format=None,
-                                    transparent=False, bbox_inches=None, pad_inches=0.1,
-                                    frameon=None, metadata=None)
-            self.trainingfig.set_size_inches(7,5)
-        self.savepng_is_launched=False
 
 
-    def thread_run(self):
+    def theadRun(self):
         self.run_is_launched=True
         self.stop_run_is_pressed=False
-        self.load_model()
+        self.loadModel()
         self.btnRun.config(text="Stop model")
         self.input_path_is_valid=False
         fpath=self.ed_inputpath.get(1.0, END)
@@ -546,14 +523,14 @@ class app:
         self.run_is_launched=False
         self.btnRun.config(text="Run model")
 
-    def thread_reloaddata(self):
+    def threadReloadData(self):
         self.btnReloadData['state']= 'disabled'
-        if(self.try_load_data()==False):
+        if(self.tryLoadData()==False):
             self.btnReloadData['bg']= 'red'
         self.btnReloadData['state'] = 'normal'
-        self.update_error()
+        self.updateError()
 
-    def thread_draw(self, i):
+    def threadDrawTrainingPlot(self, i):
         self.trainingplot.clear()
         if TestSizePercent>0.0:
             try:
@@ -583,7 +560,7 @@ class app:
                 self.trainingplot.axhline(y=self.trainingdata_train_error[self.p_epoch], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
 
-    def thread_draw2(self, i):
+    def theadDrawTestingPlot(self, i):
         fnum=self.testingfig.number
         if(self.test_model==False):
             self.test_model = True
@@ -609,7 +586,7 @@ class app:
                         self.testingplot.plot(self.test_outputs, linewidth=1.0, label="outputs", color='r')
                         self.testingplot.plot(self.Y, linewidth=1.0, label="targets", color='b')
 
-    def update_error(self):
+    def updateError(self):
         self.sess.run(self.iter.initializer,
                       feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize,
                                  self.drop_rate: 0,
@@ -617,7 +594,7 @@ class app:
         self.losses = self.sess.run(self.loss)
         self.lbl_losses.config(text="Loss: "+str(self.losses))
 
-    def save_settings(self):
+    def saveSettings(self):
         fname='settings.txt'
         keys=self.settings.keys()
         values=self.settings.values()
@@ -627,7 +604,7 @@ class app:
             f.write(s_value)
 
 
-    def load_settings(self):
+    def loadSettings(self):
         keys=self.settings.keys()
         values = self.settings.values()
         fname='settings.txt'
@@ -653,17 +630,17 @@ class app:
         else:
             return False
 
-    def load_model_structure(self):
+    def loadModelStructure(self):
         fname='model.txt'
         if (os.path.isfile(fname)):
             f = open(fname, 'r')
             a = f.read()
             n=a.split('\n')
 
-    def init_structure(self):
+    def initStructure(self):
         return
 
-    def init_settings(self):
+    def initSettings(self):
         self.settings={
             'epochs':          0,
             'stop_error':       0,
@@ -691,7 +668,7 @@ class app:
             'drop_rate'        :np.float32,
             'overfit_epochs'  :int
         }
-        if self.load_settings()==False:
+        if self.loadSettings()==False:
             self.settings = {
                 'epochs': 10000,
                 'stop_error': 0.00000001,
@@ -710,25 +687,8 @@ class app:
         self.model_is_tested = True
         self.testing_model=False
 
-    def on_change_layers_count(self,event):
-        #a1=self.list_ns_layers.getint(ACTIVE)
-        if self.layers_count!=self.list_ns_layers.get(ACTIVE):
-            self.layers_count = self.list_ns_layers.get(ACTIVE)
-            j=len(self.layers)
-            for i in range(0,j):
-                self.layers[i].place_forget()
-                self.layers_af[i].place_forget()
-            self.lbl_out_label.place_forget()
-            self.ed_ns_out_af.place_forget()
-            border=10;
-            for i in range(0,self.layers_count):
-                self.layers[i].place(x=border, y=550)
-                self.layers_af[i].place(x=border, y=590)
-                border=border+50
-            self.lbl_out_label.place(x=border, y=550)
-            self.ed_ns_out_af.place(x=border, y=590)
 
-    def init_interface(self):
+    def initInterface(self):
         self.root = Tk()
         self.root.minsize(width=430,height=330)
 
@@ -780,26 +740,26 @@ class app:
         self.ed_outdatapath.insert(1.0, 'out_data.txt')
         self.ed_inputpath.insert(1.0, 'input.txt')
 
-        self.ed_indatapath.bind('<KeyRelease>', self.on_change_path)
-        self.ed_outdatapath.bind('<KeyRelease>', self.on_change_path)
-        self.ed_inputpath.bind('<KeyRelease>', self.on_change_path)
+        self.ed_indatapath.bind('<KeyRelease>', self.onChangePath)
+        self.ed_outdatapath.bind('<KeyRelease>', self.onChangePath)
+        self.ed_inputpath.bind('<KeyRelease>', self.onChangePath)
 
         #training settings binds
-        self.ed_trs_epochs      .bind('<KeyRelease>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<KeyRelease>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ls          .bind('<KeyRelease>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l1          .bind('<KeyRelease>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l2          .bind('<KeyRelease>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<KeyRelease>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ovf_epochs  .bind('<KeyRelease>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_epochs      .bind('<KeyRelease>', lambda event, u_index='epochs'        , format=int:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<KeyRelease>', lambda event, u_index='stop_error'     , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_ls          .bind('<KeyRelease>', lambda event, u_index='ls'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_l1          .bind('<KeyRelease>', lambda event, u_index='l1'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_l2          .bind('<KeyRelease>', lambda event, u_index='l2'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<KeyRelease>', lambda event, u_index='drop_rate'      , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<KeyRelease>', lambda event, u_index='overfit_epochs', format=int:self.onChangeSettings(event, u_index, format))
 
-        self.ed_trs_epochs      .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
-        self.ed_trs_stoperror   .bind('<FocusOut>', lambda event, u_index='stop_error'     , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ls          .bind('<FocusOut>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l1          .bind('<FocusOut>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_l2          .bind('<FocusOut>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
+        self.ed_trs_epochs      .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_stoperror   .bind('<FocusOut>', lambda event, u_index='stop_error'     , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_ls          .bind('<FocusOut>', lambda event, u_index='ls'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_l1          .bind('<FocusOut>', lambda event, u_index='l1'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_l2          .bind('<FocusOut>', lambda event, u_index='l2'             , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='drop_rate'      , format=float:self.onChangeSettings(event, u_index, format))
+        self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.onChangeSettings(event, u_index, format))
 
         self.btnTrain          .bind('<Button 1>', self.onClickTrainBtn)
         self.btnRun            .bind('<Button 1>', self.onClickRunBtn)
@@ -839,7 +799,7 @@ class app:
         self.ed_trs_droprate        .place(x=140, y=300)
 
 
-    def load_data(self):
+    def loadData(self):
         _file = False
         while _file == False:
             if os.path.isfile(self.s_indatapath):
@@ -880,38 +840,38 @@ class app:
                 self.n_batches_train = int(self.train_size / self.batchsize)
                 break
 
-    def init_plots(self):
+    def initPlots(self):
         #plot
         self.trainingfig = plt.figure(figsize=(10, 7), dpi=80,num='Training plot')
         self.trainingplot=self.trainingfig.add_subplot(111)
-        self.trainingani=animation.FuncAnimation(self.trainingfig, self.thread_draw, interval=1000)
+        self.trainingani=animation.FuncAnimation(self.trainingfig, self.threadDrawTrainingPlot, interval=1000)
         self.trainingfignum=self.trainingfig.number
 
         self.testingfig = plt.figure(figsize=(10, 7), dpi=80,num='Testing plot')
         self.testingplot=self.testingfig.add_subplot(111)
-        self.testingani=animation.FuncAnimation(self.testingfig, self.thread_draw2, interval=1000)
+        self.testingani=animation.FuncAnimation(self.testingfig, self.theadDrawTestingPlot, interval=1000)
         self.testingfignum=self.testingfig.number
 
 
 
     def __init__(self):
-        self.init_interface()
-        self.init_plots()
-        self.init_settings()
-        self.save_settings()
+        self.initInterface()
+        self.initPlots()
+        self.initSettings()
+        self.saveSettings()
 
-        #load_data
-        self.try_load_data()
+        #loadData
+        self.tryLoadData()
 
         #tf && model
-        self.init_model_name()
-        self.init_model_variables()
-        self.load_model()
-        self.update_error()
+        self.initModelName()
+        self.initModelVariables()
+        self.loadModel()
+        self.updateError()
 
         #run
         self.root.mainloop()
-        self.save_settings()
+        self.saveSettings()
         #self.root.withdraw()
 
 

@@ -59,7 +59,7 @@ class app:
                 self.ed_outdatapath['bg'] = 'green'
                 self.path_is_valid=True
                 self.load_data()
-                #self.init_model_variables()
+                #self.initModelVariables()
             else:
                 self.ed_outdatapath['bg'] = 'red'
 
@@ -131,9 +131,9 @@ class app:
         if self.settings['l1'] > 0 and self.settings['l2'] > 0:
             self.loss_reg = tf.losses.mean_squared_error(predictions=self.prediction, labels=self.labels) + self.rp_l1_l2
 
-        # train_op = tf.train.RMSPropOptimizer(learning_rate=LearningRate).minimize(loss_reg)
-        # train_op = tf.train.AdagradOptimizer(learning_rate=LearningRate).minimize(loss_reg)
-        #self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.loss_reg)
+        # train_op = tf.train.RMSPropOptimizer(learning_rate=LearningRate).minimize(lossReg)
+        # train_op = tf.train.AdagradOptimizer(learning_rate=LearningRate).minimize(lossReg)
+        #self.train_op = tf.train.AdamOptimizer(learning_rate=self.settings['ls']).minimize(self.lossReg)
         self.train_op = tf.train.AdamOptimizer(learning_rate=self.learning_rate_placeholder).minimize(self.loss_reg)
 
         self.saver = tf.train.Saver()
@@ -262,7 +262,7 @@ class app:
         self.btn_train.config(text="stop")
 
         # initialise iterator with train data
-        self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
+        self.sess.run(self.iter.initializer, feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['phDropRate'],
                                                    self.batch_normalization_active: True})
         print('Training...')
         p_train_loss = np.float32(99999999999)
@@ -273,7 +273,7 @@ class app:
         of_counter = 0
         for i in range(self.settings['epochs']):
             self.sess.run(self.iter.initializer,
-                     feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['drop_rate'],
+                     feed_dict={self.x: self.X_train, self.y: self.Y_train, self.batch_size: self.batchsize, self.drop_rate: self.settings['phDropRate'],
                                 self.batch_normalization_active: True})
             train_loss = 0
             for _ in range(self.n_batches_train):
@@ -423,7 +423,7 @@ class app:
         self.sess.run(self.iter.initializer,
                       feed_dict={self.x: self.X, self.y: self.Y, self.batch_size: self.n_datasize, self.drop_rate: 0,
                                  self.batch_normalization_active: False})
-        zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, batch_size: data_size})
+        zout = self.sess.run(self.prediction)  # , feed_dict={ x: X, y: Y, phBatchSize: data_size})
         #net_outputs = np.empty(shape=[self.n_datasize])
         #targets = np.empty(shape=[self.n_datasize])
         net_outputs = zout
@@ -491,7 +491,7 @@ class app:
             'ls':               0,
             'l1':               0,
             'l2':               0,
-            'drop_rate':        0,
+            'phDropRate':        0,
             'overfit_epochs':  0
         }
         self.settingsui={
@@ -500,7 +500,7 @@ class app:
             'ls'               :self.ed_trs_ls,
             'l1'               :self.ed_trs_l1,
             'l2'               :self.ed_trs_l2,
-            'drop_rate'        :self.ed_trs_droprate,
+            'phDropRate'        :self.ed_trs_droprate,
             'overfit_epochs'  :self.ed_trs_ovf_epochs
         }
         self.settingsdtypes={
@@ -509,7 +509,7 @@ class app:
             'ls'               :np.float32,
             'l1'               :np.float32,
             'l2'               :np.float32,
-            'drop_rate'        :np.float32,
+            'phDropRate'        :np.float32,
             'overfit_epochs'  :int
         }
         if self.load_settings()==False:
@@ -519,7 +519,7 @@ class app:
                 'ls': 0.0001,
                 'l1': 0.001,
                 'l2': 0.01,
-                'drop_rate': 0.15,
+                'phDropRate': 0.15,
                 'overfit_epochs':2000
             }
         self.training_is_launched=False
@@ -627,7 +627,7 @@ class app:
         self.ed_trs_ls          .bind('<Key>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_l1          .bind('<Key>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_l2          .bind('<Key>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<Key>', lambda event, u_index='phDropRate'      , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_ovf_epochs  .bind('<Key>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
         self.ed_trs_epochs      .bind('<FocusOut>', lambda event, u_index='epochs'        , format=int:self.on_change_settings(event, u_index, format))
@@ -635,7 +635,7 @@ class app:
         self.ed_trs_ls          .bind('<FocusOut>', lambda event, u_index='ls'             , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_l1          .bind('<FocusOut>', lambda event, u_index='l1'             , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_l2          .bind('<FocusOut>', lambda event, u_index='l2'             , format=float:self.on_change_settings(event, u_index, format))
-        self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='drop_rate'      , format=float:self.on_change_settings(event, u_index, format))
+        self.ed_trs_droprate    .bind('<FocusOut>', lambda event, u_index='phDropRate'      , format=float:self.on_change_settings(event, u_index, format))
         self.ed_trs_ovf_epochs  .bind('<FocusOut>', lambda event, u_index='overfit_epochs', format=int:self.on_change_settings(event, u_index, format))
 
         self.btn_train          .bind('<Button 1>', self.on_click_train_btn)
@@ -779,7 +779,7 @@ class app:
         self.init_settings()
         self.save_settings()
 
-        #load_data
+        #loadData
         self.try_load_data()
 
         #tf && model
