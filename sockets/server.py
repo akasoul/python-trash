@@ -72,7 +72,7 @@ class SockConnection:
         try:
             translate_client = translate.Client()
         except:
-            self.writeLog("translation client init error :",translate_client)
+            self.writeLog("translation client init error")
         else:
             text_original = input
             target_language = targetLanguage

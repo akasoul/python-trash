@@ -34,25 +34,28 @@ mes="Аудио для отладки"
 mes=mes.encode('utf-8')
 
 
-cmd="tr ru de "
-count=int(0.99+((len(mes)+len(cmd)+len("00000"))/_SIZE))
-cmd+=str("%.5d" % count)
-cmd+=" "
-cmd=cmd.encode('utf-8')
+#cmd="tr ru de "
+#count=int(0.99+((len(mes)+len(cmd)+len("00000"))/_SIZE))
+#cmd+=str("%.5d" % count)
+#cmd+=" "
+#cmd=cmd.encode('utf-8')
+#
+#
+#
+#
+#sock = socket.socket()
+#sock.connect((addr, port))
+#sock.send(cmd)
+#sock.send(mes)
+#data = sock.recv(_SIZE)
+#count,data=parseString(data," ")
+#for i in range(0,count-1):
+#        data+=sock.recv(_SIZE)
+#sock.close()
+##data=data.decode()
+#
 
-
-
-
-sock = socket.socket()
-sock.connect((addr, port))
-sock.send(cmd)
-sock.send(mes)
-data = sock.recv(_SIZE)
-count,data=parseString(data," ")
-for i in range(0,count-1):
-        data+=sock.recv(_SIZE)
-sock.close()
-#data=data.decode()
+data=b'Audio zum Debuggen'
 
 cmd="sp de-DE 0.9 "
 count=int(0.99+((len(data.decode())+len(cmd)+len("00000"))/_SIZE))
