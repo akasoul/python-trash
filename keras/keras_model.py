@@ -85,7 +85,7 @@ model.add(Conv1D(kernel_size = 3, filters = 30, activation='relu',padding="same"
                  kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                  activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                  ))
-model.add(MaxPool1D(pool_size=(100)))#, strides=(1)))
+model.add(MaxPool1D(pool_size=(50)))#, strides=(1)))
 model.add(Flatten())
 model.add(Dense(50, activation='elu',
                 kernel_initializer='glorot_normal',
