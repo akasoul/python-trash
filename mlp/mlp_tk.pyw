@@ -577,8 +577,8 @@ class app:
 
 
                 self.testingplot.clear()
-                self.testingplot.plot(net_outputs, linewidth=1.0, label="outputs", color='r')
-                self.testingplot.plot(targets, linewidth=1.0, label="targets", color='b')
+                self.testingplot.plot(net_outputs, linewidth=0.5, label="outputs", color='r')
+                self.testingplot.plot(targets, linewidth=0.5, label="targets", color='b')
             if(self.training_is_launched==True):
                 if(self.model_is_tested==True):
                     if (len(self.test_outputs) == len(self.Y)):

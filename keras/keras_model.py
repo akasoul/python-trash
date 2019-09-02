@@ -59,36 +59,46 @@ Y = np.reshape(Y, [n_datasize, n_outputs])
 #y_test = np.random.randint(2, size=(100, 1))
 
 
-regL1=0.01
-regL2=0.01
+regL1=0.05
+regL2=0.05
 
 
 model = Sequential()
-model.add(Conv1D(kernel_size = 10, filters = 50, activation='relu',input_shape=(n_inputs,1),padding="same",
+model.add(Conv1D(kernel_size = 10, filters = 20, activation='relu',input_shape=(n_inputs,1),padding="same",
                  kernel_initializer='glorot_normal',
                  bias_initializer='glorot_normal',
+                 bias_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
+                 kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                  activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                  ))
-model.add(Conv1D(kernel_size = 5, filters = 100, activation='relu',padding="same",
+model.add(Conv1D(kernel_size = 5, filters = 30, activation='relu',padding="same",
                  kernel_initializer='glorot_normal',
                  bias_initializer='glorot_normal',
+                 bias_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
+                 kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                  activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                  ))
 model.add(Conv1D(kernel_size = 3, filters = 30, activation='relu',padding="same",
                  kernel_initializer='glorot_normal',
                  bias_initializer='glorot_normal',
+                 bias_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
+                 kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                  activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                  ))
-model.add(MaxPool1D(pool_size=(500)))#, strides=(1)))
+model.add(MaxPool1D(pool_size=(100)))#, strides=(1)))
 model.add(Flatten())
-model.add(Dense(200, activation='elu',
+model.add(Dense(50, activation='elu',
                 kernel_initializer='glorot_normal',
                 bias_initializer='glorot_normal',
+                bias_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
+                kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                 activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                 ))
-model.add(Dense(100, activation='elu',
+model.add(Dense(25, activation='elu',
                 kernel_initializer='glorot_normal',
                 bias_initializer='glorot_normal',
+                bias_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
+                kernel_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2),
                 activity_regularizer=regularizers.l1_l2(l1=regL1, l2=regL2)
                 ))
 model.add(Dense(n_outputs))
@@ -100,6 +110,8 @@ callbacks = [
     #tf.keras.callbacks.LearningRateScheduler(schedule, verbose=0),
   # Записываем логи TensorBoard в папку `./logs`
   #tf.keras.callbacks.TensorBoard(log_dir='./logs')
+    callbacks.ModelCheckpoint("my_model.h5", monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False,
+                              mode='min', period=1)
 ]
 
 opt=optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
@@ -114,8 +126,12 @@ file.write(str(model.summary()))
 file.close()
 structure=model.summary()
 print(model.summary())
+try:
+    model = models.load_model('my_model.h5')
+except:
+    pass
 
-model.fit(x_train, y_train,epochs=1000,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
+model.fit(x_train, y_train,epochs=5000,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
 score = model.evaluate(X, Y, batch_size=500)
 inp=X[0]
 inp = np.reshape(inp, [1, n_inputs,1])
