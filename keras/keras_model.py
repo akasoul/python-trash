@@ -17,6 +17,32 @@ TestSizePercent=0.1
 s_indatapath='in_data.txt'
 s_outdatapath='out_data.txt'
 
+
+
+############
+class mycallback(callbacks.Callback):
+    #def __init__(self):
+        #self.loss=None#np.array([0],dtype=float)
+        #self.val_loss=None#np.array([0],dtype=float)
+    def on_epoch_end(self, epoch, logs=None):
+        #if(self.loss.shape[0]==1):
+        #    self.loss[0]=logs.get('loss')
+        #    self.val_loss[0]=logs.get('val_loss')
+        #else:
+        try:
+            self.loss=np.append(self.loss,logs.get('loss'))
+        except:
+            self.loss = np.array([logs.get('loss')],dtype=float)
+
+            try:
+                self.val_loss = np.append(self.val_loss, logs.get('val_loss'))
+            except:
+                self.val_loss = np.array([logs.get('val_loss')], dtype=float)
+
+            #self.val_loss=np.append(self.val_loss,logs.get('val_loss'))
+
+############
+mcb=mycallback()
 X = np.genfromtxt(s_indatapath)
 Y = np.genfromtxt(s_outdatapath)
 X = np.float32(X)
@@ -103,15 +129,15 @@ model.add(Dense(25, activation='elu',
                 ))
 model.add(Dense(n_outputs))
 
+
+
+
+
 callbacks = [
-  # Прерывает обучение если потери при проверке `val_loss` перестают
-  # уменьшаться после 2 эпох
   callbacks.EarlyStopping(patience=50, monitor='val_loss'),
-    #tf.keras.callbacks.LearningRateScheduler(schedule, verbose=0),
-  # Записываем логи TensorBoard в папку `./logs`
-  #tf.keras.callbacks.TensorBoard(log_dir='./logs')
     callbacks.ModelCheckpoint("my_model.h5", monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False,
-                              mode='min', period=1)
+                              mode='min', period=1),
+    mcb
 ]
 
 opt=optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
@@ -131,7 +157,7 @@ try:
 except:
     pass
 
-model.fit(x_train, y_train,epochs=5000,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
+model.fit(x_train, y_train,epochs=5,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
 score = model.evaluate(X, Y, batch_size=500)
 inp=X[0]
 inp = np.reshape(inp, [1, n_inputs,1])
