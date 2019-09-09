@@ -134,7 +134,7 @@ model.add(Dense(n_outputs))
 
 
 callbacks = [
-  callbacks.EarlyStopping(patience=50, monitor='val_loss'),
+  callbacks.EarlyStopping(patience=5, monitor='val_loss'),
     callbacks.ModelCheckpoint("my_model.h5", monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=False,
                               mode='min', period=1),
     mcb
@@ -157,24 +157,17 @@ try:
 except:
     pass
 
-model.fit(x_train, y_train,epochs=5,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
+model.fit(x_train, y_train,epochs=10,batch_size=500,callbacks=callbacks,validation_data=(x_test, y_test))
 score = model.evaluate(X, Y, batch_size=500)
+print(score)
 inp=X[0]
 inp = np.reshape(inp, [1, n_inputs,1])
 
 #arr=np.reshape(x_test,(1,x_test.shape[0]) )
-prediction = model.predict(x=X)#,batch_size=n_datasize)
-
-
-#testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
-#testingplot = testingfig.add_subplot(111)
-#testingplot.plot(prediction, linewidth=1.0, label="outputs", color='r')
-#testingplot.plot(y_test, linewidth=1.0, label="targets", color='b')
-#testingfig.show()
 model.save('my_model.h5')
-#models.save_model(filepath="my_model.h5")
+
+prediction = model.predict(x=X)#,batch_size=n_datasize)
 plt.plot(prediction,linewidth=0.5)
 plt.plot(Y,linewidth=0.5)
-#plt.grid()
 plt.show()
 print(score)

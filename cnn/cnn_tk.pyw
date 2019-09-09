@@ -1,5 +1,4 @@
 from tkinter import *
-import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import numpy as np
 import matplotlib.animation as animation
@@ -8,7 +7,7 @@ from sklearn import preprocessing
 import threading
 import os
 
-from keras import optimizers, regularizers, callbacks, models
+from keras import optimizers, regularizers, callbacks, models, backend
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten
@@ -22,11 +21,11 @@ from matplotlib.backends.backend_tkagg import (
 modelName = "model.h5"
 
 # defines
-elu = tf.nn.elu
-sig = tf.nn.sigmoid
-tan = tf.nn.tanh
-relu = tf.nn.relu
-softsign = tf.nn.softsign
+# elu = tf.nn.elu
+# sig = tf.nn.sigmoid
+# tan = tf.nn.tanh
+# relu = tf.nn.relu
+# softsign = tf.nn.softsign
 
 ##nn structure
 # f_l_f = elu
@@ -37,16 +36,16 @@ softsign = tf.nn.softsign
 
 
 # nn structure
-f_l_f = elu
-neurons = 1024
-struct = np.array([[neurons, neurons, neurons],
-                   [f_l_f, f_l_f, f_l_f]])
-outputs_af = None
+# f_l_f = elu
+# neurons = 1024
+# struct = np.array([[neurons, neurons, neurons],
+#                   [f_l_f, f_l_f, f_l_f]])
+# outputs_af = None
 
-Preprocessing_Min = -1.0
-Preprocessing_Max = 1.0
+Preprocessing_Min = 0.0
+Preprocessing_Max = 10.0
 TestSizePercent = 0.1
-BatchMod = 0.2
+BatchMod = 0.10
 MaxBatchSize = 300
 
 
@@ -57,10 +56,22 @@ class historyCallback(callbacks.Callback):
         except:
             self.loss = np.array([logs.get('loss')], dtype=float)
 
-            try:
-                self.val_loss = np.append(self.val_loss, logs.get('val_loss'))
-            except:
-                self.val_loss = np.array([logs.get('val_loss')], dtype=float)
+        try:
+            self.val_loss = np.append(self.val_loss, logs.get('val_loss'))
+        except:
+            self.val_loss = np.array([logs.get('val_loss')], dtype=float)
+
+
+class stopBtnCallback(callbacks.Callback):
+    def __init__(self):
+        self.stopBtnState = False
+
+    def on_epoch_end(self, epoch, logs=None):
+        try:
+            if (self.stopBtnState == True):
+                self.model.stop_training = True
+        except:
+            pass
 
 
 class app:
@@ -116,100 +127,129 @@ class app:
         self.data_is_loading = False
 
     def initModel(self):
-        # create a placeholder to dynamically switch between batch sizes
-        self.phBatchSize = tf.placeholder(tf.int64)
-        self.phDropRate = tf.placeholder(tf.float32)
-        self.phL1 = tf.placeholder(tf.float32)
-        self.phL2 = tf.placeholder(tf.float32)
-        self.phLearningRate = tf.placeholder(tf.float32)
-        self.batch_normalization_active = tf.placeholder(tf.bool)
 
+        kernel_init='glorot_uniform'
+        bias_init='zeros'
+        bias_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        kernel_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        activity_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         # model
-        self.model = Sequential()
-        self.model.add(
-            Conv1D(kernel_size=10, filters=20, activation='relu', input_shape=(self.nInputs, 1), padding="same",
-                   kernel_initializer='glorot_normal',
-                   bias_initializer='glorot_normal',
-                   bias_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                   kernel_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                   activity_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2)
+        model = Sequential()
+        model.add(
+            Conv1D(kernel_size=5, filters=20, activation='relu', input_shape=(self.nInputs, 1), padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   activity_regularizer=activity_reg
                    ))
-        self.model.add(Conv1D(kernel_size=5, filters=30, activation='relu', padding="same",
-                              kernel_initializer='glorot_normal',
-                              bias_initializer='glorot_normal',
-                              bias_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                              kernel_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                              activity_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2)
-                              ))
-        self.model.add(Conv1D(kernel_size=3, filters=30, activation='relu', padding="same",
-                              kernel_initializer='glorot_normal',
-                              bias_initializer='glorot_normal',
-                              bias_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                              kernel_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                              activity_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2)
-                              ))
-        self.model.add(MaxPool1D(pool_size=(50)))  # , strides=(1)))
-        self.model.add(Flatten())
-        self.model.add(Dense(50, activation='elu',
-                             kernel_initializer='glorot_normal',
-                             bias_initializer='glorot_normal',
-                             bias_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                             kernel_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                             activity_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2)
-                             ))
-        self.model.add(Dropout(self.phDropRate))
-        self.model.add(Dense(25, activation='elu',
-                             kernel_initializer='glorot_normal',
-                             bias_initializer='glorot_normal',
-                             bias_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                             kernel_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2),
-                             activity_regularizer=regularizers.l1_l2(l1=self.phL1, l2=self.phL2)
-                             ))
-        self.model.add(Dropout(self.phDropRate))
-        self.model.add(Dense(self.nOutputs))
+        model.add(Conv1D(kernel_size=3, filters=30, activation='relu', padding="same",
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg,
+                         activity_regularizer=activity_reg
+                         ))
+        model.add(Conv1D(kernel_size=2, filters=40, activation='relu', padding="same",
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg,
+                         activity_regularizer=activity_reg
+                         ))
+        model.add(MaxPool1D(pool_size=(50)))  # , strides=(1)))
+        model.add(Flatten())
+        model.add(Dense(200, activation='elu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        activity_regularizer=activity_reg
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+        model.add(Dense(100, activation='elu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        activity_regularizer=activity_reg
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+        # model.add(Dense(self.nOutputs))
+        model.add(Dense(self.nOutputs, #activation='sigmoid',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        activity_regularizer=activity_reg
+                        ))
 
-        self.optimizer = optimizers.Adam(lr=self.phLearningRate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
-                                         amsgrad=False);
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
+                                    amsgrad=False);
 
-        self.model.compile(loss='mean_squared_error',
-                           optimizer=self.optimizer,
-                           metrics=['accuracy'])
-        if (os.path.isfile(modelName)):
-            self.loadModel()
+        model.compile(
+            #loss='binary_crossentropy',
+             loss='mean_squared_error',
+            optimizer=optimizer,
+            metrics=['accuracy'])
+        print(model.summary())
+
+        if (os.path.isfile(self.model_name)):
+            model.load_weights(self.model_name)
+        return model
 
     def initModelName(self):
         self.model_name = modelName
 
     def loadModel(self):
         try:
-            self.model = models.load_model('my_model.h5')
+            self.model.load_weights(modelName)
         except:
             print('no model')
 
-    def setUiBlocking(self, type, state):
+    def setUiState(self, type, state):
         if type == 'run':
             ui = [
-                self.btnTrain,
-            ]
-        if type == 'train':
-            ui = [
                 self.btnShowTestingPlot,
+                self.btnShowTrainingPlot,
+                self.btnTrain,
+                self.btnReloadData,
                 self.ed_indatapath,
                 self.ed_outdatapath,
                 self.ed_inputpath,
-                self.btnRun,
                 self.ed_trs_ls,
                 self.ed_trs_l1,
                 self.ed_trs_l2,
                 self.ed_trs_droprate
             ]
+        if type == 'train':
+            ui = [
+                self.btnShowTestingPlot,
+                self.btnRun,
+                self.btnReloadData,
+                self.ed_indatapath,
+                self.ed_outdatapath,
+                self.ed_inputpath,
+                self.ed_trs_ls,
+                self.ed_trs_l1,
+                self.ed_trs_l2,
+                self.ed_trs_droprate
+            ]
+        if type == 'settings':
+            ui = [
+                self.btnShowTestingPlot,
+                self.btnShowTrainingPlot,
+                self.btnReloadData,
+                self.btnRun,
+                self.btnTrain,
+            ]
         for i in ui:
             if (state == 'block'):
                 i['state'] = 'disabled'
-                i['bg'] = 'silver'
+                # i['bg'] = 'silver'
             if (state == 'unblock'):
-                i['state'] = 'enabled'
-                i['bg'] = 'white'
+                i['state'] = 'normal'
+                # i['bg'] = 'white'
 
     def onClickRunBtn(self, event):
         if self.run_is_launched == False:
@@ -225,7 +265,7 @@ class app:
             tt.daemon = True
             tt.start()
         else:
-            self.stop_train_is_pressed = True
+            self.stopBtn.stopBtnState = True
 
     def onClickReloadDataBtn(self, event):
         tt = threading.Thread(target=self.threadReloadData)
@@ -235,7 +275,7 @@ class app:
     def onClickShowTrainingPlot(self, event):
         self.trainingfig = plt.figure(figsize=(10, 7), dpi=80, num='Training plot')
         self.trainingplot = self.trainingfig.add_subplot(111)
-        self.trainingani = animation.FuncAnimation(self.trainingfig, self.threadDrawTrainingPlot, interval=1000)
+        self.trainingani = animation.FuncAnimation(self.trainingfig, self.updateTrainingPlot, interval=1000)
         self.trainingfignum = self.trainingfig.number
 
         self.trainingfig.show()
@@ -244,26 +284,41 @@ class app:
         # else:
 
     def onClickShowTestingPlot(self, event):
-        prediction = self.model.predict(x=self.X)  # ,batch_size=n_datasize)
-        plt.plot(prediction, linewidth=0.5)
-        plt.plot(self.Y, linewidth=0.5)
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
+        prediction = model.predict(x=self.X)  # ,batch_size=n_datasize)
+        plt.plot(prediction, linewidth=0.5, color='b')
+        plt.plot(self.Y, linewidth=0.5, color='r')
         plt.show()
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        # prediction = self.model.predict(x=self.X)  # ,batch_size=n_datasize)
+        # plt.plot(prediction, linewidth=0.5)
+        # plt.plot(self.Y, linewidth=0.5)
+        # plt.show()
+        pass
 
     def onChangePath(self, event):
         if self.data_is_loaded == False:
             self.tryLoadData()
 
-    def onChangeSettings(self, event, ui_index, format):
+    def onChangeSettings(self, event, ui_index):
         i = ui_index
         value = self.settingsUI[i].get(1.0, END)
         value = value.rstrip()
         try:
-            format(value)
+            self.settingsDtypes[i](value)
         except:
             self.settingsUI[i]['bg'] = 'red'
+            self.setUiState('settings', 'block')
         else:
             self.settingsUI[i]['bg'] = 'white'
-            self.settings[i] = format(value)
+            self.settings[i] = self.settingsDtypes[i](value)
+            self.setUiState('settings', 'unblock')
             if self.saving_is_launched == False:
                 ts = threading.Thread(target=self.threadSaveSettings)
                 ts.daemon = True
@@ -280,36 +335,60 @@ class app:
 
     def threadTrain(self):
         self.training_is_launched = True
-        self.stop_train_is_pressed = False
+        self.stopBtn.stopBtnState = False
         self.btnTrain.config(text="Stop training")
+        self.setUiState('train', 'block')
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        mon='val_loss'
+        #mon = 'val_acc'
 
         self.callbacks = [
-            callbacks.EarlyStopping(patience=50, monitor='val_loss'),
-            callbacks.ModelCheckpoint("my_model.h5", monitor='val_loss', verbose=0, save_best_only=False,
-                                      save_weights_only=False,
+            callbacks.EarlyStopping(patience=self.settings['overfit_epochs'], monitor=mon),
+            callbacks.ModelCheckpoint(self.model_name, monitor=mon, verbose=1, save_best_only=True,
+                                      save_weights_only=True,
                                       mode='min', period=1),
-            self.historyCallback
+            self.historyCallback,
+            self.stopBtn
         ]
 
-        self.model.fit(self.X_train, self.Y_train, epochs=5, batch_size=500, callbacks=callbacks, validation_data=(self.X_test, self.Y_test))
+        model = self.initModel()
 
+        model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,
+                  callbacks=self.callbacks,
+                  validation_data=(self.X_test, self.Y_test))
 
+        score = model.evaluate(self.X, self.Y)  # , batch_size=500)
+        self.lbl_losses.config(text="Loss: " + str(score[0]))
+
+        backend.reset_uids()
+        backend.clear_session()
 
         self.updateError()
+
         self.training_is_launched = False
+        self.setUiState('train', 'unblock')
         self.btnTrain.config(text="Train model")
-        return
 
     def theadRun(self):
         self.run_is_launched = True
         self.stop_run_is_pressed = False
-        self.loadModel()
         self.btnRun.config(text="Stop model")
         self.input_path_is_valid = False
+
+        self.setUiState('run', 'block')
+
         fpath = self.ed_inputpath.get(1.0, END)
         fpath = fpath.rstrip()
         fpath = fpath.lstrip()
         self.sDataInput1Path = fpath
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
 
         while True:
             if (os.path.isfile(self.sDataInput1Path)):
@@ -324,17 +403,15 @@ class app:
                     X0 = np.float32(X0)
                     X0 = np.reshape(X0, [1, self.nInputs])
                     X0 = self.scaler.transform(X0)
+                    X0 = np.reshape(X0, [1, self.nInputs, 1])
 
                     Y0 = np.zeros(shape=[1, self.nOutputs])
                     Y0 = np.reshape(Y0, [1, self.nOutputs])
 
                     os.remove(self.sDataInput1Path)
 
-                    self.sess.run(self.iter.initializer,
-                                  feed_dict={self.x: X0, self.y: Y0, self.phBatchSize: 1, self.phDropRate: 0,
-                                             self.batch_normalization_active: False})
+                    p = model.predict(x=X0)
 
-                    p = self.sess.run(self.prediction)
                     output = ""
                     for i in range(self.nOutputs):
                         output += " "
@@ -349,6 +426,7 @@ class app:
             if self.stop_run_is_pressed == True:
                 break
         self.run_is_launched = False
+        self.setUiState('run', 'unblock')
         self.btnRun.config(text="Run model")
 
     def threadReloadData(self):
@@ -358,50 +436,58 @@ class app:
         self.btnReloadData['state'] = 'normal'
         self.updateError()
 
-    def threadDrawTrainingPlot(self, i):
+    def updateTrainingPlot(self, i):
         self.trainingplot.clear()
         if TestSizePercent > 0.0:
             try:
-                min_index = np.argmin(self.trainingdata_test_error)
+                min_index = np.argmin(self.historyCallback.val_loss)
             except:
                 return
             else:
-                self.trainingplot.plot(self.trainingdata_train_error, color='b',
-                                       label='train_loss=' + ("%.4f" % self.trainingdata_train_error[
-                                           self.trainingdata_train_error.size - 1]))
-                self.trainingplot.plot(self.trainingdata_test_error, color='darkorange',
-                                       label='test_loss=' + ("%.4f" % self.trainingdata_test_error[
-                                           self.trainingdata_test_error.size - 1]))
-                self.trainingplot.axvline(x=self.p_epoch, color='k', linestyle='--',
-                                          label='epoch=' + str(self.p_epoch)
+                self.trainingplot.plot(self.historyCallback.loss, color='b',
+                                       label='train_loss=' + ("%.4f" % self.historyCallback.loss[
+                                           self.historyCallback.loss.size - 1]))
+                self.trainingplot.plot(self.historyCallback.val_loss, color='darkorange',
+                                       label='test_loss=' + ("%.4f" % self.historyCallback.val_loss[
+                                           self.historyCallback.val_loss.size - 1]))
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',
+                                          label='epoch=' + str(min_index)
                                                 + '\ntrain_loss=' + (
-                                                            "%.4f" % self.trainingdata_train_error[self.p_epoch])
+                                                        "%.4f" % self.historyCallback.loss[min_index])
                                                 + '\ntest_loss=' + (
-                                                            "%.4f" % self.trainingdata_test_error[self.p_epoch]))
-                self.trainingplot.axhline(y=self.trainingdata_test_error[self.p_epoch], color='k', linestyle='--')
+                                                        "%.4f" % self.historyCallback.val_loss[min_index]))
+                self.trainingplot.axhline(y=self.historyCallback.val_loss[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
         else:
             try:
-                min_index = np.argmin(self.trainingdata_train_error)
+                min_index = np.argmin(self.historyCallback.loss)
             except:
                 return
             else:
-                self.trainingplot.plot(self.trainingdata_train_error, color='b',
-                                       label='train_loss=' + ("%.4f" % self.trainingdata_train_error[
-                                           self.trainingdata_train_error.size - 1]))
-                self.trainingplot.axvline(x=self.p_epoch, color='k', linestyle='--',
-                                          label='epoch=' + str(self.p_epoch) + '\ntrain_loss=' + (
-                                                      "%.4f" % self.trainingdata_train_error[self.p_epoch]))
-                self.trainingplot.axhline(y=self.trainingdata_train_error[self.p_epoch], color='k', linestyle='--')
+                self.trainingplot.plot(self.historyCallback.loss, color='b',
+                                       label='train_loss=' + ("%.4f" % self.historyCallback.loss[
+                                           self.historyCallback.loss.size - 1]))
+                self.trainingplot.axvline(x=min_index, color='k', linestyle='--',
+                                          label='epoch=' + str(min_index) + '\ntrain_loss=' + (
+                                                  "%.4f" % self.historyCallback.loss[min_index]))
+                self.trainingplot.axhline(y=self.historyCallback.loss[min_index], color='k', linestyle='--')
                 self.trainingplot.legend(loc='upper right')
 
     def updateError(self):
-        self.sess.run(self.iter.initializer,
-                      feed_dict={self.x: self.X, self.y: self.Y, self.phBatchSize: self.nDataSize,
-                                 self.phDropRate: 0,
-                                 self.batch_normalization_active: False})
-        self.losses = self.sess.run(self.loss)
-        self.lbl_losses.config(text="Loss: " + str(self.losses))
+        if (self.training_is_launched == True):
+            return
+        if (self.run_is_launched == True):
+            return
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
+        score = model.evaluate(self.X, self.Y, batch_size=500)
+        self.lbl_losses.config(text="Loss: " + str("%.4f" % score[0]))
+
+        backend.reset_uids()
+        backend.clear_session()
 
     def saveSettings(self):
         fname = 'settings.txt'
@@ -469,18 +555,18 @@ class app:
         }
         self.settingsDtypes = {
             'epochs': int,
-            'stop_error': np.float32,
-            'ls': np.float32,
-            'l1': np.float32,
-            'l2': np.float32,
-            'drop_rate': np.float32,
+            'stop_error': float,
+            'ls': float,
+            'l1': float,
+            'l2': float,
+            'drop_rate': float,
             'overfit_epochs': int
         }
         self.settingsDefault = {
             'epochs': 10000,
             'stop_error': 0.00000001,
             'ls': 0.0001,
-            'l1': 0.001,
+            'l1': 0.01,
             'l2': 0.01,
             'drop_rate': 0.15,
             'overfit_epochs': 2000
@@ -557,47 +643,27 @@ class app:
         self.ed_outdatapath.bind('<KeyRelease>', self.onChangePath)
         self.ed_inputpath.bind('<KeyRelease>', self.onChangePath)
         #
-        self.ed_trs_epochs.bind('<KeyRelease>',
-                                lambda event, u_index='epochs', format=int: self.onChangeSettings(event, u_index,
-                                                                                                  format))
+        self.ed_trs_epochs.bind('<KeyRelease>', lambda event, u_index='epochs': self.onChangeSettings(event, u_index))
         self.ed_trs_stoperror.bind('<KeyRelease>',
-                                   lambda event, u_index='stop_error', format=float: self.onChangeSettings(event,
-                                                                                                           u_index,
-                                                                                                           format))
-        self.ed_trs_ls.bind('<KeyRelease>',
-                            lambda event, u_index='ls', format=float: self.onChangeSettings(event, u_index, format))
-        self.ed_trs_l1.bind('<KeyRelease>',
-                            lambda event, u_index='l1', format=float: self.onChangeSettings(event, u_index, format))
-        self.ed_trs_l2.bind('<KeyRelease>',
-                            lambda event, u_index='l2', format=float: self.onChangeSettings(event, u_index, format))
+                                   lambda event, u_index='stop_error': self.onChangeSettings(event, u_index))
+        self.ed_trs_ls.bind('<KeyRelease>', lambda event, u_index='ls': self.onChangeSettings(event, u_index))
+        self.ed_trs_l1.bind('<KeyRelease>', lambda event, u_index='l1': self.onChangeSettings(event, u_index))
+        self.ed_trs_l2.bind('<KeyRelease>', lambda event, u_index='l2': self.onChangeSettings(event, u_index))
         self.ed_trs_droprate.bind('<KeyRelease>',
-                                  lambda event, u_index='drop_rate', format=float: self.onChangeSettings(event, u_index,
-                                                                                                         format))
+                                  lambda event, u_index='drop_rate': self.onChangeSettings(event, u_index))
         self.ed_trs_ovf_epochs.bind('<KeyRelease>',
-                                    lambda event, u_index='overfit_epochs', format=int: self.onChangeSettings(event,
-                                                                                                              u_index,
-                                                                                                              format))
+                                    lambda event, u_index='overfit_epochs': self.onChangeSettings(event, u_index))
         #
-        self.ed_trs_epochs.bind('<FocusOut>',
-                                lambda event, u_index='epochs', format=int: self.onChangeSettings(event, u_index,
-                                                                                                  format))
+        self.ed_trs_epochs.bind('<FocusOut>', lambda event, u_index='epochs': self.onChangeSettings(event, u_index))
         self.ed_trs_stoperror.bind('<FocusOut>',
-                                   lambda event, u_index='stop_error', format=float: self.onChangeSettings(event,
-                                                                                                           u_index,
-                                                                                                           format))
-        self.ed_trs_ls.bind('<FocusOut>',
-                            lambda event, u_index='ls', format=float: self.onChangeSettings(event, u_index, format))
-        self.ed_trs_l1.bind('<FocusOut>',
-                            lambda event, u_index='l1', format=float: self.onChangeSettings(event, u_index, format))
-        self.ed_trs_l2.bind('<FocusOut>',
-                            lambda event, u_index='l2', format=float: self.onChangeSettings(event, u_index, format))
+                                   lambda event, u_index='stop_error': self.onChangeSettings(event, u_index))
+        self.ed_trs_ls.bind('<FocusOut>', lambda event, u_index='ls': self.onChangeSettings(event, u_index))
+        self.ed_trs_l1.bind('<FocusOut>', lambda event, u_index='l1': self.onChangeSettings(event, u_index))
+        self.ed_trs_l2.bind('<FocusOut>', lambda event, u_index='l2': self.onChangeSettings(event, u_index))
         self.ed_trs_droprate.bind('<FocusOut>',
-                                  lambda event, u_index='drop_rate', format=float: self.onChangeSettings(event, u_index,
-                                                                                                         format))
+                                  lambda event, u_index='drop_rate': self.onChangeSettings(event, u_index))
         self.ed_trs_ovf_epochs.bind('<FocusOut>',
-                                    lambda event, u_index='overfit_epochs', format=int: self.onChangeSettings(event,
-                                                                                                              u_index,
-                                                                                                              format))
+                                    lambda event, u_index='overfit_epochs': self.onChangeSettings(event, u_index))
         #
         self.btnTrain.bind('<Button 1>', self.onClickTrainBtn)
         self.btnRun.bind('<Button 1>', self.onClickRunBtn)
@@ -686,19 +752,20 @@ class app:
         # plot
         self.trainingfig = plt.figure(figsize=(10, 7), dpi=80, num='Training plot')
         self.trainingplot = self.trainingfig.add_subplot(111)
-        self.trainingani = animation.FuncAnimation(self.trainingfig, self.threadDrawTrainingPlot, interval=1000)
+        self.trainingani = animation.FuncAnimation(self.trainingfig, self.updateTrainingPlot, interval=1000)
         self.trainingfignum = self.trainingfig.number
 
-        self.testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
-        self.testingplot = self.testingfig.add_subplot(111)
-        self.testingani = animation.FuncAnimation(self.testingfig, self.theadDrawTestingPlot, interval=1000)
-        self.testingfignum = self.testingfig.number
+        # self.testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
+        # self.testingplot = self.testingfig.add_subplot(111)
+        # self.testingani = animation.FuncAnimation(self.testingfig, self.theadDrawTestingPlot, interval=1000)
+        # self.testingfignum = self.testingfig.number
 
     def __init__(self):
         self.historyCallback = historyCallback()
+        self.stopBtn = stopBtnCallback()
 
         self.initInterface()
-        self.initPlots()
+        # self.initPlots()
         self.initSettings()
         self.saveSettings()
 
@@ -707,8 +774,8 @@ class app:
 
         # tf && model
         self.initModelName()
-        self.initModel()
-        self.loadModel()
+        # self.initModel()
+        # self.loadModel()
         self.updateError()
 
         # run
