@@ -20,27 +20,6 @@ from matplotlib.backends.backend_tkagg import (
 
 modelName = "model.h5"
 
-# defines
-# elu = tf.nn.elu
-# sig = tf.nn.sigmoid
-# tan = tf.nn.tanh
-# relu = tf.nn.relu
-# softsign = tf.nn.softsign
-
-##nn structure
-# f_l_f = elu
-# neurons=100
-# struct = np.array([[neurons,neurons,neurons,neurons,neurons,neurons,neurons,neurons],
-#                   [f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f,f_l_f]])
-# outputs_af = tan
-
-
-# nn structure
-# f_l_f = elu
-# neurons = 1024
-# struct = np.array([[neurons, neurons, neurons],
-#                   [f_l_f, f_l_f, f_l_f]])
-# outputs_af = None
 
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
