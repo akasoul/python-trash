@@ -31,7 +31,7 @@ layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
 
 
-def initModel():
+def initModel(inputSize):
     # model
     kernel_init = 'glorot_uniform'
     bias_init = 'zeros'
@@ -44,7 +44,7 @@ def initModel():
     filters = 5
     model = Sequential()
 
-    model.add(Dense(50, activation='tanh',input_shape=(100,1),
+    model.add(Dense(50, activation='tanh',input_shape=(inputSize,1),
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
@@ -98,7 +98,68 @@ def initModel():
     return model
 
 
-model = initModel()
+model = None
+stateFname="state.txt"
+rewardFname="reward.txt"
+actionFname="action.txt"
+
+while(True):
+    while not os.path.isfile("state.txt"):
+        pass
+    stateLoaded=False
+    state=None
+    action=None
+    reward=None
+    actions=None
+    rewards=None
+    while(stateLoaded==False):
+        try:
+            state = np.genfromtxt(stateFname)
+        except:
+            pass
+        else:
+            stateLoaded=True
+            #os.remove(stateFname)
+
+    shape=state.shape[0]
+    if(model==None):
+        model=initModel(shape)
+
+    state=np.reshape(state,[1,shape,1])
+
+    action=model.predict(state)
+    action=np.argmax(action)
+
+    output = ""
+    output += str(action)
+    file = open(actionFname, 'w')
+    file.write(output)
+    file.close()
+    print(output)
+
+    while not os.path.isfile(rewardFname):
+        try:
+            reward = np.genfromtxt(rewardFname)
+            if(reward[0]>0):
+                reward=1
+            else:
+                reward[0]=-1
+        except:
+            pass
+        else:
+            rewardLoaded=True
+            #os.remove(rewardFname)
+
+    if(rewards==None):
+        rewards=np.array(state)
+    else:
+        rewards=np.append(rewards,reward)
+
+    if(actions==None):
+        actions=np.array(action)
+    else:
+        actions=np.append(actions,action)
+
 
 data0=np.random.random_sample(100,)
 data0=np.reshape(data0,[1,100,1])
