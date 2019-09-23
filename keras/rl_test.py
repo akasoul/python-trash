@@ -103,15 +103,17 @@ stateFname="state.txt"
 rewardFname="reward.txt"
 actionFname="action.txt"
 
+states = None
+actions = None
+rewards = None
+
 while(True):
-    while not os.path.isfile("state.txt"):
+    while not os.path.isfile(stateFname):
         pass
     stateLoaded=False
     state=None
     action=None
     reward=None
-    actions=None
-    rewards=None
     while(stateLoaded==False):
         try:
             state = np.genfromtxt(stateFname)
@@ -119,7 +121,7 @@ while(True):
             pass
         else:
             stateLoaded=True
-            #os.remove(stateFname)
+            os.remove(stateFname)
 
     shape=state.shape[0]
     if(model==None):
@@ -127,7 +129,18 @@ while(True):
 
     state=np.reshape(state,[1,shape,1])
 
+    if(states==None):
+        states=np.array(state)
+    else:
+        states=np.append(states,state)
+
     action=model.predict(state)
+    if(actions==None):
+        actions=np.array(action)
+    else:
+        actions=np.append(actions,action)
+
+    reward = action
     action=np.argmax(action)
 
     output = ""
@@ -137,28 +150,33 @@ while(True):
     file.close()
     print(output)
 
+    target=None
     while not os.path.isfile(rewardFname):
-        try:
-            reward = np.genfromtxt(rewardFname)
-            if(reward[0]>0):
-                reward=1
-            else:
-                reward[0]=-1
-        except:
-            pass
+        pass
+
+    try:
+        reward = np.genfromtxt(rewardFname)
+        if(reward>0):
+            target=1
+
         else:
-            rewardLoaded=True
-            #os.remove(rewardFname)
+            target=-1
+    except:
+        pass
+    else:
+        rewardLoaded=True
+        os.remove(rewardFname)
+
+    if(target>0):
+        reward[np.argmin(reward)]=0
+    else:
+        reward[np.argmax(reward)]=0
 
     if(rewards==None):
-        rewards=np.array(state)
+        rewards=np.array(reward)
     else:
         rewards=np.append(rewards,reward)
 
-    if(actions==None):
-        actions=np.array(action)
-    else:
-        actions=np.append(actions,action)
 
 
 data0=np.random.random_sample(100,)
