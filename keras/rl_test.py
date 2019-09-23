@@ -107,6 +107,7 @@ states = None
 actions = None
 rewards = None
 
+
 while(True):
     while not os.path.isfile(stateFname):
         pass
@@ -150,34 +151,35 @@ while(True):
     file.close()
     print(output)
 
-    target=None
+    result=None
     while not os.path.isfile(rewardFname):
         pass
 
     try:
-        reward = np.genfromtxt(rewardFname)
-        if(reward>0):
-            target=1
+        result = np.genfromtxt(rewardFname)
+        if(result>0):
+            result=1
 
         else:
-            target=-1
+            result=-1
     except:
         pass
     else:
         rewardLoaded=True
         os.remove(rewardFname)
 
-    if(target>0):
-        reward[np.argmin(reward)]=0
+    if(result>0):
+        reward[0][np.argmin(reward)]=0
     else:
-        reward[np.argmax(reward)]=0
+        reward[0][np.argmax(reward)]=0
 
     if(rewards==None):
         rewards=np.array(reward)
     else:
         rewards=np.append(rewards,reward)
 
-
+    model.fit(states, rewards, epochs=1)
+    model.save_weights("model.h5")
 
 data0=np.random.random_sample(100,)
 data0=np.reshape(data0,[1,100,1])
