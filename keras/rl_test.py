@@ -35,11 +35,11 @@ def initModel(inputSize):
     # model
     kernel_init = 'glorot_uniform'
     bias_init = 'zeros'
-    kernel_reg = regularizers.l1_l2(l1=0.000, l2=0.000)
-    bias_reg = regularizers.l1_l2(l1=0.000, l2=0.000)
+    kernel_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
+    bias_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
 
     droprate=0.0
-    learning_rate=0.00001
+    learning_rate=0.001
     kernel_size = 10
     filters = 5
 
@@ -55,9 +55,25 @@ def initModel(inputSize):
                kernel_regularizer=kernel_reg,
                # activity_regularizer=activity_reg
                ))
-    model.add(MaxPool1D(pool_size=(5)))  # , strides=(1)))
+    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+                     kernel_initializer=kernel_init,
+                     bias_initializer=bias_init,
+                     bias_regularizer=bias_reg,
+                     kernel_regularizer=kernel_reg,
+                     # activity_regularizer=activity_reg
+                     ))
+    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+                     kernel_initializer=kernel_init,
+                     bias_initializer=bias_init,
+                     bias_regularizer=bias_reg,
+                     kernel_regularizer=kernel_reg,
+                     # activity_regularizer=activity_reg
+                     ))
+    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
     model.add(Flatten())
-    model.add(Dropout(droprate))
+    #model.add(Dropout(droprate))
     model.add(Dense(50, activation='relu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
@@ -65,7 +81,7 @@ def initModel(inputSize):
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Dropout(droprate))
+    #model.add(Dropout(droprate))
     model.add(Dense(50, activation='relu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
@@ -73,7 +89,7 @@ def initModel(inputSize):
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Dropout(droprate))
+    #model.add(Dropout(droprate))
     model.add(Dense(50, activation='relu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
@@ -81,7 +97,7 @@ def initModel(inputSize):
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Dropout(droprate))
+    #model.add(Dropout(droprate))
 
     model.add(Dense(2,activation='softmax'))
 
@@ -202,11 +218,11 @@ while(True):
     while(rewardLoaded==False):
         try:
             result = np.genfromtxt(rewardFname)
-            if(result>0):
-                result=1
-
-            else:
-                result=-1
+            #if(result>0):
+            #    result=1
+            #
+            #else:
+            #    result=-1
         except:
             pass
         else:
@@ -225,12 +241,12 @@ while(True):
         min=np.argmin(reward)
         max=np.argmax(reward)
         reward[0][min]=0
-        reward[0][max]=1
+        reward[0][max]=result
     else:
         min=np.argmin(reward)
         max=np.argmax(reward)
         reward[0][max]=0
-        reward[0][min]=1
+        reward[0][min]=-result
 
     try:
         if(rewards==None):
@@ -242,7 +258,7 @@ while(True):
         rewards=np.reshape(rewards,[examples,2])
 
     test_model=model.predict(states)
-    model.fit(states, rewards, epochs=10)
+    model.fit(states, rewards, epochs=1)
     model.save_weights("model.h5")
     print(rewards.shape)
 
