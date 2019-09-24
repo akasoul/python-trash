@@ -42,18 +42,39 @@ def initModel(inputSize):
     learning_rate=0.00001
     kernel_size = 10
     filters = 5
-    model = Sequential()
 
-    model.add(Dense(50, activation='tanh',input_shape=(inputSize,1),
+    kernel_size = 10
+    filters = 5
+    model = Sequential()
+    model.add(
+        Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', input_shape=(inputSize, 1),
+               padding="same",
+               kernel_initializer=kernel_init,
+               bias_initializer=bias_init,
+               bias_regularizer=bias_reg,
+               kernel_regularizer=kernel_reg,
+               # activity_regularizer=activity_reg
+               ))
+    model.add(MaxPool1D(pool_size=(5)))  # , strides=(1)))
+    model.add(Flatten())
+    model.add(Dropout(droprate))
+    model.add(Dense(50, activation='relu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Flatten())
     model.add(Dropout(droprate))
-    model.add(Dense(50, activation='tanh',
+    model.add(Dense(50, activation='relu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Dropout(droprate))
+    model.add(Dense(50, activation='relu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
@@ -107,39 +128,62 @@ states = None
 actions = None
 rewards = None
 
+examples=0
 
 while(True):
-    while not os.path.isfile(stateFname):
-        pass
-    stateLoaded=False
+    examples+=1
     state=None
     action=None
     reward=None
+
+    while not os.path.isfile(stateFname):
+        pass
+    stateLoaded=False
     while(stateLoaded==False):
         try:
             state = np.genfromtxt(stateFname)
         except:
             pass
         else:
+            removed=False
+            while (removed==False):
+                try:
+                    os.remove(stateFname)
+                except:
+                    pass
+                else:
+                    removed=True
             stateLoaded=True
-            os.remove(stateFname)
 
     shape=state.shape[0]
     if(model==None):
         model=initModel(shape)
+        if(os.path.isfile("model.h5")):
+            try:
+                model.load_weights("model.h5")
+            except:
+                pass
 
     state=np.reshape(state,[1,shape,1])
 
-    if(states==None):
-        states=np.array(state)
-    else:
-        states=np.append(states,state)
+    try:
+        if(states==None):
+            states=np.array(state)
+        else:
+            states=np.append([states],[state])
+    except:
+        states = np.append([states], [state])
+        states=np.reshape(states,[examples,shape,1])
 
     action=model.predict(state)
-    if(actions==None):
-        actions=np.array(action)
-    else:
-        actions=np.append(actions,action)
+    try:
+        if(actions==None):
+            actions=np.array(action)
+        else:
+            actions=np.append([actions],[action])
+    except:
+        actions = np.append([actions], [action])
+        actions=np.reshape(actions,[examples,2])
 
     reward = action
     action=np.argmax(action)
@@ -154,39 +198,60 @@ while(True):
     result=None
     while not os.path.isfile(rewardFname):
         pass
+    rewardLoaded=False
+    while(rewardLoaded==False):
+        try:
+            result = np.genfromtxt(rewardFname)
+            if(result>0):
+                result=1
 
-    try:
-        result = np.genfromtxt(rewardFname)
-        if(result>0):
-            result=1
-
+            else:
+                result=-1
+        except:
+            pass
         else:
-            result=-1
-    except:
-        pass
-    else:
-        rewardLoaded=True
-        os.remove(rewardFname)
+            removed=False
+            while (removed==False):
+                try:
+                    os.remove(rewardFname)
+                except:
+                    pass
+                else:
+                    removed=True
+            rewardLoaded=True
+
 
     if(result>0):
-        reward[0][np.argmin(reward)]=0
+        min=np.argmin(reward)
+        max=np.argmax(reward)
+        reward[0][min]=0
+        reward[0][max]=1
     else:
-        reward[0][np.argmax(reward)]=0
+        min=np.argmin(reward)
+        max=np.argmax(reward)
+        reward[0][max]=0
+        reward[0][min]=1
 
-    if(rewards==None):
-        rewards=np.array(reward)
-    else:
-        rewards=np.append(rewards,reward)
+    try:
+        if(rewards==None):
+            rewards=np.array(reward)
+        else:
+            rewards=np.append([rewards],[reward])
+    except:
+        rewards = np.append([rewards], [reward])
+        rewards=np.reshape(rewards,[examples,2])
 
-    model.fit(states, rewards, epochs=1)
+    test_model=model.predict(states)
+    model.fit(states, rewards, epochs=10)
     model.save_weights("model.h5")
+    print(rewards.shape)
 
 data0=np.random.random_sample(100,)
 data0=np.reshape(data0,[1,100,1])
 prediction_1=model.predict(data0)
 target=np.array(prediction_1)
 target[0][np.argmin(prediction_1)]=0
-model.fit(x=data0,y=target,epochs=10)
+model.fit(x=data0,y=target,epochs=1)
 prediction_2=model.predict(data0)
 print("prediction_1=",prediction_1)
 print("target=      ",target)
