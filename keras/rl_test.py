@@ -30,6 +30,19 @@ MaxBatchSize = 300
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
 
+def readFile(fileName):
+        completed=False
+        while(completed==False):
+            while not os.path.isfile(fileName):
+                pass
+            while not completed:
+                try:
+                    data=np.genfromtxt(fileName)
+                except:
+                    pass
+                else:
+                    completed=True
+        return data
 
 def initModel(inputSize):
     # model
@@ -145,6 +158,8 @@ actions = None
 rewards = None
 
 examples=0
+r=readFile("1.txt")
+s=r.shape
 
 while(True):
     examples+=1
