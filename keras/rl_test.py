@@ -42,6 +42,10 @@ def readFile(fileName):
                     pass
                 else:
                     completed=True
+        try:
+            os.remove(fileName)
+        except:
+            pass
         return data
 
 def writeFile(fileName,data):
@@ -193,14 +197,14 @@ while(True):
 
     writeFile(actionFname,action[0])
 
-    for i in range(0,15):
+    for i in range(0,4):
         fnameState="state"+str(i)+".txt"
         fnameReward="reward"+str(i)+".txt"
         if(os.path.isfile(fnameState)):
-            if(os.path.isfile(rewardFname)):
+            if(os.path.isfile(fnameReward)):
                 examples+=1
                 state=readFile(fnameState)
-                reward=readFile(rewardFname)
+                reward=readFile(fnameReward)
                 states = np.append([states], [state])
                 states = np.reshape(states, [examples,shape,1])
                 rewards = np.append([rewards], [reward])
