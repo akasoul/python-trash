@@ -44,6 +44,15 @@ def readFile(fileName):
                     completed=True
         return data
 
+def writeFile(fileName,data):
+    output = ""
+    for i in data:
+        output += str(i)
+        output += " "
+    file = open(fileName, 'w')
+    file.write(output)
+    file.close()
+
 def initModel(inputSize):
     # model
     kernel_init = 'glorot_uniform'
@@ -112,7 +121,8 @@ def initModel(inputSize):
                     ))
     #model.add(Dropout(droprate))
 
-    model.add(Dense(2,activation='softmax'))
+    model.add(Dense(4,activation='softmax',
+              bias_initializer='glorot_uniform'))
 
     optimizer = optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
                                 amsgrad=False);
@@ -158,35 +168,17 @@ actions = None
 rewards = None
 
 examples=0
-r=readFile("1.txt")
-s=r.shape
 
 while(True):
-    examples+=1
+
     state=None
     action=None
     reward=None
 
-    while not os.path.isfile(stateFname):
-        pass
-    stateLoaded=False
-    while(stateLoaded==False):
-        try:
-            state = np.genfromtxt(stateFname)
-        except:
-            pass
-        else:
-            removed=False
-            while (removed==False):
-                try:
-                    os.remove(stateFname)
-                except:
-                    pass
-                else:
-                    removed=True
-            stateLoaded=True
+    state=readFile(stateFname)
 
     shape=state.shape[0]
+
     if(model==None):
         model=initModel(shape)
         if(os.path.isfile("model.h5")):
@@ -197,93 +189,26 @@ while(True):
 
     state=np.reshape(state,[1,shape,1])
 
-    try:
-        if(states==None):
-            states=np.array(state)
-        else:
-            states=np.append([states],[state])
-    except:
-        states = np.append([states], [state])
-        states=np.reshape(states,[examples,shape,1])
-
     action=model.predict(state)
-    try:
-        if(actions==None):
-            actions=np.array(action)
-        else:
-            actions=np.append([actions],[action])
-    except:
-        actions = np.append([actions], [action])
-        actions=np.reshape(actions,[examples,2])
 
-    reward = action
-    action=np.argmax(action)
+    writeFile(actionFname,action[0])
 
-    output = ""
-    output += str(action)
-    file = open(actionFname, 'w')
-    file.write(output)
-    file.close()
-    print(output)
+    for i in range(0,15):
+        fnameState="state"+str(i)+".txt"
+        fnameReward="reward"+str(i)+".txt"
+        if(os.path.isfile(fnameState)):
+            if(os.path.isfile(rewardFname)):
+                examples+=1
+                state=readFile(fnameState)
+                reward=readFile(rewardFname)
+                states = np.append([states], [state])
+                states = np.reshape(states, [examples,shape,1])
+                rewards = np.append([rewards], [reward])
+                rewards = np.reshape(rewards, [examples, 2])
 
-    result=None
-    while not os.path.isfile(rewardFname):
-        pass
-    rewardLoaded=False
-    while(rewardLoaded==False):
-        try:
-            result = np.genfromtxt(rewardFname)
-            #if(result>0):
-            #    result=1
-            #
-            #else:
-            #    result=-1
-        except:
-            pass
-        else:
-            removed=False
-            while (removed==False):
-                try:
-                    os.remove(rewardFname)
-                except:
-                    pass
-                else:
-                    removed=True
-            rewardLoaded=True
+    if examples>0:
+        #test_model=model.predict(states)
+        model.fit(states, rewards,steps_per_epoch=1, epochs=1)
+        model.save_weights("model.h5")
+        print(rewards.shape)
 
-
-    if(result>0):
-        min=np.argmin(reward)
-        max=np.argmax(reward)
-        reward[0][min]=0
-        reward[0][max]=result
-    else:
-        min=np.argmin(reward)
-        max=np.argmax(reward)
-        reward[0][max]=0
-        reward[0][min]=-result
-
-    try:
-        if(rewards==None):
-            rewards=np.array(reward)
-        else:
-            rewards=np.append([rewards],[reward])
-    except:
-        rewards = np.append([rewards], [reward])
-        rewards=np.reshape(rewards,[examples,2])
-
-    test_model=model.predict(states)
-    model.fit(states, rewards, epochs=1)
-    model.save_weights("model.h5")
-    print(rewards.shape)
-
-data0=np.random.random_sample(100,)
-data0=np.reshape(data0,[1,100,1])
-prediction_1=model.predict(data0)
-target=np.array(prediction_1)
-target[0][np.argmin(prediction_1)]=0
-model.fit(x=data0,y=target,epochs=1)
-prediction_2=model.predict(data0)
-print("prediction_1=",prediction_1)
-print("target=      ",target)
-print("prediction_2=",prediction_2)
