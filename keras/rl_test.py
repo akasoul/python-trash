@@ -26,6 +26,7 @@ Preprocessing_Max = 1.0
 TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 300
+dimOutput=4
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
@@ -61,11 +62,11 @@ def initModel(inputSize):
     # model
     kernel_init = 'glorot_uniform'
     bias_init = 'zeros'
-    kernel_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
-    bias_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
+    kernel_reg = regularizers.l1_l2(l1=0.0, l2=0.0)
+    bias_reg = regularizers.l1_l2(l1=0.0, l2=0.0)
 
     droprate=0.0
-    learning_rate=0.001
+    learning_rate=0.00001
     kernel_size = 10
     filters = 5
 
@@ -81,7 +82,7 @@ def initModel(inputSize):
                kernel_regularizer=kernel_reg,
                # activity_regularizer=activity_reg
                ))
-    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+    model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
     model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
                      kernel_initializer=kernel_init,
                      bias_initializer=bias_init,
@@ -97,7 +98,7 @@ def initModel(inputSize):
                      kernel_regularizer=kernel_reg,
                      # activity_regularizer=activity_reg
                      ))
-    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+    model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
     model.add(Flatten())
     #model.add(Dropout(droprate))
     model.add(Dense(50, activation='relu',
@@ -116,16 +117,8 @@ def initModel(inputSize):
                     # activity_regularizer=activity_reg
                     ))
     #model.add(Dropout(droprate))
-    model.add(Dense(50, activation='relu',
-                    kernel_initializer=kernel_init,
-                    bias_initializer=bias_init,
-                    bias_regularizer=bias_reg,
-                    kernel_regularizer=kernel_reg,
-                    # activity_regularizer=activity_reg
-                    ))
-    #model.add(Dropout(droprate))
 
-    model.add(Dense(4,activation='softmax',
+    model.add(Dense(dimOutput,activation='softmax',
               bias_initializer='glorot_uniform'))
 
     optimizer = optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
@@ -189,6 +182,7 @@ while(True):
             try:
                 model.load_weights("model.h5")
             except:
+                print("no weights")
                 pass
 
     state=np.reshape(state,[1,shape,1])
@@ -205,14 +199,28 @@ while(True):
                 examples+=1
                 state=readFile(fnameState)
                 reward=readFile(fnameReward)
-                states = np.append([states], [state])
-                states = np.reshape(states, [examples,shape,1])
-                rewards = np.append([rewards], [reward])
-                rewards = np.reshape(rewards, [examples, 2])
+                try:
+                    if(states==None):
+                        states=np.array([state])
+                    else:
+                        states = np.append([states], [state])
+                except:
+                    states = np.append([states], [state])
 
-    if examples>0:
-        #test_model=model.predict(states)
-        model.fit(states, rewards,steps_per_epoch=1, epochs=1)
-        model.save_weights("model.h5")
-        print(rewards.shape)
+                states = np.reshape(states, [examples,shape,1])
+                try:
+                    if(rewards==None):
+                        rewards=np.array([reward])
+                    else:
+                        rewards = np.append([rewards], [reward])
+                except:
+                    rewards = np.append([rewards], [reward])
+
+                rewards = np.reshape(rewards, [examples, dimOutput])
+
+                if examples>0:
+                    #test_model=model.predict(states)
+                    model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
+                    model.save_weights("model.h5")
+                    print(rewards.shape)
 
