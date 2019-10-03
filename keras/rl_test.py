@@ -66,7 +66,7 @@ def initModel(inputSize):
     bias_reg = regularizers.l1_l2(l1=0.0, l2=0.0)
 
     droprate=0.0
-    learning_rate=0.00001
+    learning_rate=0.001
     kernel_size = 10
     filters = 5
 
@@ -220,9 +220,14 @@ while(True):
 
                 if examples>0:
                     #test_model=model.predict(states)
+                    while(states.shape[0]>20 and rewards.shape[0]>20):
+                        states=np.delete(states,0,0)
+                        rewards=np.delete(rewards,0,0)
+                        examples=20
+
                     model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
                     model.save_weights("model.h5")
                     np.save("indata",states)
                     np.save("outdata",rewards)
-                    print(rewards.shape)
+
 
