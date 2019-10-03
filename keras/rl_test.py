@@ -26,7 +26,7 @@ Preprocessing_Max = 1.0
 TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 300
-dimOutput=4
+dimOutput=2
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
@@ -222,5 +222,7 @@ while(True):
                     #test_model=model.predict(states)
                     model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
                     model.save_weights("model.h5")
+                    np.save("indata",states)
+                    np.save("outdata",rewards)
                     print(rewards.shape)
 
