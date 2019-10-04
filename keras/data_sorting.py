@@ -1,6 +1,13 @@
 import numpy as np
+import os
 
-
+for file in os.listdir():
+    num=""
+    if file.find("state")!= -1:
+        num=file[5:len(file)-4]
+        filename2="reward"+num+".txt"
+        if(os.path.isfile(filename2)):
+            pass
 
 indata=np.load("indata.npy")
 outdata=np.load("outdata.npy")

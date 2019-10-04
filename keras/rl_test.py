@@ -191,11 +191,13 @@ while(True):
 
     writeFile(actionFname,action[0])
 
-    for i in range(0,4):
-        fnameState="state"+str(i)+".txt"
-        fnameReward="reward"+str(i)+".txt"
-        if(os.path.isfile(fnameState)):
-            if(os.path.isfile(fnameReward)):
+    for file in os.listdir():
+        num = ""
+        if file.find("reward") != -1:
+            fnameReward=file
+            num = file[6:len(file) - 4]
+            fnameState = "state" + num + ".txt"
+            if (os.path.isfile(fnameState) and os.path.isfile(fnameReward)):
                 examples+=1
                 state=readFile(fnameState)
                 reward=readFile(fnameReward)
