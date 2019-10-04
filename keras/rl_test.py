@@ -191,6 +191,8 @@ while(True):
 
     writeFile(actionFname,action[0])
 
+
+
     for file in os.listdir():
         num = ""
         if file.find("reward") != -1:
@@ -220,16 +222,16 @@ while(True):
 
                 rewards = np.reshape(rewards, [examples, dimOutput])
 
-                if examples>0:
-                    #test_model=model.predict(states)
-                    while(states.shape[0]>20 and rewards.shape[0]>20):
-                        states=np.delete(states,0,0)
-                        rewards=np.delete(rewards,0,0)
-                        examples=20
+    if examples>0:
+        #test_model=model.predict(states)
+        while(states.shape[0]>20 and rewards.shape[0]>20):
+            states=np.delete(states,0,0)
+            rewards=np.delete(rewards,0,0)
+            examples=20
 
-                    model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
-                    model.save_weights("model.h5")
-                    np.save("indata",states)
-                    np.save("outdata",rewards)
+        model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
+        model.save_weights("model.h5")
+        np.save("indata",states)
+        np.save("outdata",rewards)
 
 
