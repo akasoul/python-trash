@@ -62,19 +62,20 @@ def initModel(inputSize):
     # model
     kernel_init = 'glorot_uniform'
     bias_init = 'zeros'
-    kernel_reg = regularizers.l1_l2(l1=0.0, l2=0.0)
-    bias_reg = regularizers.l1_l2(l1=0.0, l2=0.0)
+    kernel_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
+    bias_reg = regularizers.l1_l2(l1=0.01, l2=0.01)
 
     droprate=0.0
-    learning_rate=0.001
+    learning_rate=0.00001
     kernel_size = 10
     filters = 5
 
     kernel_size = 10
-    filters = 5
+    filters = 3
     model = Sequential()
+
     model.add(
-        Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', input_shape=(inputSize, 1),
+        Conv1D(kernel_size=kernel_size, filters=filters, activation='elu', input_shape=(inputSize, 1),
                padding="same",
                kernel_initializer=kernel_init,
                bias_initializer=bias_init,
@@ -82,26 +83,26 @@ def initModel(inputSize):
                kernel_regularizer=kernel_reg,
                # activity_regularizer=activity_reg
                ))
-    model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
-    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+    model.add(MaxPool1D(pool_size=(1)))  # , strides=(1)))
+    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='elu', padding="same",
                      kernel_initializer=kernel_init,
                      bias_initializer=bias_init,
                      bias_regularizer=bias_reg,
                      kernel_regularizer=kernel_reg,
                      # activity_regularizer=activity_reg
                      ))
-    model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
-    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+    model.add(MaxPool1D(pool_size=(1)))  # , strides=(1)))
+    model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='elu', padding="same",
                      kernel_initializer=kernel_init,
                      bias_initializer=bias_init,
                      bias_regularizer=bias_reg,
                      kernel_regularizer=kernel_reg,
                      # activity_regularizer=activity_reg
                      ))
-    model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+    model.add(MaxPool1D(pool_size=(1)))  # , strides=(1)))
     model.add(Flatten())
     #model.add(Dropout(droprate))
-    model.add(Dense(50, activation='relu',
+    model.add(Dense(50, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
@@ -109,7 +110,7 @@ def initModel(inputSize):
                     # activity_regularizer=activity_reg
                     ))
     #model.add(Dropout(droprate))
-    model.add(Dense(50, activation='relu',
+    model.add(Dense(50, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
@@ -155,6 +156,88 @@ def initModel(inputSize):
     return model
 
 
+def initModelDense(inputSize):
+    # model
+    kernel_init = 'glorot_uniform'
+    bias_init = 'zeros'
+    kernel_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
+    bias_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
+
+    droprate = 0.0
+    learning_rate = 0.001
+    kernel_size = 10
+    filters = 5
+
+    kernel_size = 10
+    filters = 3
+    model = Sequential()
+
+    model.add(Dense(1, activation='elu',input_shape=(inputSize, 1),
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Flatten())
+    model.add(Dense(300, activation='elu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Dense(300, activation='elu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Dense(300, activation='elu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Dense(dimOutput, activation='softmax',
+                    bias_initializer='glorot_uniform'))
+
+    optimizer = optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0,
+                                amsgrad=False);
+
+    # optimizer = optimizers.Nadam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, schedule_decay=0.004)
+    model.compile(
+        # loss='mean_squared_error',
+        loss='categorical_crossentropy',
+        optimizer=optimizer,
+        metrics=['accuracy'])
+    print(model.summary())
+
+    sName = ""
+    for i in model.layers:
+        for j in range(0, layersNames.size - 1):
+            if (i.name.find(layersNames[j]) != -1):
+                for k in i.input_shape:
+                    if (k != None):
+                        sName += str(k)
+                        sName += "."
+                    else:
+                        sName += "_."
+                sName += layersShortNames[j]
+                sName += "."
+    for i in model.layers[model.layers.__len__() - 1].output_shape:
+        if (i != None):
+            sName += str(i)
+            sName += "."
+        else:
+            sName += "_."
+    if (os.path.isfile(sName)):
+        model.load_weights(sName)
+    return model
+
+
 model = None
 stateFname="state.txt"
 rewardFname="reward.txt"
@@ -165,6 +248,9 @@ actions = None
 rewards = None
 
 examples=0
+
+
+
 
 while(True):
 
@@ -177,7 +263,7 @@ while(True):
     shape=state.shape[0]
 
     if(model==None):
-        model=initModel(shape)
+        model=initModelDense(shape)
         if(os.path.isfile("model.h5")):
             try:
                 model.load_weights("model.h5")
@@ -203,6 +289,7 @@ while(True):
                 examples+=1
                 state=readFile(fnameState)
                 reward=readFile(fnameReward)
+
                 try:
                     if(states==None):
                         states=np.array([state])
@@ -222,16 +309,19 @@ while(True):
 
                 rewards = np.reshape(rewards, [examples, dimOutput])
 
-    if examples>0:
-        #test_model=model.predict(states)
-        while(states.shape[0]>20 and rewards.shape[0]>20):
-            states=np.delete(states,0,0)
-            rewards=np.delete(rewards,0,0)
-            examples=20
+                if examples>0:
+                    #test_model=model.predict(states)
+                    # while(states.shape[0]>20 and rewards.shape[0]>20):
+                    #     states=np.delete(states,0,0)
+                    #     rewards=np.delete(rewards,0,0)
+                    #     examples=20
 
-        model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
-        model.save_weights("model.h5")
-        np.save("indata",states)
-        np.save("outdata",rewards)
+                    #state = np.reshape(state, [1, shape, 1])
+                    #reward = np.reshape(reward, [1, dimOutput])
+
+                    model.fit(states, rewards, epochs=1)#,steps_per_epoch=1)
+                    model.save_weights("model.h5")
+                    #np.save("indata",states)
+                    #np.save("outdata",rewards)
 
 
