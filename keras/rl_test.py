@@ -7,7 +7,7 @@ from sklearn import preprocessing
 import threading
 import os
 
-from keras import optimizers, regularizers, callbacks, models, backend
+from keras import optimizers, regularizers, initializers, callbacks, models, backend
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten
@@ -158,8 +158,8 @@ def initModel(inputSize):
 
 def initModelDense(inputSize):
     # model
-    kernel_init = 'glorot_uniform'
-    bias_init = 'zeros'
+    kernel_init = initializers.glorot_uniform(seed=None)
+    bias_init = initializers.glorot_uniform(seed=None)
     kernel_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
     bias_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
 
@@ -180,21 +180,21 @@ def initModelDense(inputSize):
                     # activity_regularizer=activity_reg
                     ))
     model.add(Flatten())
-    model.add(Dense(300, activation='elu',
+    model.add(Dense(30, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Dense(300, activation='elu',
+    model.add(Dense(30, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,
                     kernel_regularizer=kernel_reg,
                     # activity_regularizer=activity_reg
                     ))
-    model.add(Dense(300, activation='elu',
+    model.add(Dense(30, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
                     bias_regularizer=bias_reg,

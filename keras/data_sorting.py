@@ -1,37 +1,48 @@
+import shutil
 import numpy as np
 import os
 
-# for file in os.listdir():
-#     num = ""
-#     if file.find("state") != -1:
-#         num = file[5:len(file) - 4]
-#         filename2 = "reward" + num + ".txt"
-#         if (os.path.isfile(filename2)):
-#             pass
+terminal_path="C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/"
+google_drive_path="C:/Users/Anton/Google Диск/"
 
-def sortArr(data):
-    s1=data.shape[0]
-    s2=data.shape[1]
-    temp_data=data
-    out_data=temp_data[np.argmax(temp_data[:,0]),:]
-    temp_data = np.delete(temp_data, temp_data[np.argmax(temp_data[:, 0]), :])
-    s1-=1
-    temp_data.reshape([s1,s2])
-    while(outdata.shape[0]!=data.shape[0]):
-        out_data = np.append(out_data,temp_data[np.argmax(temp_data[:, 0]), :])
-        temp_data=np.delete(temp_data,temp_data[np.argmax(temp_data[:, 0]), :])
-        s1-=1
-        temp_data.reshape([s1,s2])
 
-    return out_data
+filenames_in=np.array(
+[
+terminal_path+"MQL4/"
+]
+)
 
-indata=np.load("indata.npy")
-outdata=np.load("outdata.npy")
-outdata=np.genfromtxt("123.txt")
+filenames_out=np.array(
+[
+#google_drive_path+"MQL4"
+"D:/MQL_4/"
+]
+)
 
-s1=indata.shape[0]
-indata2=np.delete(indata,1,0)
-outdata2=np.sort(outdata,0)
 
-data1=sortArr(outdata)
-pass
+for i in range(filenames_in.size):
+    os.chdir(filenames_in[i])
+    for file1 in os.listdir():
+        if(os.path.isfile(file1)):
+            shutil.copy(filenames_in[i]+file1,filenames_out[i]+file1)
+        if(os.path.isdir(file1)):
+            os.chdir(file1)
+            file1+="/"
+            for file2 in os.listdir():
+                if (os.path.isfile(file2)):
+                    shutil.copy(filenames_in[i] +file1+ file2, filenames_out[i] +file1+ file2)
+                if (os.path.isdir(file2)):
+                    os.chdir(file2)
+                    file2+="/"
+                    for file3 in os.listdir():
+                        if (os.path.isfile(file3)):
+                            shutil.copy(filenames_in[i] +file1+ file2+ file3, filenames_out[i] +file1+ file2+ file3)
+                        if (os.path.isdir(file3)):
+                            os.chdir(file3)
+                            file3+="/"
+                            for file4 in os.listdir():
+                                if (os.path.isfile(file4)):
+                                    shutil.copy(filenames_in[i] +file1+ file2+file3+ file4, filenames_out[i] +file1+ file2+file3+ file4)
+
+
+
