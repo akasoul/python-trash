@@ -5,7 +5,7 @@ import os
 
 pc_path=np.array(
 [
-"C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/MQL4/"
+"C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/MQL4"
 ]
 )
 
@@ -15,13 +15,28 @@ gd_path=np.array(
 ]
 )
 
+def copy(src,dst):
+    if(os.path.getmtime(src)!=os.path.getmtime(dst) or os.path.getsize(src)!=os.path.getsize(dst)):
+        shutil.copy(src,dst)
 
 for i in range(pc_path.size):
     src=pc_path[i]
     dst=gd_path[i]
-    if(os.path.isfile):
-        shutil.copy(src,dst)
+    if(os.path.isfile(src)):
+        copy(src,dst)
     else:
-        shutil.rmtree(dst)
-        shutil.copytree(src,dst)
+        noFolder=False
+        while(noFolder==False):
+
+        content=os.listdir(src)
+        for j in content:
+
+        try:
+            pass
+            #shutil.rmtree(dst)
+        except:
+            pass
+        shutil.copytree(src,dst,copy_function=copy(src,dst))
+
+
 

@@ -10,7 +10,7 @@ import os
 from keras import optimizers, regularizers, callbacks, models, backend
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten
+from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 import matplotlib.animation as animation
