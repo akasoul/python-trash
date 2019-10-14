@@ -25,12 +25,11 @@ for i in range(pc_path.size):
     if(os.path.isfile(src)):
         copy(src,dst)
     else:
-        noFolder=False
-        while(noFolder==False):
-
         content=os.listdir(src)
-        for j in content:
 
+        for j in content:
+            try:
+                shutil.copy()
         try:
             pass
             #shutil.rmtree(dst)
