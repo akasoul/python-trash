@@ -5,7 +5,7 @@ import os
 
 pc_path=np.array(
 [
-"C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/MQL4"
+"C:\\Users\\Anton\\AppData\\Roaming\\MetaQuotes\\Terminal\\287469DEA9630EA94D0715D755974F1B\\MQL4"
 ]
 )
 
@@ -15,27 +15,30 @@ gd_path=np.array(
 ]
 )
 
+
 def copy(src,dst):
-    if(os.path.getmtime(src)!=os.path.getmtime(dst) or os.path.getsize(src)!=os.path.getsize(dst)):
-        shutil.copy(src,dst)
+    if(os.path.isdir(src)):
+        src=os.path.normpath(src)
+        dst=os.path.normpath(dst)
+        if not os.path.exists(dst):
+            os.mkdir(dst)
+
+        for item in os.listdir(src):
+            copy(os.path.join(src,item),os.path.join(dst,item))
+    else:
+        if(os.path.isfile(dst)):
+            if(os.path.getsize(src)!=os.path.getsize(dst)):
+                if(os.path.getmtime(src)!=os.path.getmtime(dst)):
+                    shutil.copy(src, dst)
+        else:
+            shutil.copy(src, dst)
+
 
 for i in range(pc_path.size):
     src=pc_path[i]
     dst=gd_path[i]
-    if(os.path.isfile(src)):
-        copy(src,dst)
-    else:
-        content=os.listdir(src)
 
-        for j in content:
-            try:
-                shutil.copy()
-        try:
-            pass
-            #shutil.rmtree(dst)
-        except:
-            pass
-        shutil.copytree(src,dst,copy_function=copy(src,dst))
+    copy(src,dst)
 
 
 

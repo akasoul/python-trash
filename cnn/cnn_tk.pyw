@@ -346,11 +346,11 @@ class app:
             self.settingsDtypes[i](value)
         except:
             self.settingsUI[i]['bg'] = 'red'
-            self.setUiState('settings', 'block')
+            #self.setUiState('settings', 'block')
         else:
             self.settingsUI[i]['bg'] = 'white'
             self.settings[i] = self.settingsDtypes[i](value)
-            self.setUiState('settings', 'unblock')
+            #self.setUiState('settings', 'unblock')
             if self.saving_is_launched == False:
                 ts = threading.Thread(target=self.threadSaveSettings)
                 ts.daemon = True
