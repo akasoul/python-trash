@@ -460,13 +460,13 @@ class app:
 
                     p = model.predict(x=X0)
 
+                    file = open('answer.txt', 'w')
                     output = ""
                     for i in range(self.nOutputs):
-                        output += " "
                         output += str(p[0][i])
-                        file = open('answer' + str(i) + '.txt', 'w')
-                        file.write(str(p[0][i]))
-                        file.close()
+                        output += " "
+                    file.write(output)
+                    file.close()
                     print(output)
             else:
                 self.ed_inputpath['bg'] = 'red'
