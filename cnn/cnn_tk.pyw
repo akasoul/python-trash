@@ -307,32 +307,10 @@ class app:
         # else:
 
     def onClickShowTestingPlot(self, event):
-        backend.reset_uids()
-        backend.clear_session()
-
-        model = self.initModel()
-        prediction = model.predict(x=self.X)  # ,batch_size=n_datasize)
-
-        self.testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Training plot')
-        self.testingplot = self.testingfig.add_subplot(111)
-        self.testingplot.plot(prediction, linewidth=0.5, color='b')
-        self.testingplot.plot(self.Y, linewidth=0.5, color='r')
-        self.testingfignum = self.testingfig.number
-
-        self.testingfig.show()
-
-        #plt.plot(prediction, linewidth=0.5, color='b')
-        #plt.plot(self.Y, linewidth=0.5, color='r')
-        #plt.show()
-
-        backend.reset_uids()
-        backend.clear_session()
-
-        # prediction = self.model.predict(x=self.X)  # ,batch_size=n_datasize)
-        # plt.plot(prediction, linewidth=0.5)
-        # plt.plot(self.Y, linewidth=0.5)
-        # plt.show()
-        pass
+        self.threadTest()
+        #ts = threading.Thread(target=self.threadTest)
+        #ts.daemon = True
+        #ts.start()
 
     def onChangePath(self, event):
         if self.data_is_loaded == False:
@@ -364,6 +342,35 @@ class app:
         self.saving_is_launched = True
         self.saveSettings()
         self.saving_is_launched = False
+
+    def threadTest(self):
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
+        prediction = model.predict(x=self.X)  # ,batch_size=n_datasize)
+
+        self.testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
+        self.testingplot = self.testingfig.add_subplot(111)
+        self.testingplot.plot(prediction, linewidth=0.5, color='b')
+        self.testingplot.plot(self.Y, linewidth=0.5, color='r')
+        self.testingfignum = self.testingfig.number
+
+        self.testingfig.show()
+
+        #plt.plot(prediction, linewidth=0.5, color='b')
+        #plt.plot(self.Y, linewidth=0.5, color='r')
+        #plt.show()
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        # prediction = self.model.predict(x=self.X)  # ,batch_size=n_datasize)
+        # plt.plot(prediction, linewidth=0.5)
+        # plt.plot(self.Y, linewidth=0.5)
+        # plt.show()
+        pass
+
 
     def threadTrain(self):
         self.training_is_launched = True
@@ -569,7 +576,7 @@ class app:
         backend.clear_session()
 
         model = self.initModel()
-        score = model.evaluate(self.X, self.Y, batch_size=500)
+        score = model.evaluate(self.X, self.Y)#, batch_size=500)
         self.lbl_losses.config(text="Loss: " + str("%.4f" % score[0]))
 
         backend.reset_uids()
@@ -868,6 +875,8 @@ class app:
         self.X_test = np.reshape(self.X_test, [self.nTestSize, self.nInputs, 1])
         self.Y_test = np.reshape(self.Y_test, [self.nTestSize, self.nOutputs])
 
+        self.updateError()
+
     def initPlots(self):
         # plot
         self.trainingfig = plt.figure(figsize=(10, 7), dpi=80, num='Training plot')
@@ -895,7 +904,7 @@ class app:
         # tf && model
         # self.initModel()
         # self.loadModel()
-        self.updateError()
+        #self.updateError()
 
         # run
         self.root.mainloop()
