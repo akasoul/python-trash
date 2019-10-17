@@ -27,8 +27,8 @@ TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 300
 
-layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
-layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
+layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten","lstm"])
+layersShortNames = np.array(["c1d", "d", "mp1d", "fl","lstm"])
 
 
 class historyCallback(callbacks.Callback):
@@ -159,7 +159,8 @@ class app:
                          # activity_regularizer=activity_reg
                          ))
         model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
-        model.add(Flatten())
+        model.add(LSTM(50))
+        #model.add(Flatten())
         model.add(Dense(50, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
@@ -168,6 +169,7 @@ class app:
                         # activity_regularizer=activity_reg
                         ))
         model.add(Dropout(self.settings['drop_rate']))
+
         model.add(Dense(50, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
