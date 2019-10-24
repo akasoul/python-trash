@@ -159,7 +159,7 @@ class app:
                          # activity_regularizer=activity_reg
                          ))
         model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
-        model.add(LSTM(50))
+        model.add(LSTM(100))
         #model.add(Flatten())
         model.add(Dense(50, activation='relu',
                         kernel_initializer=kernel_init,
