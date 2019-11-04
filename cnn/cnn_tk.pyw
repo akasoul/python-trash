@@ -27,8 +27,8 @@ TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 300
 
-layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten","lstm"])
-layersShortNames = np.array(["c1d", "d", "mp1d", "fl","lstm"])
+layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
+layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
 
 
 class historyCallback(callbacks.Callback):
@@ -159,8 +159,9 @@ class app:
                          # activity_regularizer=activity_reg
                          ))
         model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
-        model.add(LSTM(100))
+        model.add(LSTM(50))
         #model.add(Flatten())
+
         model.add(Dense(50, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
@@ -178,6 +179,16 @@ class app:
                         # activity_regularizer=activity_reg
                         ))
         model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        # activity_regularizer=activity_reg
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
 
         model.add(Dense(self.nOutputs))
         #model.add(Dense(self.nOutputs,activation='softmax'))
@@ -201,7 +212,7 @@ class app:
 
         sName = ""
         for i in model.layers:
-            for j in range(0, layersNames.size - 1):
+            for j in range(0, layersNames.size):
                 if (i.name.find(layersNames[j]) != -1):
                     for k in i.input_shape:
                         if (k != None):
@@ -508,7 +519,7 @@ class app:
                                                self.historyCallback.acc.size - 1]))
                     self.trainingplot.plot(self.historyCallback.val_acc, color='darkorange',
                                            label='test_acc=' + ("%.4f" % self.historyCallback.val_acc[
-                                               self.historyCallback.val_loss.size - 1]))
+                                               self.historyCallback.val_acc.size - 1]))
                     self.trainingplot.axvline(x=max_index, color='k', linestyle='--',
                                               label='epoch=' + str(max_index)
                                                     + '\ntrain_acc=' + (

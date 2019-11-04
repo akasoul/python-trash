@@ -26,7 +26,7 @@ Preprocessing_Max = 1.0
 TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 300
-dimOutput=2
+dimOutput=3
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl"])
@@ -160,8 +160,8 @@ def initModelDense(inputSize):
     # model
     kernel_init = initializers.glorot_uniform(seed=None)
     bias_init = initializers.glorot_uniform(seed=None)
-    kernel_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
-    bias_reg = regularizers.l1_l2(l1=0.00, l2=0.00)
+    kernel_reg = regularizers.l1_l2(l1=0.001, l2=0.001)
+    bias_reg = regularizers.l1_l2(l1=0.001, l2=0.001)
 
     droprate = 0.0
     learning_rate = 0.001
@@ -180,6 +180,20 @@ def initModelDense(inputSize):
                     # activity_regularizer=activity_reg
                     ))
     model.add(Flatten())
+    model.add(Dense(30, activation='elu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
+    model.add(Dense(30, activation='elu',
+                    kernel_initializer=kernel_init,
+                    bias_initializer=bias_init,
+                    bias_regularizer=bias_reg,
+                    kernel_regularizer=kernel_reg,
+                    # activity_regularizer=activity_reg
+                    ))
     model.add(Dense(30, activation='elu',
                     kernel_initializer=kernel_init,
                     bias_initializer=bias_init,
@@ -311,10 +325,10 @@ while(True):
 
                 if examples>0:
                     #test_model=model.predict(states)
-                    # while(states.shape[0]>20 and rewards.shape[0]>20):
-                    #     states=np.delete(states,0,0)
-                    #     rewards=np.delete(rewards,0,0)
-                    #     examples=20
+                    while(states.shape[0]>1000 and rewards.shape[0]>1000):
+                        states=np.delete(states,0,0)
+                        rewards=np.delete(rewards,0,0)
+                        examples=1000
 
                     #state = np.reshape(state, [1, shape, 1])
                     #reward = np.reshape(reward, [1, dimOutput])
