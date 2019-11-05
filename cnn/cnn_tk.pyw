@@ -159,10 +159,10 @@ class app:
                          # activity_regularizer=activity_reg
                          ))
         model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
-        model.add(LSTM(50))
-        #model.add(Flatten())
+        #model.add(LSTM(50))
+        model.add(Flatten())
 
-        model.add(Dense(50, activation='relu',
+        model.add(Dense(500, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -171,7 +171,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(50, activation='relu',
+        model.add(Dense(500, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -180,7 +180,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(50, activation='relu',
+        model.add(Dense(500, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
