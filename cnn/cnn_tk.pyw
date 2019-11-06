@@ -39,6 +39,20 @@ class historyCallback(callbacks.Callback):
         self.acc = np.array([_acc], dtype=float)
         self.val_acc = np.array([_val_acc], dtype=float)
 
+    #metrics: acc,val_acc,full_acc,loss,val_loss,full_loss
+    def initSettings(self,_modelName,_metrics,_ovfEpochs):
+        self.modelName=_modelName
+        self.metrics=_metrics
+        self.ovfEpochs=_ovfEpochs
+        self.ovfCounter=0
+        self.save=False
+        self.bestAcc=0
+        self.bestValAcc=0
+        self.bestEpoch=0
+
+        self.bestLoss=999999999
+        self.bestValLoss=999999999
+
     def on_epoch_end(self, epoch, logs=None):
         loss = logs.get('loss')
         val_loss = logs.get('val_loss')
@@ -65,6 +79,72 @@ class historyCallback(callbacks.Callback):
         except:
             self.val_acc = np.array([val_acc], dtype=float)
 
+        if(self.metrics=='acc'):
+            if(acc>self.bestAcc):
+                print("acc improved {0:9f} -> {1:9f}".format(acc,self.bestAcc))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestAcc=acc
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.metrics=='val_acc'):
+            if(val_acc>self.bestAccVal):
+                print("val_acc improved {0:9f} -> {1:9f}".format(val_acc,self.bestValAcc))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestValAcc=val_acc
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.metrics=='full_acc'):
+            if(acc>self.bestAcc and val_acc>self.bestValAcc):
+                print("acc improved {0:9f} -> {1:9f}".format(acc,self.bestAcc))
+                print("val_acc improved {0:9f} -> {1:9f}".format(val_acc,self.bestValAcc))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestAcc=acc
+                self.bestValAcc=val_acc
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.metrics=='loss'):
+            if(loss<self.bestLoss):
+                print("loss improved {0:9f} -> {1:9f}".format(loss,self.bestLoss))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestLoss=loss
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.metrics=='val_loss'):
+            if(val_loss<self.bestValLoss):
+                print("val_loss improved {0:9f} -> {1:9f}".format(val_loss,self.bestValLoss))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestValLoss=val_loss
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.metrics=='full_loss'):
+            if(loss<self.bestLoss and val_loss<self.bestValLoss):
+                print("loss improved {0:9f} -> {1:9f}".format(loss,self.bestLoss))
+                print("val_loss improved {0:9f} -> {1:9f}".format(val_loss,self.bestValLoss))
+                self.ovfCounter=0
+                self.model.save_weights(self.modelName)
+                self.bestLoss=loss
+                self.bestValLoss=val_loss
+                self.bestEpoch=epoch
+            else:
+                self.ovfCounter+=1
+
+        if(self.ovfCounter>=self.ovfEpochs):
+            self.model_stop_training=True
 
 class stopBtnCallback(callbacks.Callback):
     def __init__(self):
@@ -404,8 +484,14 @@ class app:
         # self.historyCallback.val_loss=np.array[score_test[0]]
         # self.historyCallback.val_acc=np.array[score_test[1]]
 
-        self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
+        if (self.settings['metrics'] == 0):
+            metr = 'full_acc'
+        if (self.settings['metrics'] == 1):
+            metr = 'full_loss'
 
+
+        self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
+        self.historyCallback.initSettings(self.model_name,metr,self.settings['overfit_epochs'])
         monitor = None
         mode = None
         if (self.settings['metrics'] == 0):
@@ -416,10 +502,10 @@ class app:
             mode = 'min'
 
         self.callbacks = [
-            callbacks.EarlyStopping(patience=self.settings['overfit_epochs'], monitor=monitor),
-            callbacks.ModelCheckpoint(self.model_name, monitor=monitor, verbose=1, save_best_only=True,
-                                      save_weights_only=True,
-                                      mode=mode, period=1),
+            #callbacks.EarlyStopping(patience=self.settings['overfit_epochs'], monitor=monitor),
+            #callbacks.ModelCheckpoint(self.model_name, monitor=monitor, verbose=1, save_best_only=True,
+            #                          save_weights_only=True,
+            #                          mode=mode, period=1),
             self.historyCallback,
             self.stopBtn
         ]
@@ -429,6 +515,7 @@ class app:
                   validation_data=(self.X_test, self.Y_test))
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
+
         self.lbl_losses.config(text="Loss: " + str(score[0]))
 
         backend.reset_uids()
@@ -510,7 +597,8 @@ class app:
             if TestSizePercent > 0.0:
 
                 try:
-                    max_index = np.argmax(self.historyCallback.val_acc)
+                    #max_index = np.argmax(self.historyCallback.val_acc)
+                    max_index = self.historyCallback.bestEpoch
                 except:
                     return
                 else:
@@ -530,7 +618,8 @@ class app:
                     self.trainingplot.legend(loc='upper left')
             else:
                 try:
-                    max_index = np.argmax(self.historyCallback.acc)
+                    #max_index = np.argmax(self.historyCallback.acc)
+                    max_index = self.historyCallback.bestEpoch
                 except:
                     return
                 else:
@@ -546,7 +635,8 @@ class app:
         if (self.settings['metrics'] == 1):
             if TestSizePercent > 0.0:
                 try:
-                    min_index = np.argmin(self.historyCallback.val_loss)
+                    #min_index = np.argmin(self.historyCallback.val_loss)
+                    min_index = self.historyCallback.bestEpoch
                 except:
                     return
                 else:
@@ -566,7 +656,8 @@ class app:
                     self.trainingplot.legend(loc='upper right')
             else:
                 try:
-                    min_index = np.argmin(self.historyCallback.loss)
+                    #min_index = np.argmin(self.historyCallback.loss)
+                    min_index = self.historyCallback.bestEpoch
                 except:
                     return
                 else:
