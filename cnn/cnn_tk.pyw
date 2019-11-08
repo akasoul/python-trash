@@ -59,6 +59,8 @@ class historyCallback(callbacks.Callback):
         acc = logs.get('acc')
         val_acc = logs.get('val_acc')
 
+        epoch = epoch +1
+
         try:
             self.loss = np.append(self.loss, loss)
         except:
@@ -81,7 +83,7 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='acc'):
             if(acc>self.bestAcc):
-                print("acc improved {0:9f} -> {1:9f}".format(acc,self.bestAcc))
+                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestAcc=acc
@@ -91,7 +93,7 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='val_acc'):
             if(val_acc>self.bestAccVal):
-                print("val_acc improved {0:9f} -> {1:9f}".format(val_acc,self.bestValAcc))
+                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestValAcc=val_acc
@@ -101,8 +103,8 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='full_acc'):
             if(acc>self.bestAcc and val_acc>self.bestValAcc):
-                print("acc improved {0:9f} -> {1:9f}".format(acc,self.bestAcc))
-                print("val_acc improved {0:9f} -> {1:9f}".format(val_acc,self.bestValAcc))
+                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
+                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestAcc=acc
@@ -113,7 +115,7 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='loss'):
             if(loss<self.bestLoss):
-                print("loss improved {0:9f} -> {1:9f}".format(loss,self.bestLoss))
+                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestLoss=loss
@@ -123,7 +125,7 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='val_loss'):
             if(val_loss<self.bestValLoss):
-                print("val_loss improved {0:9f} -> {1:9f}".format(val_loss,self.bestValLoss))
+                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestValLoss=val_loss
@@ -133,8 +135,8 @@ class historyCallback(callbacks.Callback):
 
         if(self.metrics=='full_loss'):
             if(loss<self.bestLoss and val_loss<self.bestValLoss):
-                print("loss improved {0:9f} -> {1:9f}".format(loss,self.bestLoss))
-                print("val_loss improved {0:9f} -> {1:9f}".format(val_loss,self.bestValLoss))
+                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
+                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestLoss=loss
@@ -142,6 +144,16 @@ class historyCallback(callbacks.Callback):
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+
+        if(self.bestEpoch==epoch):
+            try:
+                with open('training_temp.txt', 'a') as f:
+                    f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    f.close()
+            except:
+                with open('training_temp.txt', 'w') as f:
+                    f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    f.close()
 
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
