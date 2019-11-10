@@ -406,7 +406,7 @@ class app:
                 return
             else:
                 self.trainingplot.plot(self.trainingdata_train_error,color='b',label='train loss')
-                self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='test loss')
+                self.trainingplot.plot(self.trainingdata_test_error,color='darkorange',label='keras_gcloudai loss')
                 self.trainingplot.legend(loc='upper right')
                 self.trainingplot.axvline(x=min_index, color='k', linestyle='--')
         else:
