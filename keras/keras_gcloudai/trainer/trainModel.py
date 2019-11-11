@@ -1,6 +1,4 @@
 import numpy as np
-import threading
-import os
 from keras import optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
@@ -178,21 +176,6 @@ class app:
             print('no model')
 
 
-    def onClickRunBtn(self, event):
-        if self.run_is_launched == False:
-            tt = threading.Thread(target=self.theadRun)
-            tt.daemon = True
-            tt.start()
-        else:
-            self.stop_run_is_pressed = True
-
-    def onClickTrainBtn(self, event):
-        if self.training_is_launched == False:
-            tt = threading.Thread(target=self.threadTrain)
-            tt.daemon = True
-            tt.start()
-        else:
-            self.stopBtn.stopBtnState = True
 
 
 
@@ -241,51 +224,6 @@ class app:
 
         self.training_is_launched = False
 
-    def theadRun(self):
-        self.run_is_launched = True
-        self.stop_run_is_pressed = False
-        self.input_path_is_valid = False
-
-
-        while _file == False:
-            if os.path.isfile(self.sDataInput1Path):
-                _file = True
-
-        backend.reset_uids()
-        backend.clear_session()
-
-        model = self.initModel()
-
-        while True:
-            if (os.path.isfile(self.sDataInput1Path)):
-                self.ed_inputpath['bg'] = 'green'
-                self.input_path_is_valid = True
-
-                try:
-                    X0 = np.genfromtxt(self.sDataInput1Path)
-                except:
-                    pass
-                else:
-                    X0 = np.float32(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs])
-                    X0 = self.scaler.transform(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs, 1])
-
-                    Y0 = np.zeros(shape=[1, self.nOutputs])
-                    Y0 = np.reshape(Y0, [1, self.nOutputs])
-
-                    os.remove(self.sDataInput1Path)
-
-                    p = model.predict(x=X0)
-
-                    file = open('answer.txt', 'w')
-                    output = ""
-                    for i in range(self.nOutputs):
-                        output += str(p[0][i])
-                        output += " "
-                    file.write(output)
-                    file.close()
-                    print(output)
 
 
     def updateError(self):
@@ -307,28 +245,27 @@ class app:
     def loadSettings(self):
         keys = self.settings.keys()
         values = self.settings.values()
-        fname = 'settings.txt'
-        if (os.path.isfile(fname)):
-            f = open(fname, 'r')
-            a = f.read()
-            for i in keys:
-                x = a.find(i)
-                if (x != -1):
-                    y = a.find(":", x)
-                    if (y != -1):
-                        z = a.find("\n", y)
-                        if (z != -1):
-                            self.settings[i] = self.settingsDtypes[i](a[y + 1:z])
-                            try:
-                                self.settingsUI[i].insert(1.0, a[y + 1:z])
-                            except:
-                                self.settingsUI[i].set(self.settingsDtypes[i](a[y + 1:z]))
-                        else:
-                            pass
+        fname = self.job_dir+'settings.txt'
+        f = open(fname, 'r')
+        a = f.read()
+        for i in keys:
+            x = a.find(i)
+            if (x != -1):
+                y = a.find(":", x)
+                if (y != -1):
+                    z = a.find("\n", y)
+                    if (z != -1):
+                        self.settings[i] = self.settingsDtypes[i](a[y + 1:z])
+                        try:
+                            self.settingsUI[i].insert(1.0, a[y + 1:z])
+                        except:
+                            self.settingsUI[i].set(self.settingsDtypes[i](a[y + 1:z]))
                     else:
                         pass
                 else:
-                    self.settings[i] = self.settingsDefault[i]
+                    pass
+            else:
+                self.settings[i] = self.settingsDefault[i]
 
         else:
             pass
@@ -375,10 +312,7 @@ class app:
 
     def loadData(self):
         _file = False
-        while _file == False:
-            if os.path.isfile(self.job_dir+self.sDataInputPath):
-                if os.path.isfile(self.job_dir+self.sDataOutputPath):
-                    _file = True
+
         # import data
         self.X = np.genfromtxt(self.job_dir+self.sDataInputPath)
         self.Y = np.genfromtxt(self.job_dir+self.sDataOutputPath)
@@ -438,19 +372,21 @@ class app:
         # run
         # self.root.withdraw()
 
-    def main(job_dir, **args):
-        z=app(job_dir)
 
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser()
 
-        # Input Arguments
-        parser.add_argument(
-            '--job-dir',
-            help='GCS location to write checkpoints and export models',
-            required=True
-        )
-        args = parser.parse_args()
-        arguments = args.__dict__
+def main(job_dir, **args):
+    z=app(job_dir)
 
-        main(**arguments)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # Input Arguments
+    parser.add_argument(
+        '--job-dir',
+        help='GCS location to write checkpoints and export models',
+        required=True
+    )
+    args = parser.parse_args()
+    arguments = args.__dict__
+
+    main(**arguments)
