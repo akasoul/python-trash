@@ -9,6 +9,7 @@ setup(name='trainer',
           'keras',
           'h5py',
           'numpy',
-          'sklearn'
+          'sklearn',
+          'argparse'
       ],
       zip_safe=False)
