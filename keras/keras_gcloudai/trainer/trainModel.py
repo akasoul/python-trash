@@ -373,6 +373,8 @@ class app:
         # self.root.withdraw()
 
 
+def get_message():
+    return "Hello World!"
 
 def main(job_dir, **args):
     z=app(job_dir)
@@ -390,3 +392,7 @@ if __name__ == "__main__":
     arguments = args.__dict__
 
     main(**arguments)
+
+
+
+#python3 setup.py sdist bdist_wheel
