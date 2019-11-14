@@ -309,13 +309,23 @@ class app:
         self.model_is_tested = True
         self.testing_model = False
 
+    def loadFromFile(self,filename):
+        file = open(filename, 'r')
+        strData = file.read()
+        strData = strData.split()
+        doubleData = np.array(strData, dtype=float)
+        dim=doubleData.size/self.nDataSize
+        doubleData=np.reshape(doubleData,[self.nDataSize, dim])
+        return doubleData
 
     def loadData(self):
         _file = False
 
         # import data
-        self.X = np.genfromtxt(self.job_dir+self.sDataInputPath)
-        self.Y = np.genfromtxt(self.job_dir+self.sDataOutputPath)
+        #self.X = np.genfromtxt(self.job_dir+self.sDataInputPath)
+        #self.Y = np.genfromtxt(self.job_dir+self.sDataOutputPath)
+        self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
+        self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
 
@@ -354,9 +364,10 @@ class app:
 
 
 
-    def __init__(self,job_dir):
+    def __init__(self,job_dir,data_size):
         self.historyCallback = historyCallback()
         self.job_dir=job_dir
+        self.nDataSize=data_size
         # self.initPlots()
         self.initSettings()
 
@@ -376,8 +387,8 @@ class app:
 def get_message():
     return "Hello World!"
 
-def main(job_dir, **args):
-    z=app(job_dir)
+def main(job_dir,data_size, **args):
+    z=app(job_dir,data_size)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -385,11 +396,14 @@ if __name__ == "__main__":
     # Input Arguments
     parser.add_argument(
         '--job-dir',
+        '--data-size',
         help='GCS location to write checkpoints and export models',
         required=True
     )
     args = parser.parse_args()
     arguments = args.__dict__
+
+
 
     main(**arguments)
 
