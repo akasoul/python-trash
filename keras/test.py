@@ -1,4 +1,5 @@
-import trainer.trainModel as tr
+import requests
 
-a=tr.main(job_dir="C:/Users/antonvoloshuk/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/",datasize=5000)
-print(a)
+url = 'https://drive.google.com/file/d/1qv_wW4vQiMu3DwC8LHDlooj0r-LMlTft/view?usp=sharing'
+myfile = requests.get(url, allow_redirects=True)
+open('d:/outdata.txt', 'wb').write(myfile.content)
