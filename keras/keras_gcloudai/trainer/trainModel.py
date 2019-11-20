@@ -4,6 +4,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
+from tensorflow import io,gfile
 import argparse
 
 
@@ -318,14 +319,26 @@ class app:
         doubleData=np.reshape(doubleData,[self.nDataSize, dim])
         return doubleData
 
+    def loadFromFileTfGFile(self,filename):
+        file=gfile.GFile(filename,'r')
+
+        #file = open(filename, 'r')
+        strData = file.read()
+        strData = strData.split()
+        doubleData = np.array(strData, dtype=float)
+        dim=int(doubleData.size/self.nDataSize)
+        doubleData=np.reshape(doubleData,[self.nDataSize, dim])
+        return doubleData
+
+
     def loadData(self):
         _file = False
 
         # import data
         #self.X = np.genfromtxt(self.job_dir+self.sDataInputPath)
         #self.Y = np.genfromtxt(self.job_dir+self.sDataOutputPath)
-        self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
-        self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
+        self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
+        self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
 
@@ -387,8 +400,8 @@ class app:
 def get_message():
     return "Hello World!"
 
-def main(job_dir,data_size, **args):
-    z=app(job_dir,data_size)
+def main(job_dir, **args):
+    z=app(job_dir,5000)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -396,7 +409,6 @@ if __name__ == "__main__":
     # Input Arguments
     parser.add_argument(
         '--job-dir',
-        '--data-size',
         help='GCS location to write checkpoints and export models',
         required=True
     )
