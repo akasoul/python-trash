@@ -286,7 +286,7 @@ class app:
             'metrics': int
         }
         self.settings = {
-            'epochs': 10000,
+            'epochs': 100,
             'stop_error': 0.00000001,
             'ls': 0.0001,
             'l1': 0.00,
