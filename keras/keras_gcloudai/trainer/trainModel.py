@@ -181,10 +181,8 @@ class app:
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
-                         # activity_regularizer=activity_reg
                          ))
         model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
-        #model.add(LSTM(50))
         model.add(Flatten())
 
         model.add(Dense(500, activation='relu',
@@ -192,7 +190,6 @@ class app:
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
                         kernel_regularizer=kernel_reg,
-                        # activity_regularizer=activity_reg
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
@@ -201,7 +198,6 @@ class app:
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
                         kernel_regularizer=kernel_reg,
-                        # activity_regularizer=activity_reg
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
@@ -210,25 +206,22 @@ class app:
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
                         kernel_regularizer=kernel_reg,
-                        # activity_regularizer=activity_reg
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
 
         model.add(Dense(self.nOutputs))
         #model.add(Dense(self.nOutputs,activation='softmax'))
-        # model.add(Dense(self.nOutputs, activation='tanh',
+        #model.add(Dense(self.nOutputs, activation='tanh',
         #                kernel_initializer=kernel_init,
         #                bias_initializer=bias_init,
         #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg,
-        #                #activity_regularizer=activity_reg
+        #                 kernel_regularizer=kernel_reg
         #                ))
 
 
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
 
-        #optimizer = optimizers.Nadam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, schedule_decay=0.004)
         model.compile(
              loss='mean_squared_error',
             #loss='categorical_crossentropy',
@@ -259,6 +252,83 @@ class app:
         #    model.load_weights(self.model_name)
         return model
 
+
+
+    def initModel2(self):
+
+        # model
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        kernel_size = 10
+        filters = 5
+        model = Sequential()
+
+        model.add(Flatten())
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+
+        model.add(Dense(self.nOutputs))
+
+
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
+
+        model.compile(
+             loss='mean_squared_error',
+            #loss='categorical_crossentropy',
+            optimizer=optimizer,
+            metrics=['accuracy'])
+        print(model.summary())
+
+        sName = ""
+        for i in model.layers:
+            for j in range(0, layersNames.size):
+                if (i.name.find(layersNames[j]) != -1):
+                    for k in i.input_shape:
+                        if (k != None):
+                            sName += str(k)
+                            sName += "."
+                        else:
+                            sName += "_."
+                    sName += layersShortNames[j]
+                    sName += "."
+        for i in model.layers[model.layers.__len__() - 1].output_shape:
+            if (i != None):
+                sName += str(i)
+                sName += "."
+            else:
+                sName += "_."
+        self.setModelName(sName)
+        #if (os.path.isfile(self.job_dir+self.model_name)):
+        #    model.load_weights(self.model_name)
+        return model
+
+
     def setModelName(self, name):
         self.model_name = name
         self.model_name += ".h5"
@@ -281,7 +351,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel()
+        model = self.initModel2()
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
         score_test = model.evaluate(self.X_test, self.Y_test)  # , batch_size=500)
@@ -343,7 +413,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel()
+        model = self.initModel2()
         score = model.evaluate(self.X, self.Y)#, batch_size=500)
 
         backend.reset_uids()
@@ -427,7 +497,7 @@ class app:
         return doubleData
 
     def loadFromFileTfGFile(self,filename):
-        file=gfile.GFile(filename,'r')
+        file=io.gfile.GFile(filename,'r')
 
         #file = open(filename, 'r')
         strData = file.read()
@@ -442,10 +512,12 @@ class app:
         _file = False
 
         # import data
-        #self.X = np.genfromtxt(self.job_dir+self.sDataInputPath)
-        #self.Y = np.genfromtxt(self.job_dir+self.sDataOutputPath)
-        self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
-        self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
+        #self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
+        #self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
+
+        self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
+        self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
+
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
 
@@ -495,20 +567,13 @@ class app:
         self.loadData()
 
         self.threadTrain()
-        # tf && model
-        # self.initModel()
-        # self.loadModel()
-        #self.updateError()
-
-        # run
-        # self.root.withdraw()
 
 
 def get_message():
     return "Hello World!"
 
 def main(job_dir, **args):
-    z=app(job_dir,5000)
+    z=app(job_dir,1000)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -526,6 +591,7 @@ if __name__ == "__main__":
 
     main(**arguments)
 
-
+else:
+    z=app('C:/Users/Anton/Documents/1/',1000)
 
 #python3 setup.py sdist bdist_wheel

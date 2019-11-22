@@ -4,4 +4,4 @@
 #myfile = requests.get(url, allow_redirects=True)
 #open('tempfile.txt', 'wb').write(myfile.content)
 from trainer import trainModel
-a=trainModel.app("C:\\Users\\Anton\\AppData\\Roaming\\MetaQuotes\\Terminal\\287469DEA9630EA94D0715D755974F1B\\tester\\files\\jobr\\EURUSD\\",5000)
+a=trainModel.app("C:\\Users\\Anton\\Documents\\1",1000)
