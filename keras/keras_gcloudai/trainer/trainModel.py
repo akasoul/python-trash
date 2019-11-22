@@ -266,15 +266,15 @@ class app:
         filters = 5
         model = Sequential()
 
-        model.add(Flatten())
 
-        model.add(Dense(50, activation='relu',
+        model.add(Dense(50, activation='relu',input_shape=(self.nInputs, 1),
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
                         kernel_regularizer=kernel_reg,
                         ))
         model.add(Dropout(self.settings['drop_rate']))
+        model.add(Flatten())
 
         model.add(Dense(50, activation='relu',
                         kernel_initializer=kernel_init,
@@ -303,7 +303,7 @@ class app:
             #loss='categorical_crossentropy',
             optimizer=optimizer,
             metrics=['accuracy'])
-        print(model.summary())
+        #print(model.summary())
 
         sName = ""
         for i in model.layers:
@@ -367,10 +367,10 @@ class app:
         #    metr = 'full_loss'
 
 
-        metr = 'full_acc'
+        metr = 'full_loss'
 
         self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
-        self.historyCallback.initSettings(self.model_name,metr,self.settings['overfit_epochs'])
+        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
 
         #monitor = None
         #mode = None
@@ -465,10 +465,10 @@ class app:
         self.settings = {
             'epochs': 1000,
             'stop_error': 0.00000001,
-            'ls': 0.0001,
+            'ls': 0.001,
             'l1': 0.00,
             'l2': 0.00,
-            'drop_rate': 0.20,
+            'drop_rate': 0.00,
             'overfit_epochs': 5000,
             'metrics': 0
         }
@@ -492,7 +492,7 @@ class app:
         strData = file.read()
         strData = strData.split()
         doubleData = np.array(strData, dtype=float)
-        dim=doubleData.size/self.nDataSize
+        dim=int(doubleData.size/self.nDataSize)
         doubleData=np.reshape(doubleData,[self.nDataSize, dim])
         return doubleData
 
