@@ -15,8 +15,8 @@ useSettingsFile=False
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.05
-MaxBatchSize = 300
+BatchMod = 0.5
+MaxBatchSize = 3000000000
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
