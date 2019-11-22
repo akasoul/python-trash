@@ -512,11 +512,11 @@ class app:
         _file = False
 
         # import data
-        #self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
-        #self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
+        self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
+        self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
 
-        self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
-        self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
+        #self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
+        #self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
 
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
