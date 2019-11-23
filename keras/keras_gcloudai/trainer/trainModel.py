@@ -30,6 +30,11 @@ class historyCallback(callbacks.Callback):
         self.acc = np.array([_acc], dtype=float)
         self.val_acc = np.array([_val_acc], dtype=float)
 
+    def initArrays(self, _loss, _acc):
+        self.loss = np.array([_loss], dtype=float)
+        self.acc = np.array([_acc], dtype=float)
+
+
     #metrics: acc,val_acc,full_acc,loss,val_loss,full_loss
     def initSettings(self,_modelName,_metrics,_ovfEpochs):
         self.modelName=_modelName
@@ -46,9 +51,10 @@ class historyCallback(callbacks.Callback):
 
     def on_epoch_end(self, epoch, logs=None):
         loss = logs.get('loss')
-        val_loss = logs.get('val_loss')
         acc = logs.get('acc')
-        val_acc = logs.get('val_acc')
+        if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
+            val_loss = logs.get('val_loss')
+            val_acc = logs.get('val_acc')
 
         epoch = epoch +1
 
@@ -58,19 +64,21 @@ class historyCallback(callbacks.Callback):
             self.loss = np.array([loss], dtype=float)
 
         try:
-            self.val_loss = np.append(self.val_loss, val_loss)
-        except:
-            self.val_loss = np.array([val_loss], dtype=float)
-
-        try:
             self.acc = np.append(self.acc, acc)
         except:
             self.acc = np.array([acc], dtype=float)
 
-        try:
-            self.val_acc = np.append(self.val_acc, val_acc)
-        except:
-            self.val_acc = np.array([val_acc], dtype=float)
+
+        if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
+            try:
+                self.val_loss = np.append(self.val_loss, val_loss)
+            except:
+                self.val_loss = np.array([val_loss], dtype=float)
+
+            try:
+                self.val_acc = np.append(self.val_acc, val_acc)
+            except:
+                self.val_acc = np.array([val_acc], dtype=float)
 
         if(self.metrics=='acc'):
             if(acc>self.bestAcc):
@@ -348,13 +356,14 @@ class app:
     def threadTrain(self):
         self.training_is_launched = True
 
-        backend.reset_uids()
-        backend.clear_session()
+        #backend.reset_uids()
+        #backend.clear_session()
 
         model = self.initModel2()
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
-        score_test = model.evaluate(self.X_test, self.Y_test)  # , batch_size=500)
+        if(self.eval_size>0.0):
+            score_test = model.evaluate(self.X_test, self.Y_test)  # , batch_size=500)
 
         # self.historyCallback.loss=np.array[score_train[0]]
         # self.historyCallback.acc=np.array[score_train[1]]
@@ -367,9 +376,11 @@ class app:
         #    metr = 'full_loss'
 
 
-        metr = 'full_loss'
-
-        self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
+        metr = 'train_loss'
+        if(metr=='train_acc' or metr=='train_loss'):
+            self.historyCallback.initArrays(score_train[0], score_train[1])
+        else:
+            self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
 
         #monitor = None
@@ -390,14 +401,18 @@ class app:
         ]
 
         #model.fit_generator()
-        model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], #batch_size=self.n_batches_train,
+        if(self.eval_size>0.0):
+            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], #batch_size=self.n_batches_train,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
+        else:
+            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], #batch_size=self.n_batches_train,
+                  callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
 
-        backend.reset_uids()
-        backend.clear_session()
+        #backend.reset_uids()
+        #backend.clear_session()
 
 
         self.training_is_launched = False
@@ -535,11 +550,15 @@ class app:
         self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
 
         self.X = self.scaler.fit_transform(self.X)
-        self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y,
-                                                                                test_size=TestSizePercent, shuffle=True)
+        if(self.eval_size>0.0):
+            self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y,
+                                                                                test_size=self.eval_size, shuffle=True)
+            self.nTestSize = self.X_test.shape[0]
+        else:
+            self.X_train = self.X
+            self.Y_train = self.Y
 
         self.nTrainSize = self.X_train.shape[0]
-        self.nTestSize = self.X_test.shape[0]
 
         self.data_is_loaded = True
 
@@ -551,15 +570,17 @@ class app:
         self.Y = np.reshape(self.Y, [self.nDataSize, self.nOutputs])
         self.X_train = np.reshape(self.X_train, [self.nTrainSize, self.nInputs, 1])
         self.Y_train = np.reshape(self.Y_train, [self.nTrainSize, self.nOutputs])
-        self.X_test = np.reshape(self.X_test, [self.nTestSize, self.nInputs, 1])
-        self.Y_test = np.reshape(self.Y_test, [self.nTestSize, self.nOutputs])
+        if(self.eval_size>0.0):
+            self.X_test = np.reshape(self.X_test, [self.nTestSize, self.nInputs, 1])
+            self.Y_test = np.reshape(self.Y_test, [self.nTestSize, self.nOutputs])
 
 
 
-    def __init__(self,job_dir,data_size):
+    def __init__(self,job_dir,data_size,eval_size):
         self.historyCallback = historyCallback()
         self.job_dir=job_dir
-        self.nDataSize=data_size
+        self.eval_size=float(eval_size)
+        self.nDataSize=int(data_size)
         # self.initPlots()
         self.initSettings()
 
@@ -572,8 +593,8 @@ class app:
 def get_message():
     return "Hello World!"
 
-def main(job_dir, **args):
-    z=app(job_dir,1000)
+def main(job_dir,data_size,eval_size):#, **args):
+    z=app(job_dir,data_size,eval_size)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -582,8 +603,16 @@ if __name__ == "__main__":
     parser.add_argument(
         '--job-dir',
         help='GCS location to write checkpoints and export models',
-        required=True
-    )
+        required=True)
+    parser.add_argument(
+        '--data-size',
+        help='Size of train+eval data',
+        required=True)
+    parser.add_argument(
+        '--eval-size',
+        help='Eval size = ____ data size',
+        required=True)
+
     args = parser.parse_args()
     arguments = args.__dict__
 
@@ -591,7 +620,5 @@ if __name__ == "__main__":
 
     main(**arguments)
 
-else:
-    z=app('C:/Users/Anton/Documents/1/',1000)
 
 #python3 setup.py sdist bdist_wheel
