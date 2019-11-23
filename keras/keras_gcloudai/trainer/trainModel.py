@@ -405,11 +405,11 @@ class app:
         print('start training')
 
         if(self.eval_size>0.0):
-            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
@@ -529,12 +529,19 @@ class app:
     def loadData(self):
         _file = False
 
-        # import data
-        self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
-        self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
+        self.X=None
+        self.Y=None
 
-        #self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
-        #self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
+        # import data
+        try:
+            self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
+        except:
+            self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
+
+        try:
+            self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
+        except:
+            self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
 
         self.X = np.float32(self.X)
         self.Y = np.float32(self.Y)
