@@ -15,7 +15,7 @@ useSettingsFile=False
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.5
+BatchMod = 0.2
 MaxBatchSize = 3000000000
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
@@ -381,6 +381,7 @@ class app:
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
             self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
+
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
 
         #monitor = None
@@ -401,12 +402,14 @@ class app:
         ]
 
         #model.fit_generator()
+        print('start training')
+
         if(self.eval_size>0.0):
-            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], #batch_size=self.n_batches_train,
+            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], #batch_size=self.n_batches_train,
+            model.fit(self.X_train, self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
