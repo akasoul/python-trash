@@ -6,7 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io,gfile
 import argparse
-
+from datetime import datetime
 
 
 modelName = "model.h5"
@@ -305,6 +305,7 @@ class app:
         model.add(Dense(self.nOutputs))
 
 
+        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
 
         model.compile(
@@ -361,6 +362,7 @@ class app:
         #backend.clear_session()
 
         model = self.initModel2()
+        self.log('model initialized')
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
         if(self.eval_size>0.0):
@@ -403,7 +405,7 @@ class app:
         ]
 
         #model.fit_generator()
-        print('start training')
+        self.log('start training')
 
         if(self.eval_size>0.0):
             model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
@@ -506,6 +508,27 @@ class app:
         self.model_is_tested = True
         self.testing_model = False
 
+    def log(self,str):
+        logfilename=self.job_dir+"log.txt"
+        time=datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
+        file=None
+        try:
+            file = open(logfilename, 'a')
+        except:
+            try:
+                file = io.gfile.GFile(logfilename, 'a')
+            except:
+                try:
+                    file = open(logfilename, 'w')
+                except:
+                    file = io.gfile.GFile(logfilename, 'w')
+
+        if(file!=None):
+            file.write(time+' ')
+            file.write(str+'\n')
+            file.close()
+
+
     def loadFromFile(self,filename):
         file = open(filename, 'r')
         strData = file.read()
@@ -597,6 +620,7 @@ class app:
 
         # loadData
         self.loadData()
+        self.log('data loaded')
 
         self.threadTrain()
 
