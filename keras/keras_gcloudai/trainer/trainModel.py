@@ -18,6 +18,8 @@ TestSizePercent = 0.2
 BatchMod = 0.2
 MaxBatchSize = 3000000000
 
+disableLoging=True
+
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
 
@@ -56,7 +58,7 @@ class historyCallback(callbacks.Callback):
             val_loss = logs.get('val_loss')
             val_acc = logs.get('val_acc')
 
-        epoch = epoch +1
+        epoch = epoch + 1
 
         try:
             self.loss = np.append(self.loss, loss)
@@ -509,6 +511,8 @@ class app:
         self.testing_model = False
 
     def log(self,str):
+        if disableLoging==True:
+            return
         logfilename=self.job_dir+"log.txt"
         time=datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
         file=None
