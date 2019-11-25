@@ -90,6 +90,7 @@ class historyCallback(callbacks.Callback):
             if(acc>self.bestAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
@@ -101,6 +102,7 @@ class historyCallback(callbacks.Callback):
             if(val_acc>self.bestAccVal):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestValAcc=val_acc
@@ -113,6 +115,7 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
@@ -125,6 +128,7 @@ class historyCallback(callbacks.Callback):
             if(loss<self.bestLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
@@ -136,6 +140,7 @@ class historyCallback(callbacks.Callback):
             if(val_loss<self.bestValLoss):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestValLoss=val_loss
@@ -148,6 +153,7 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
+                self.model.save_weights(self.modelName)
                 self.model.save_weights('m.h5')
                 self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
