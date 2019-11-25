@@ -6,8 +6,9 @@ from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io,gfile
 import argparse
+import os
 from datetime import datetime
-import tensorflow as tf
+
 
 modelName = "model.h5"
 useSettingsFile=False
@@ -403,6 +404,12 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
 
+        self.tb_log = callbacks.TensorBoard(
+            log_dir=self.job_dir+'logs/',
+            histogram_freq=0,
+            write_graph=True,
+            embeddings_freq=0)
+
         #monitor = None
         #mode = None
         #if (self.settings['metrics'] == 0):
@@ -417,7 +424,7 @@ class app:
             #callbacks.ModelCheckpoint(self.job_dir+self.model_name, monitor=monitor, verbose=1, save_best_only=True,
             #                          save_weights_only=True,
             #                          mode=mode, period=1),
-            self.historyCallback,
+            self.historyCallback,self.tb_log
         ]
 
         #model.fit_generator()
