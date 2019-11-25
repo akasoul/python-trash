@@ -7,7 +7,7 @@ from sklearn import preprocessing
 from tensorflow import io,gfile
 import argparse
 from datetime import datetime
-
+import tensorflow as tf
 
 modelName = "model.h5"
 useSettingsFile=False
@@ -36,6 +36,10 @@ class historyCallback(callbacks.Callback):
         self.loss = np.array([_loss], dtype=float)
         self.acc = np.array([_acc], dtype=float)
 
+    def copyToGCS(self,inputPath,outputPath):
+        with io.gfile.GFile(inputPath, mode='r') as input_f:
+            with io.gfile.GFile(outputPath, mode='w+')  as output_f:
+                output_f.write(input_f.read())
 
     #metrics: acc,val_acc,full_acc,loss,val_loss,full_loss
     def initSettings(self,_modelName,_metrics,_ovfEpochs):
@@ -86,7 +90,8 @@ class historyCallback(callbacks.Callback):
             if(acc>self.bestAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
                 self.bestEpoch=epoch
             else:
@@ -96,7 +101,8 @@ class historyCallback(callbacks.Callback):
             if(val_acc>self.bestAccVal):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestValAcc=val_acc
                 self.bestEpoch=epoch
             else:
@@ -107,7 +113,8 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
                 self.bestValAcc=val_acc
                 self.bestEpoch=epoch
@@ -118,7 +125,8 @@ class historyCallback(callbacks.Callback):
             if(loss<self.bestLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
                 self.bestEpoch=epoch
             else:
@@ -128,7 +136,8 @@ class historyCallback(callbacks.Callback):
             if(val_loss<self.bestValLoss):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestValLoss=val_loss
                 self.bestEpoch=epoch
             else:
@@ -139,7 +148,8 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
-                self.model.save_weights(self.modelName)
+                self.model.save_weights('m.h5')
+                self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
                 self.bestValLoss=val_loss
                 self.bestEpoch=epoch
@@ -336,6 +346,7 @@ class app:
             else:
                 sName += "_."
         self.setModelName(sName)
+        print(self.model_name)
         #if (os.path.isfile(self.job_dir+self.model_name)):
         #    model.load_weights(self.model_name)
         return model
@@ -486,7 +497,7 @@ class app:
             'metrics': int
         }
         self.settings = {
-            'epochs': 1000,
+            'epochs': 10,
             'stop_error': 0.00000001,
             'ls': 0.001,
             'l1': 0.00,
