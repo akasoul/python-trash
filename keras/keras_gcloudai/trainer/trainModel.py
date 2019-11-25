@@ -18,7 +18,8 @@ TestSizePercent = 0.2
 BatchMod = 0.2
 MaxBatchSize = 3000000000
 
-disableLoging=True
+DISABLE_LOG=True
+ENABLE_TRAINING_LOG=False
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
 layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
@@ -91,8 +92,6 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
                 self.bestEpoch=epoch
             else:
@@ -103,8 +102,6 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestValAcc=val_acc
                 self.bestEpoch=epoch
             else:
@@ -116,8 +113,6 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,val_acc))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestAcc=acc
                 self.bestValAcc=val_acc
                 self.bestEpoch=epoch
@@ -129,8 +124,6 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
                 self.bestEpoch=epoch
             else:
@@ -141,8 +134,6 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestValLoss=val_loss
                 self.bestEpoch=epoch
             else:
@@ -154,30 +145,29 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,val_loss))
                 self.ovfCounter=0
                 self.model.save_weights(self.modelName)
-                self.model.save_weights('m.h5')
-                self.copyToGCS('m.h5',self.modelName)
                 self.bestLoss=loss
                 self.bestValLoss=val_loss
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
 
-        if(self.bestEpoch==epoch):
-            try:
-                with open('training_temp.txt', 'a') as f:
-                    try:
-                        f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
-                    except:
-                        f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
-                    f.close()
+        if(ENABLE_TRAINING_LOG):
+            if(self.bestEpoch==epoch):
+                try:
+                    with open('training_temp.txt', 'a') as f:
+                        try:
+                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                        except:
+                            f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
+                        f.close()
 
-            except:
-                with open('training_temp.txt', 'w') as f:
-                    try:
-                        f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
-                    except:
-                        f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
-                    f.close()
+                except:
+                    with open('training_temp.txt', 'w') as f:
+                        try:
+                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                        except:
+                            f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
+                        f.close()
 
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
@@ -535,7 +525,7 @@ class app:
         self.testing_model = False
 
     def log(self,str):
-        if disableLoging==True:
+        if DISABLE_LOG==True:
             return
         logfilename=self.job_dir+"log.txt"
         time=datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
