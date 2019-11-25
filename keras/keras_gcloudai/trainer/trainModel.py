@@ -37,11 +37,11 @@ class historyCallback(callbacks.Callback):
         self.acc = np.array([_acc], dtype=float)
 
     def copyToGCS(self,inputPath,outputPath):
-        with open(inputPath, mode='r') as input_f:
+        with open(inputPath, mode='rb') as input_f:
             with io.gfile.GFile(outputPath, mode='w+')  as output_f:
                 output_f.write(input_f.read())
 
-    #metrics: acc,val_acc,full_acc,loss,val_loss,full_loss
+    #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
     def initSettings(self,_modelName,_metrics,_ovfEpochs):
         self.modelName=_modelName
         self.metrics=_metrics
@@ -86,7 +86,7 @@ class historyCallback(callbacks.Callback):
             except:
                 self.val_acc = np.array([val_acc], dtype=float)
 
-        if(self.metrics=='acc'):
+        if(self.metrics=='train_acc'):
             if(acc>self.bestAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,acc))
                 self.ovfCounter=0
@@ -121,7 +121,7 @@ class historyCallback(callbacks.Callback):
             else:
                 self.ovfCounter+=1
 
-        if(self.metrics=='loss'):
+        if(self.metrics=='train_loss'):
             if(loss<self.bestLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,loss))
                 self.ovfCounter=0
@@ -159,11 +159,18 @@ class historyCallback(callbacks.Callback):
         if(self.bestEpoch==epoch):
             try:
                 with open('training_temp.txt', 'a') as f:
-                    f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    try:
+                        f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    except:
+                        f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
                     f.close()
+
             except:
                 with open('training_temp.txt', 'w') as f:
-                    f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    try:
+                        f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(loss,val_loss,acc,val_acc))
+                    except:
+                        f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
                     f.close()
 
         if(self.ovfCounter>=self.ovfEpochs):
