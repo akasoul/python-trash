@@ -37,7 +37,7 @@ class historyCallback(callbacks.Callback):
         self.acc = np.array([_acc], dtype=float)
 
     def copyToGCS(self,inputPath,outputPath):
-        with io.gfile.GFile(inputPath, mode='r') as input_f:
+        with open(inputPath, mode='r') as input_f:
             with io.gfile.GFile(outputPath, mode='w+')  as output_f:
                 output_f.write(input_f.read())
 
