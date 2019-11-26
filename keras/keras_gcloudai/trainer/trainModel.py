@@ -406,9 +406,9 @@ class app:
 
         self.tb_log = callbacks.TensorBoard(
             log_dir=self.job_dir+'logs/',
-            histogram_freq=0,
+            histogram_freq=1,
             write_graph=True,
-            embeddings_freq=0)
+            embeddings_freq=1)
 
         #monitor = None
         #mode = None
@@ -493,6 +493,11 @@ class app:
             pass
 
 
+    def setSettings(self,settingName,settingValue):
+        for i in self.settings:
+            if i==settingName:
+                self.settings[i]=self.settingsDtypes[i](settingValue)
+
 
     def initSettings(self):
 
@@ -507,7 +512,7 @@ class app:
             'metrics': int
         }
         self.settings = {
-            'epochs': 10,
+            'epochs': 50,
             'stop_error': 0.00000001,
             'ls': 0.001,
             'l1': 0.00,
@@ -647,14 +652,16 @@ class app:
         self.loadData()
         self.log('data loaded')
 
-        self.threadTrain()
 
 
 def get_message():
     return "Hello World!"
 
-def main(job_dir,data_size,eval_size):#, **args):
+def main(job_dir,data_size,eval_size,epochs=None):#, **args):
     z=app(job_dir,data_size,eval_size)
+    if(epochs!=None):
+        z.setSettings('epochs',epochs)
+    z.threadTrain()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -672,6 +679,10 @@ if __name__ == "__main__":
         '--eval-size',
         help='Eval size = ____ data size',
         required=True)
+    parser.add_argument(
+        '--epochs',
+        help='Epochs',
+        required=False)
 
     args = parser.parse_args()
     arguments = args.__dict__
