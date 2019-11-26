@@ -61,6 +61,8 @@ class historyCallback(callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
         loss = logs.get('loss')
         acc = logs.get('acc')
+        val_loss=None
+        val_acc=None
         if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
             val_loss = logs.get('val_loss')
             val_acc = logs.get('val_acc')
