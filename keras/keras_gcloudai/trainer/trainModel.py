@@ -28,7 +28,7 @@ layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
 
 class historyCallback(callbacks.Callback):
 
-    def initArrays(self, _loss, _val_loss, _acc, _val_acc):
+    def initArrays2(self, _loss, _val_loss, _acc, _val_acc):
         self.loss = np.array([_loss], dtype=float)
         self.val_loss = np.array([_val_loss], dtype=float)
         self.acc = np.array([_acc], dtype=float)
@@ -387,6 +387,7 @@ class app:
         self.log('model initialized')
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
+        score_test=None
         if(self.eval_size>0.0):
             score_test = model.evaluate(self.X_test, self.Y_test)  # , batch_size=500)
 
@@ -401,11 +402,11 @@ class app:
         #    metr = 'full_loss'
 
 
-        metr = 'train_loss'
+        metr = 'full_acc'
         if(metr=='train_acc' or metr=='train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
-            self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
+            self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['lsReductionKoef'])
 
@@ -431,7 +432,7 @@ class app:
             #callbacks.ModelCheckpoint(self.job_dir+self.model_name, monitor=monitor, verbose=1, save_best_only=True,
             #                          save_weights_only=True,
             #                          mode=mode, period=1),
-            self.historyCallback,self.tb_log
+            self.historyCallback
         ]
 
         #model.fit_generator()
