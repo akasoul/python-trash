@@ -44,10 +44,11 @@ class historyCallback(callbacks.Callback):
                 output_f.write(input_f.read())
 
     #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self,_modelName,_metrics,_ovfEpochs):
+    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionKoef):
         self.modelName=_modelName
         self.metrics=_metrics
         self.ovfEpochs=_ovfEpochs
+        self.reductionKoef=_reductionKoef
         self.ovfCounter=0
         self.save=False
         self.bestAcc=0
@@ -170,6 +171,12 @@ class historyCallback(callbacks.Callback):
                             f.write("loss;{0:5f};acc;{1:5f};\n".format(loss,acc))
                         f.close()
 
+        if(self.ovfCounter*2>=self.ovfEpochs):
+            old_lr=backend.get_value(self.model.optimizer.lr)
+            new_lr=old_lr*self.reductionKoef
+            backend.set_value(self.model.optimizer.lr,new_lr)
+            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr,new_lr) )
+
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
 
@@ -244,7 +251,6 @@ class app:
         #                ))
 
 
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False);
 
         model.compile(
@@ -321,7 +327,6 @@ class app:
         model.add(Dense(self.nOutputs))
 
 
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False);
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False);
 
         model.compile(
@@ -378,7 +383,7 @@ class app:
         #backend.reset_uids()
         #backend.clear_session()
 
-        model = self.initModel2()
+        model = self.initModel()
         self.log('model initialized')
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
@@ -402,7 +407,7 @@ class app:
         else:
             self.historyCallback.initArrays(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
+        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['lsReductionKoef'])
 
         logdir=self.job_dir+'/log/fit/' + datetime.now().strftime("%Y%m%d-%H%M%S")
         self.tb_log = callbacks.TensorBoard(
@@ -466,33 +471,6 @@ class app:
         backend.clear_session()
 
 
-    def loadSettings(self):
-        keys = self.settings.keys()
-        values = self.settings.values()
-        fname = self.job_dir+'settings.txt'
-        f = open(fname, 'r')
-        a = f.read()
-        for i in keys:
-            x = a.find(i)
-            if (x != -1):
-                y = a.find(":", x)
-                if (y != -1):
-                    z = a.find("\n", y)
-                    if (z != -1):
-                        self.settings[i] = self.settingsDtypes[i](a[y + 1:z])
-                        try:
-                            self.settingsUI[i].insert(1.0, a[y + 1:z])
-                        except:
-                            self.settingsUI[i].set(self.settingsDtypes[i](a[y + 1:z]))
-                    else:
-                        pass
-                else:
-                    pass
-            else:
-                self.settings[i] = self.settingsDefault[i]
-
-        else:
-            pass
 
 
     def setSettings(self,settingName,settingValue):
@@ -511,16 +489,18 @@ class app:
             'l2': float,
             'drop_rate': float,
             'overfit_epochs': int,
+            'lsReductionKoef':float,
             'metrics': int
         }
         self.settings = {
             'epochs': 50,
             'stop_error': 0.00000001,
-            'ls': 0.001,
+            'ls': 0.01,
             'l1': 0.00,
             'l2': 0.00,
             'drop_rate': 0.00,
             'overfit_epochs': 5000,
+            'lsReductionKoef':0.95,
             'metrics': 0
         }
 
@@ -659,10 +639,14 @@ class app:
 def get_message():
     return "Hello World!"
 
-def main(job_dir,data_size,eval_size,epochs=None):#, **args):
+def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,ls_reduction_koef=None):#, **args):
     z=app(job_dir,data_size,eval_size)
     if(epochs!=None):
         z.setSettings('epochs',epochs)
+    if(overfit_epochs!=None):
+        z.setSettings('overfit_epochs',overfit_epochs)
+    if(ls_reduction_koef!=None):
+        z.setSettings('lsReductionKoef',ls_reduction_koef)
     z.threadTrain()
 
 if __name__ == "__main__":
@@ -684,6 +668,14 @@ if __name__ == "__main__":
     parser.add_argument(
         '--epochs',
         help='Epochs',
+        required=False)
+    parser.add_argument(
+        '--overfit-epochs',
+        help='Overfit epochs',
+        required=False)
+    parser.add_argument(
+        '--ls-reduction-koef',
+        help='Reduction factor',
         required=False)
 
     args = parser.parse_args()
