@@ -404,11 +404,13 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'])
 
+        logdir=self.job_dir+'/log/fit/' + datetime.now().strftime("%Y%m%d-%H%M%S")
         self.tb_log = callbacks.TensorBoard(
-            log_dir=self.job_dir+'logs/',
+            log_dir=logdir,
             histogram_freq=1,
             write_graph=True,
-            embeddings_freq=1)
+            write_grads=True,
+            write_images=True)
 
         #monitor = None
         #mode = None
