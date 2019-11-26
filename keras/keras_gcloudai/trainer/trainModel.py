@@ -380,8 +380,8 @@ class app:
     def threadTrain(self):
         self.training_is_launched = True
 
-        #backend.reset_uids()
-        #backend.clear_session()
+        backend.reset_uids()
+        backend.clear_session()
 
         model = self.initModel()
         self.log('model initialized')
@@ -447,8 +447,8 @@ class app:
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
 
-        #backend.reset_uids()
-        #backend.clear_session()
+        backend.reset_uids()
+        backend.clear_session()
 
 
         self.training_is_launched = False
@@ -464,7 +464,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel2()
+        model = self.initModel()
         score = model.evaluate(self.X, self.Y)#, batch_size=500)
 
         backend.reset_uids()
