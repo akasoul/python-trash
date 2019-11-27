@@ -412,7 +412,7 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['lsReductionKoef'])
 
-        logdir=self.job_dir+'/log/model/' + datetime.now().strftime("%Y%m%d-%H%M%S")
+        logdir=self.job_dir+'/log'
         self.tb_log = callbacks.TensorBoard(
             log_dir=logdir)
 
