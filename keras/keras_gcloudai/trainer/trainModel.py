@@ -65,16 +65,25 @@ class historyCallback(callbacks.Callback):
             self._val_loss = logs.get('val_loss')
             self._val_acc = logs.get('val_acc')
 
+        try:
+            self._loss = logs.get('loss')
+        except:
+            print('get loss error')
 
         try:
             self._val_loss = logs.get('val_loss')
         except:
-            pass
+            print('get val_loss error')
+
+        try:
+            self._acc = logs.get('acc')
+        except:
+            print('get acc error')
 
         try:
             self._val_acc = logs.get('val_acc')
         except:
-            pass
+            print('get val_acc error')
 
         print(self._loss)
         print(self._acc)
