@@ -65,6 +65,7 @@ class historyCallback(callbacks.Callback):
             self._val_loss = logs.get('val_loss')
             self._val_acc = logs.get('val_acc')
 
+
         try:
             self._val_loss = logs.get('val_loss')
         except:
@@ -74,6 +75,8 @@ class historyCallback(callbacks.Callback):
             self._val_acc = logs.get('val_acc')
         except:
             pass
+
+        print("loss:{0:6f} acc:{1:6f} val_loss:{2:6f} val_acc:{3:6f}".format(self._loss, self._acc,self._val_loss, self._val_acc))
 
 
         epoch = epoch + 1
