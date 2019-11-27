@@ -76,7 +76,10 @@ class historyCallback(callbacks.Callback):
         except:
             pass
 
-        print("loss:{0:6f} acc:{1:6f} val_loss:{2:6f} val_acc:{3:6f}".format(self._loss, self._acc,self._val_loss, self._val_acc))
+        print(self._loss)
+        print(self._acc)
+        print(self._val_loss)
+        print(self._val_acc)
 
 
         epoch = epoch + 1
