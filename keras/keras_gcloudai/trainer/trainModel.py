@@ -59,6 +59,8 @@ class historyCallback(callbacks.Callback):
         self.bestValLoss=999999999
 
     def on_epoch_end(self, epoch, logs=None):
+        print(logs.items())
+
         self._loss = logs.get('loss')
         self._acc = logs.get('acc')
         if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
@@ -463,11 +465,11 @@ class app:
         self.log('start training')
 
         if(self.eval_size>0.0):
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=2,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=2,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
