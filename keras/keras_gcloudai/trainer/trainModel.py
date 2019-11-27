@@ -59,33 +59,27 @@ class historyCallback(callbacks.Callback):
         self.bestValLoss=999999999
 
     def on_epoch_end(self, epoch, logs=None):
-        print(logs.items())
 
-        self._loss = logs.get('loss')
-        self._acc = logs.get('acc')
-        if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
-            self._val_loss = logs.get('val_loss')
-            self._val_acc = logs.get('val_acc')
 
         try:
             self._loss = logs.get('loss')
         except:
-            print('get loss error')
+            pass
 
         try:
             self._val_loss = logs.get('val_loss')
         except:
-            print('get val_loss error')
+            pass
 
         try:
             self._acc = logs.get('accuracy')
         except:
-            print('get acc error')
+            pass
 
         try:
             self._val_acc = logs.get('val_accuracy')
         except:
-            print('get val_acc error')
+            pass
 
 
         epoch = epoch + 1
