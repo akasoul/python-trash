@@ -410,7 +410,7 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['lsReductionKoef'])
 
-        logdir=self.job_dir+'/log'
+        logdir=self.job_dir+'/log/'
         self.tb_log = callbacks.TensorBoard(
             log_dir=logdir)
 
@@ -429,7 +429,8 @@ class app:
             #callbacks.ModelCheckpoint(self.job_dir+self.model_name, monitor=monitor, verbose=1, save_best_only=True,
             #                          save_weights_only=True,
             #                          mode=mode, period=1),
-            self.historyCallback
+            self.historyCallback,
+            self.tb_log
         ]
 
         #model.fit_generator()
