@@ -78,19 +78,14 @@ class historyCallback(callbacks.Callback):
             print('get val_loss error')
 
         try:
-            self._acc = logs.get('acc')
+            self._acc = logs.get('accuracy')
         except:
             print('get acc error')
 
         try:
-            self._val_acc = logs.get('val_acc')
+            self._val_acc = logs.get('val_accuracy')
         except:
             print('get val_acc error')
-
-        print(self._loss)
-        print(self._acc)
-        print(self._val_loss)
-        print(self._val_acc)
 
 
         epoch = epoch + 1
