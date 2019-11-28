@@ -414,7 +414,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel()
+        model = self.initModel2()
         self.log('model initialized')
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
@@ -441,9 +441,8 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
 
-        logdir=self.job_dir+'/log/'
-        self.tb_log = callbacks.TensorBoard(
-            log_dir=logdir)
+        log_dir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.tb_log = callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 
         #monitor = None
@@ -468,11 +467,11 @@ class app:
         self.log('start training')
 
         if(self.eval_size>0.0):
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=2,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=2,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
@@ -485,20 +484,6 @@ class app:
 
 
 
-    def updateError(self):
-        if (self.training_is_launched == True):
-            return
-        if (self.run_is_launched == True):
-            return
-
-        backend.reset_uids()
-        backend.clear_session()
-
-        model = self.initModel()
-        score = model.evaluate(self.X, self.Y)#, batch_size=500)
-
-        backend.reset_uids()
-        backend.clear_session()
 
 
 
