@@ -414,7 +414,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel2()
+        model = self.initModel()
         self.log('model initialized')
 
         score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
