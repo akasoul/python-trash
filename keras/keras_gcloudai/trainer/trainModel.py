@@ -44,10 +44,11 @@ class historyCallback(callbacks.Callback):
                 output_f.write(input_f.read())
 
     #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionKoef):
+    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef):
         self.modelName=_modelName
         self.metrics=_metrics
         self.ovfEpochs=_ovfEpochs
+        self.reductionEpochs=_reductionEpochs
         self.reductionKoef=_reductionKoef
         self.ovfCounter=0
         self.save=False
@@ -425,7 +426,7 @@ class app:
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['lsReductionKoef'])
+        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
 
         logdir=self.job_dir+'/log/'
         self.tb_log = callbacks.TensorBoard(
@@ -505,18 +506,20 @@ class app:
             'l2': float,
             'drop_rate': float,
             'overfit_epochs': int,
-            'lsReductionKoef':float,
+            'reduction_epochs': int,
+            'ls_reduction_koef':float,
             'metrics': int
         }
         self.settings = {
-            'epochs': 50,
+            'epochs': 50000,
             'stop_error': 0.0000000001,
             'ls': 0.001,
             'l1': 0.00,
             'l2': 0.00,
             'drop_rate': 0.00,
             'overfit_epochs': 5000,
-            'lsReductionKoef':0.95,
+            'reduction_epochs': 2500,
+            'ls_reduction_koef':0.95,
             'metrics': 0
         }
 
@@ -655,15 +658,27 @@ class app:
 def get_message():
     return "Hello World!"
 
-def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,ls_reduction_koef=None):#, **args):
+def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
     if(epochs!=None):
         z.setSettings('epochs',epochs)
     if(overfit_epochs!=None):
         z.setSettings('overfit_epochs',overfit_epochs)
+    if(reduction_epochs!=None):
+        z.setSettings('reduction_epochs',reduction_epochs)
     if(ls_reduction_koef!=None):
-        z.setSettings('lsReductionKoef',ls_reduction_koef)
+        z.setSettings('ls_reduction_koef',ls_reduction_koef)
+    if(ls!=None):
+        z.setSettings('ls',ls)
+    if(l1!=None):
+        z.setSettings('l1',l1)
+    if(l2!=None):
+        z.setSettings('l2',l2)
+    if(drop_rate!=None):
+        z.setSettings('drop_rate',drop_rate)
+    print(z.settings)
     z.threadTrain()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -690,8 +705,28 @@ if __name__ == "__main__":
         help='Overfit epochs',
         required=False)
     parser.add_argument(
+        '--reduction-epochs',
+        help='Reduction epochs',
+        required=False)
+    parser.add_argument(
         '--ls-reduction-koef',
         help='Reduction factor',
+        required=False)
+    parser.add_argument(
+        '--ls',
+        help='Learning speed',
+        required=False)
+    parser.add_argument(
+        '--l1',
+        help='L1',
+        required=False)
+    parser.add_argument(
+        '--l2',
+        help='L2',
+        required=False)
+    parser.add_argument(
+        '--drop-rate',
+        help='Drop rate',
         required=False)
 
     args = parser.parse_args()
