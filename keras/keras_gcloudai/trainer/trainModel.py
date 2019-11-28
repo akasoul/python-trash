@@ -82,6 +82,16 @@ class historyCallback(callbacks.Callback):
         except:
             pass
 
+        if(self._acc==None or self._val_acc==None):
+            try:
+                self._acc = logs.get('acc')
+            except:
+                pass
+
+            try:
+                self._val_acc = logs.get('val_acc')
+            except:
+                pass
 
         epoch = epoch + 1
 
@@ -106,6 +116,9 @@ class historyCallback(callbacks.Callback):
                 self.val_acc = np.append(self.val_acc, self._val_acc)
             except:
                 self.val_acc = np.array([self._val_acc], dtype=float)
+
+
+
 
         if(self.metrics=='train_acc'):
             if(self._acc>=self.bestAcc):
