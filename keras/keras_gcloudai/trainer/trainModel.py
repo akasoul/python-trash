@@ -202,7 +202,7 @@ class historyCallback(callbacks.Callback):
                             f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
                         f.close()
 
-        if(self.ovfCounter*2>=self.ovfEpochs):
+        if(self.ovfCounter>=self.reductionEpochs):
             old_lr=backend.get_value(self.model.optimizer.lr)
             new_lr=old_lr*self.reductionKoef
             backend.set_value(self.model.optimizer.lr,new_lr)
