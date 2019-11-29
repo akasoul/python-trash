@@ -51,6 +51,7 @@ class historyCallback(callbacks.Callback):
         self.reductionEpochs=_reductionEpochs
         self.reductionKoef=_reductionKoef
         self.ovfCounter=0
+        self.reductionCounter=0
         self.save=False
         self.bestAcc=0
         self.bestValAcc=0
@@ -124,65 +125,77 @@ class historyCallback(callbacks.Callback):
             if(self._acc>=self.bestAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestAcc=self._acc
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(self.metrics=='val_acc'):
             if(self._val_acc>=self.bestAccVal):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestValAcc=self._val_acc
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(self.metrics=='full_acc'):
             if(self._acc>=self.bestAcc and self._val_acc>=self.bestValAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestAcc=self._acc
                 self.bestValAcc=self._val_acc
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(self.metrics=='train_loss'):
             if(self._loss<=self.bestLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestLoss=self._loss
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(self.metrics=='val_loss'):
             if(self._val_loss<=self.bestValLoss):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestValLoss=self._val_loss
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(self.metrics=='full_loss'):
             if(self._loss<=self.bestLoss and self._val_loss<=self.bestValLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
+                self.reductionCounter=0
                 self.model.save_weights(self.modelName)
                 self.bestLoss=self._loss
                 self.bestValLoss=self._val_loss
                 self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
+                self.reductionCounter+=1
 
         if(ENABLE_TRAINING_LOG):
             if(self.bestEpoch==epoch):
@@ -202,11 +215,12 @@ class historyCallback(callbacks.Callback):
                             f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
                         f.close()
 
-        if(self.ovfCounter>=self.reductionEpochs):
+        if(self.reductionCounter>=self.reductionEpochs):
             old_lr=backend.get_value(self.model.optimizer.lr)
             new_lr=old_lr*self.reductionKoef
             backend.set_value(self.model.optimizer.lr,new_lr)
             print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr,new_lr) )
+            self.reductionCounter=0
 
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
@@ -237,17 +251,17 @@ class app:
                    kernel_regularizer=kernel_reg,
                    # activity_regularizer=activity_reg
                    ))
-        model.add(MaxPool1D(pool_size=(5)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
         model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        model.add(MaxPool1D(pool_size=(10)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
         model.add(Flatten())
 
-        model.add(Dense(500, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -255,7 +269,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(500, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -263,7 +277,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(500, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -442,7 +456,7 @@ class app:
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
 
         log_dir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.tb_log = callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+        self.tb_log = callbacks.TensorBoard(log_dir=log_dir, histogram_freq=100)
 
 
         #monitor = None
