@@ -251,17 +251,27 @@ class app:
                    kernel_regularizer=kernel_reg,
                    # activity_regularizer=activity_reg
                    ))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+
         model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+
+        model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg,
+                         ))
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+
         model.add(Flatten())
 
-        model.add(Dense(100, activation='relu',
+        model.add(Dense(5000, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -269,7 +279,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(100, activation='relu',
+        model.add(Dense(2500, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -277,7 +287,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(100, activation='relu',
+        model.add(Dense(500, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
