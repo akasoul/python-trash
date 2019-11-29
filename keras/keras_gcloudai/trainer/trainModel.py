@@ -4,7 +4,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
-from tensorflow import io,gfile
+from tensorflow import io
 import argparse
 import os
 from datetime import datetime
@@ -481,11 +481,11 @@ class app:
         self.log('start training')
 
         if(self.eval_size>0.0):
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,#shuffle=True,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,#shuffle=True,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
