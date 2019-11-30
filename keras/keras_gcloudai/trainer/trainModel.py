@@ -271,7 +271,7 @@ class app:
 
         model.add(Flatten())
 
-        model.add(Dense(5000, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -279,7 +279,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(2500, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -287,7 +287,7 @@ class app:
                         ))
         model.add(Dropout(self.settings['drop_rate']))
 
-        model.add(Dense(500, activation='relu',
+        model.add(Dense(100, activation='relu',
                         kernel_initializer=kernel_init,
                         bias_initializer=bias_init,
                         bias_regularizer=bias_reg,
@@ -306,7 +306,8 @@ class app:
         #                ))
 
 
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False);
+        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
 
         model.compile(
              loss='mean_squared_error',
