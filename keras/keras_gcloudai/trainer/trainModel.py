@@ -16,7 +16,7 @@ useSettingsFile=False
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.2
+BatchMod = 0.5
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -305,9 +305,12 @@ class app:
         #                 kernel_regularizer=kernel_reg
         #                ))
 
-
+        optimizer=None
         #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
+        try:
+            optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
+        except:
+            optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
 
         model.compile(
              loss='mean_squared_error',
@@ -466,8 +469,13 @@ class app:
 
         self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
 
-        log_dir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-        self.tb_log = callbacks.TensorBoard(log_dir=log_dir, histogram_freq=100)
+
+        if(self.sLogName==None):
+            self.logDir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        else:
+            self.logDir = self.job_dir+"logs/fit/" + self.sLogName
+
+        self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
 
 
         #monitor = None
@@ -550,6 +558,7 @@ class app:
         self.sDataInput1Path="input.txt"
         self.sDataOutputPath="out_data.txt"
 
+        self.sLogName=None
 
         self.training_is_launched = False
         self.run_is_launched = False
@@ -559,6 +568,9 @@ class app:
         self.test_model = False
         self.model_is_tested = True
         self.testing_model = False
+
+    def setLogName(self,logName):
+        self.sLogName=logName
 
     def log(self,str):
         if DISABLE_LOG==True:
@@ -683,24 +695,55 @@ def get_message():
 
 def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
-    if(epochs!=None):
-        z.setSettings('epochs',epochs)
-    if(overfit_epochs!=None):
-        z.setSettings('overfit_epochs',overfit_epochs)
-    if(reduction_epochs!=None):
-        z.setSettings('reduction_epochs',reduction_epochs)
-    if(ls_reduction_koef!=None):
-        z.setSettings('ls_reduction_koef',ls_reduction_koef)
-    if(ls!=None):
-        z.setSettings('ls',ls)
-    if(l1!=None):
-        z.setSettings('l1',l1)
-    if(l2!=None):
-        z.setSettings('l2',l2)
-    if(drop_rate!=None):
-        z.setSettings('drop_rate',drop_rate)
-    print(z.settings)
+
+    # if(epochs!=None):
+    #     z.setSettings('epochs',epochs)
+    # if(overfit_epochs!=None):
+    #     z.setSettings('overfit_epochs',overfit_epochs)
+    # if(reduction_epochs!=None):
+    #     z.setSettings('reduction_epochs',reduction_epochs)
+    # if(ls_reduction_koef!=None):
+    #     z.setSettings('ls_reduction_koef',ls_reduction_koef)
+    # if(ls!=None):
+    #     z.setSettings('ls',ls)
+    # if(l1!=None):
+    #     z.setSettings('l1',l1)
+    # if(l2!=None):
+    #     z.setSettings('l2',l2)
+    # if(drop_rate!=None):
+    #     z.setSettings('drop_rate',drop_rate)
+    # print(z.settings)
+    # z.threadTrain()
+
+    l1_ = 0
+    l2_ = 0
+    z.setLogName("l1:" + str(l1_) + " l2:" + str(l2_))
+    z.setSettings('epochs', epochs)
+    z.setSettings('overfit_epochs', overfit_epochs)
+    z.setSettings('reduction_epochs', reduction_epochs)
+    z.setSettings('ls_reduction_koef', ls_reduction_koef)
+    z.setSettings('ls', ls)
+    z.setSettings('l1', l1_)
+    z.setSettings('l2', l2_)
+    z.setSettings('drop_rate', drop_rate)
     z.threadTrain()
+
+
+    for i in range (0,3):
+        for j in range (0,3):
+            dr=0.1+0.05*float(i)
+            l1_=0.0001*(10**i)
+            l2_=0.0001*(10**j)
+            z.setLogName("l1:"+str(l1_)+" l2:"+str(l2_))
+            z.setSettings('epochs',epochs)
+            z.setSettings('overfit_epochs',overfit_epochs)
+            z.setSettings('reduction_epochs',reduction_epochs)
+            z.setSettings('ls_reduction_koef',ls_reduction_koef)
+            z.setSettings('ls',ls)
+            z.setSettings('l1',l1_)
+            z.setSettings('l2',l2_)
+            z.setSettings('drop_rate',drop_rate)
+            z.threadTrain()
 
 
 if __name__ == "__main__":
@@ -773,3 +816,9 @@ if __name__ == "__main__":
 #--l1=0.000
 #--l2=0.000
 #--drop-rate=0.4
+
+
+
+
+#rms drop 0.1
+#rms lr 0.001-0.01
