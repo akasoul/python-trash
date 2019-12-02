@@ -718,8 +718,8 @@ def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_e
 
     l1_arr=np.array([0.0,0.00001,0.0001,0.001])
     l2_arr=np.array([0.0,0.00001,0.0001,0.001])
-    ls_arr=np.array([0.000001,0.00001,0.0001,0.001,0.01])
-    dr_array=np.array([0.1,0.2,0.3,0.4,0.5,0.6,0.7])
+    ls_arr=np.array([0.000001,0.00001,0.0001,0.001])
+    dr_array=np.array([0.1,0.2,0.3,0.4,0.5])
 
     for i in ls_arr:
         for j in dr_array:
