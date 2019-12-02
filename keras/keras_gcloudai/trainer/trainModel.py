@@ -718,21 +718,24 @@ def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_e
 
     l1_arr=np.array([0.0,0.00001,0.0001,0.001])
     l2_arr=np.array([0.0,0.00001,0.0001,0.001])
+    ls_arr=np.array([0.000001,0.00001,0.0001,0.001,0.01])
+    dr_array=np.array([0.1,0.2,0.3,0.4,0.5,0.6,0.7])
 
-    for i in l1_arr:
-        for j in l2_arr:
-            l1_=i
-            l2_=j
-            z.setLogName("l1="+str(l1_)+" l2="+str(l2_))
-            z.setSettings('epochs',epochs)
-            z.setSettings('overfit_epochs',overfit_epochs)
-            z.setSettings('reduction_epochs',reduction_epochs)
-            z.setSettings('ls_reduction_koef',ls_reduction_koef)
-            z.setSettings('ls',ls)
-            z.setSettings('l1',l1_)
-            z.setSettings('l2',l2_)
-            z.setSettings('drop_rate',drop_rate)
-            z.threadTrain()
+    for i in ls_arr:
+        for j in dr_array:
+            for k in l1_arr:
+                for l in l2_arr:
+                    name="ls={0} dr={1} l1={2} l2={3}".format(i,j,k,l)
+                    z.setLogName(name)
+                    z.setSettings('epochs',epochs)
+                    z.setSettings('overfit_epochs',overfit_epochs)
+                    z.setSettings('reduction_epochs',reduction_epochs)
+                    z.setSettings('ls_reduction_koef',ls_reduction_koef)
+                    z.setSettings('ls',i)
+                    z.setSettings('l1',k)
+                    z.setSettings('l2',l)
+                    z.setSettings('drop_rate',j)
+                    z.threadTrain()
 
 
 if __name__ == "__main__":
