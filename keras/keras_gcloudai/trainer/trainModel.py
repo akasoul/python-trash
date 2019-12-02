@@ -715,26 +715,15 @@ def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_e
     # print(z.settings)
     # z.threadTrain()
 
-    l1_ = 0
-    l2_ = 0
-    z.setLogName("l1:" + str(l1_) + " l2:" + str(l2_))
-    z.setSettings('epochs', epochs)
-    z.setSettings('overfit_epochs', overfit_epochs)
-    z.setSettings('reduction_epochs', reduction_epochs)
-    z.setSettings('ls_reduction_koef', ls_reduction_koef)
-    z.setSettings('ls', ls)
-    z.setSettings('l1', l1_)
-    z.setSettings('l2', l2_)
-    z.setSettings('drop_rate', drop_rate)
-    z.threadTrain()
 
+    l1_arr=np.array([0.0,0.00001,0.0001,0.001])
+    l2_arr=np.array([0.0,0.00001,0.0001,0.001])
 
-    for i in range (0,3):
-        for j in range (0,3):
-            dr=0.1+0.05*float(i)
-            l1_=0.0001*(10**i)
-            l2_=0.0001*(10**j)
-            z.setLogName("l1:"+str(l1_)+" l2:"+str(l2_))
+    for i in l1_arr:
+        for j in l2_arr:
+            l1_=i
+            l2_=j
+            z.setLogName("l1="+str(l1_)+" l2="+str(l2_))
             z.setSettings('epochs',epochs)
             z.setSettings('overfit_epochs',overfit_epochs)
             z.setSettings('reduction_epochs',reduction_epochs)
@@ -808,15 +797,14 @@ if __name__ == "__main__":
 #--job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/
 #--data-size=5000
 #--eval-size=0.2
-#--epochs=50000
+#--epochs=1000
 #--overfit-epochs=5000
 #--reduction-epochs=50000
 #--ls-reduction-koef=0.95
-#--ls=0.0001
+#--ls=0.01
 #--l1=0.000
 #--l2=0.000
-#--drop-rate=0.4
-
+#--drop-rate=0.1
 
 
 
