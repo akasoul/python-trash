@@ -16,7 +16,7 @@ useSettingsFile=False
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.5
+BatchMod = 0.2
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -503,7 +503,7 @@ class app:
 
 
 
-    def threadTest(self,index):
+    def threadTest(self,indexArray):
 
         backend.reset_uids()
         backend.clear_session()
@@ -517,29 +517,33 @@ class app:
         else:
             print('model loaded')
 
-        if(index>self.nDataSize):
-            print('index is out of range')
-            return
-
-        target=self.Y[index]
-        prediction=model.predict(x=np.reshape(self.X[index],[1,self.nInputs,1]))
-        prediction=np.reshape(prediction,self.nOutputs)
-
         try:
             import matplotlib.pyplot as plt
         except:
-            pass
-        else:
-            testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
-            testingplot = testingfig.add_subplot(111)
-            testingplot.plot(target, linewidth=0.5, color='b')
-            testingplot.plot(prediction, linewidth=0.5, color='r')
-            testingfig.show()
+            return
+
+        testingfig=np.empty(dtype=plt.Figure,shape=indexArray.__len__())
+        testingplot=np.empty(dtype=plt.Subplot,shape=indexArray.__len__())
+        for index in range(0,indexArray.__len__()):
+            i=indexArray[index]
+            if(i>self.nDataSize):
+                print('index is out of range')
+                return
+
+            target=self.Y[i]
+            prediction=model.predict(x=np.reshape(self.X[i],[1,self.nInputs,1]))
+            prediction=np.reshape(prediction,self.nOutputs)
+
+
+            testingfig[index] = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80, )
+            testingplot[index] = testingfig[index].add_subplot(111)
+            testingplot[index].plot(target, linewidth=0.5, color='b')
+            testingplot[index].plot(prediction, linewidth=0.5, color='r')
+            testingfig[index].show()
 
         backend.reset_uids()
         backend.clear_session()
 
-        return target,prediction
 
 
 
@@ -761,7 +765,8 @@ def main(job_dir,mode=None,data_size=None,eval_size=None,epochs=None,overfit_epo
                     z.threadTrain()
 
     if(mode.find('test')>0):
-        a = z.threadTest(1)
+        #r=np.random()
+        z.threadTest([1,10,55,35,86,13,964,265])
 
 
 
