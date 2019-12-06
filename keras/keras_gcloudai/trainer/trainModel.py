@@ -297,13 +297,6 @@ class app:
 
 
         model.add(Dense(self.nOutputs))
-        #model.add(Dense(self.nOutputs,activation='softmax'))
-        #model.add(Dense(self.nOutputs, activation='tanh',
-        #                kernel_initializer=kernel_init,
-        #                bias_initializer=bias_init,
-        #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg
-        #                ))
 
         optimizer=None
         #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
@@ -424,13 +417,6 @@ class app:
         self.model_name = name
         self.model_name += ".h5"
 
-    def loadModel(self):
-        try:
-            self.model.load_weights(self.job_dir+modelName)
-        except:
-            print('no model')
-
-
 
 
 
@@ -515,6 +501,45 @@ class app:
 
         self.training_is_launched = False
 
+
+
+    def threadTest(self,index):
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
+        try:
+            model.load_weights(self.job_dir+self.model_name)
+        except:
+            print('no model')
+            return
+        else:
+            print('model loaded')
+
+        if(index>self.nDataSize):
+            print('index is out of range')
+            return
+
+        target=self.Y[index]
+        prediction=model.predict(x=np.reshape(self.X[index],[1,self.nInputs,1]))
+        prediction=np.reshape(prediction,self.nOutputs)
+
+        try:
+            import matplotlib.pyplot as plt
+        except:
+            pass
+        else:
+            testingfig = plt.figure(figsize=(10, 7), dpi=80, num='Testing plot')
+            testingplot = testingfig.add_subplot(111)
+            testingplot.plot(target, linewidth=0.5, color='b')
+            testingplot.plot(prediction, linewidth=0.5, color='r')
+            testingfig.show()
+
+        backend.reset_uids()
+        backend.clear_session()
+
+        return target,prediction
 
 
 
@@ -690,52 +715,54 @@ class app:
 
 
 
-def get_message():
-    return "Hello World!"
 
-def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
+def main(job_dir,mode=None,data_size=None,eval_size=None,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
 
-    # if(epochs!=None):
-    #     z.setSettings('epochs',epochs)
-    # if(overfit_epochs!=None):
-    #     z.setSettings('overfit_epochs',overfit_epochs)
-    # if(reduction_epochs!=None):
-    #     z.setSettings('reduction_epochs',reduction_epochs)
-    # if(ls_reduction_koef!=None):
-    #     z.setSettings('ls_reduction_koef',ls_reduction_koef)
-    # if(ls!=None):
-    #     z.setSettings('ls',ls)
-    # if(l1!=None):
-    #     z.setSettings('l1',l1)
-    # if(l2!=None):
-    #     z.setSettings('l2',l2)
-    # if(drop_rate!=None):
-    #     z.setSettings('drop_rate',drop_rate)
-    # print(z.settings)
-    # z.threadTrain()
+    if(mode.find('train')>0):
+        if(epochs!=None):
+            z.setSettings('epochs',epochs)
+        if(overfit_epochs!=None):
+            z.setSettings('overfit_epochs',overfit_epochs)
+        if(reduction_epochs!=None):
+            z.setSettings('reduction_epochs',reduction_epochs)
+        if(ls_reduction_koef!=None):
+            z.setSettings('ls_reduction_koef',ls_reduction_koef)
+        if(ls!=None):
+            z.setSettings('ls',ls)
+        if(l1!=None):
+            z.setSettings('l1',l1)
+        if(l2!=None):
+            z.setSettings('l2',l2)
+        if(drop_rate!=None):
+            z.setSettings('drop_rate',drop_rate)
+        print(z.settings)
+        z.threadTrain()
 
-
-    l1_arr=np.array([0.0,0.00001,0.0001,0.001])
-    l2_arr=np.array([0.0,0.00001,0.0001,0.001])
-    ls_arr=np.array([0.000001,0.00001,0.0001,0.001])
-    dr_array=np.array([0.1,0.3,0.5])
-
-    for i in ls_arr:
-        for j in dr_array:
-            for k in l1_arr:
-                #for l in l2_arr:
-                    name="ls={0} dr={1} l1={2} l2={3}".format(i,j,k,k)
+    if(mode.find('optimise')>0):
+        l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
+        l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
+        ls_arr = np.array([0.000001, 0.00001, 0.0001, 0.001])
+        dr_array = np.array([0.1, 0.3, 0.5])
+        for i in ls_arr:
+            for j in dr_array:
+                for k in l1_arr:
+                    # for l in l2_arr:
+                    name = "ls={0} dr={1} l1={2} l2={3}".format(i, j, k, k)
                     z.setLogName(name)
-                    z.setSettings('epochs',epochs)
-                    z.setSettings('overfit_epochs',overfit_epochs)
-                    z.setSettings('reduction_epochs',reduction_epochs)
-                    z.setSettings('ls_reduction_koef',ls_reduction_koef)
-                    z.setSettings('ls',i)
-                    z.setSettings('l1',k)
-                    z.setSettings('l2',k)
-                    z.setSettings('drop_rate',j)
+                    z.setSettings('epochs', epochs)
+                    z.setSettings('overfit_epochs', overfit_epochs)
+                    z.setSettings('reduction_epochs', reduction_epochs)
+                    z.setSettings('ls_reduction_koef', ls_reduction_koef)
+                    z.setSettings('ls', i)
+                    z.setSettings('l1', k)
+                    z.setSettings('l2', k)
+                    z.setSettings('drop_rate', j)
                     z.threadTrain()
+
+    if(mode.find('test')>0):
+        a = z.threadTest(1)
+
 
 
 if __name__ == "__main__":
@@ -745,6 +772,10 @@ if __name__ == "__main__":
     parser.add_argument(
         '--job-dir',
         help='GCS location to write checkpoints and export models',
+        required=True)
+    parser.add_argument(
+        '--mode',
+        help='Work mode: train, test, optimisation',
         required=True)
     parser.add_argument(
         '--data-size',
