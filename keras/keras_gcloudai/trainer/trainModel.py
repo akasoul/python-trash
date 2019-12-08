@@ -7,6 +7,7 @@ from sklearn import preprocessing
 from tensorflow import io
 import argparse
 import os
+import random
 from datetime import datetime
 
 
@@ -243,7 +244,7 @@ class app:
         filters = 5
         model = Sequential()
         model.add(
-            Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', input_shape=(self.nInputs, 1),
+            Conv1D(kernel_size=20, filters=20, activation='relu', input_shape=(self.nInputs, 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
@@ -251,23 +252,23 @@ class app:
                    kernel_regularizer=kernel_reg,
                    # activity_regularizer=activity_reg
                    ))
-        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-        model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=10, filters=10, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-        model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=5, filters=5, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
         model.add(Flatten())
 
@@ -501,9 +502,53 @@ class app:
 
         self.training_is_launched = False
 
+    def threadPredict(self):
+        backend.reset_uids()
+        backend.clear_session()
+
+        model = self.initModel()
+        try:
+            model.load_weights(self.job_dir+self.model_name)
+        except:
+            print('no model')
+            return
+        else:
+            print('model loaded')
+
+        while True:
+            if (os.path.isfile(self.job_dir+self.sDataInput1Path)):
+                X0=None
+                try:
+                    X0=np.genfromtxt(self.job_dir+self.sDataInput1Path)
+                #    X0 = self.loadFromFileTfGFile(self.job_dir + self.sDataInput1Path)
+                #except:
+                #    X0 = self.loadFromFile(self.job_dir + self.sDataInput1Path)
+                except:
+                    pass
+                else:
+                    X0 = np.float32(X0)
+                    X0 = np.reshape(X0, [1, self.nInputs])
+                    X0 = self.scaler.transform(X0)
+                    X0 = np.reshape(X0, [1, self.nInputs, 1])
+
+                    Y0 = np.zeros(shape=[1, self.nOutputs])
+                    Y0 = np.reshape(Y0, [1, self.nOutputs])
+
+                    os.remove(self.sDataInput1Path)
+
+                    p = model.predict(x=X0)
+
+                    file = open('answer.txt', 'w')
+                    output = ""
+                    for i in range(self.nOutputs):
+                        output += str(p[0][i])
+                        output += " "
+                    file.write(output)
+                    file.close()
+                    print(output)
 
 
-    def threadTest(self,indexArray):
+    def threadTest(self,count):
 
         backend.reset_uids()
         backend.clear_session()
@@ -522,27 +567,32 @@ class app:
         except:
             return
 
-        testingfig=np.empty(dtype=plt.Figure,shape=indexArray.__len__())
-        testingplot=np.empty(dtype=plt.Subplot,shape=indexArray.__len__())
-        for index in range(0,indexArray.__len__()):
-            i=indexArray[index]
-            if(i>self.nDataSize):
-                print('index is out of range')
-                return
+        testingfig=np.empty(dtype=plt.Figure,shape=count)
+        testingplot=np.empty(dtype=plt.Subplot,shape=count)
+        ctime=datetime.now().strftime("%Y%m%d-%H%M%S")
+        sample=random.sample(range(0,self.nDataSize),count)
+        figCounter=0
+        if not os.path.isdir(self.job_dir+'logs/test/'+ctime):
+            os.makedirs(self.job_dir+'logs/test/'+ctime)
+        for index in sample:
 
-            target=self.Y[i]
-            prediction=model.predict(x=np.reshape(self.X[i],[1,self.nInputs,1]))
+            target=self.Y[index]
+            prediction=model.predict(x=np.reshape(self.X[index],[1,self.nInputs,1]))
             prediction=np.reshape(prediction,self.nOutputs)
 
 
-            testingfig[index] = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80, )
-            testingplot[index] = testingfig[index].add_subplot(111)
-            testingplot[index].plot(target, linewidth=0.5, color='b')
-            testingplot[index].plot(prediction, linewidth=0.5, color='r')
-            testingfig[index].show()
-
-        backend.reset_uids()
-        backend.clear_session()
+            testingfig[figCounter] = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
+            testingplot[figCounter] = testingfig[figCounter].add_subplot(111)
+            testingplot[figCounter].plot(target, linewidth=0.5, color='b')
+            testingplot[figCounter].plot(prediction, linewidth=0.5, color='r')
+            testingfig[figCounter].show()
+            testingfig[figCounter].savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
+            figCounter+=1
+        #while True:
+        #    pass
+        ##plt.ioff()
+        #backend.reset_uids()
+        #backend.clear_session()
 
 
 
@@ -766,8 +816,10 @@ def main(job_dir,mode=None,data_size=None,eval_size=None,epochs=None,overfit_epo
 
     if(mode.find('test')>0):
         #r=np.random()
-        z.threadTest([1,10,55,35,86,13,964,265])
+        z.threadTest(20)
 
+    if(mode.find('predict')>0):
+        z.threadPredict()
 
 
 if __name__ == "__main__":
