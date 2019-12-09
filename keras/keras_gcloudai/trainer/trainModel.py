@@ -243,59 +243,72 @@ class app:
         kernel_size = 10
         filters = 5
         model = Sequential()
+
+        #model.add(Flatten(input_shape=(self.nInputs, 1)))
         model.add(
-            Conv1D(kernel_size=20, filters=20, activation='relu', input_shape=(self.nInputs, 1),
+            Conv1D(kernel_size=20, filters=20, activation='relu',input_shape=(self.nInputs, 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
-                   # activity_regularizer=activity_reg
                    ))
+        model.add(Dropout(self.settings['drop_rate']))
         model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-        model.add(Conv1D(kernel_size=10, filters=10, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
+        model.add(Dropout(self.settings['drop_rate']))
         model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-        model.add(Conv1D(kernel_size=5, filters=5, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
+        model.add(Dropout(self.settings['drop_rate']))
+        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+
+        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg,
+                         ))
+        model.add(Dropout(self.settings['drop_rate']))
         model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
         model.add(Flatten())
 
-        model.add(Dense(100, activation='relu',
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-
-        model.add(Dense(100, activation='relu',
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-
-        model.add(Dense(100, activation='relu',
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-
+        # model.add(Dense(100, activation='relu',
+        #                 kernel_initializer=kernel_init,
+        #                 bias_initializer=bias_init,
+        #                 bias_regularizer=bias_reg,
+        #                 kernel_regularizer=kernel_reg,
+        #                 ))
+        # model.add(Dropout(self.settings['drop_rate']))
+        #
+        #
+        # model.add(Dense(100, activation='relu',
+        #                 kernel_initializer=kernel_init,
+        #                 bias_initializer=bias_init,
+        #                 bias_regularizer=bias_reg,
+        #                 kernel_regularizer=kernel_reg,
+        #                 ))
+        # model.add(Dropout(self.settings['drop_rate']))
+        #
+        # model.add(Dense(100, activation='relu',
+        #                 kernel_initializer=kernel_init,
+        #                 bias_initializer=bias_init,
+        #                 bias_regularizer=bias_reg,
+        #                 kernel_regularizer=kernel_reg,
+        #                 ))
+        # model.add(Dropout(self.settings['drop_rate']))
 
         model.add(Dense(self.nOutputs))
 
@@ -338,80 +351,6 @@ class app:
 
 
 
-    def initModel2(self):
-
-        # model
-        kernel_init = 'glorot_uniform'
-        bias_init = 'zeros'
-        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size = 10
-        filters = 5
-        model = Sequential()
-
-
-        model.add(Dense(50, activation='relu',input_shape=(self.nInputs, 1),
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(Flatten())
-
-        model.add(Dense(50, activation='relu',
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-
-        model.add(Dense(50, activation='relu',
-                        kernel_initializer=kernel_init,
-                        bias_initializer=bias_init,
-                        bias_regularizer=bias_reg,
-                        kernel_regularizer=kernel_reg,
-                        ))
-        model.add(Dropout(self.settings['drop_rate']))
-
-
-        model.add(Dense(self.nOutputs))
-
-
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False);
-
-        model.compile(
-             loss='mean_squared_error',
-            #loss='categorical_crossentropy',
-            optimizer=optimizer,
-            metrics=['accuracy'])
-        #print(model.summary())
-
-        sName = ""
-        for i in model.layers:
-            for j in range(0, layersNames.size):
-                if (i.name.find(layersNames[j]) != -1):
-                    for k in i.input_shape:
-                        if (k != None):
-                            sName += str(k)
-                            sName += "."
-                        else:
-                            sName += "_."
-                    sName += layersShortNames[j]
-                    sName += "."
-        for i in model.layers[model.layers.__len__() - 1].output_shape:
-            if (i != None):
-                sName += str(i)
-                sName += "."
-            else:
-                sName += "_."
-        self.setModelName(sName)
-        print(self.model_name)
-        #if (os.path.isfile(self.job_dir+self.model_name)):
-        #    model.load_weights(self.model_name)
-        return model
 
 
     def setModelName(self, name):
@@ -585,7 +524,8 @@ class app:
             testingplot[figCounter] = testingfig[figCounter].add_subplot(111)
             testingplot[figCounter].plot(target, linewidth=0.5, color='b')
             testingplot[figCounter].plot(prediction, linewidth=0.5, color='r')
-            testingfig[figCounter].show()
+            #ylim(self.Y.min(),self.Y.max())
+            #testingfig[figCounter].show()
             testingfig[figCounter].savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
             figCounter+=1
         #while True:
