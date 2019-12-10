@@ -473,11 +473,11 @@ class app:
                     Y0 = np.zeros(shape=[1, self.nOutputs])
                     Y0 = np.reshape(Y0, [1, self.nOutputs])
 
-                    os.remove(self.sDataInput1Path)
+                    os.remove(self.job_dir+self.sDataInput1Path)
 
                     p = model.predict(x=X0)
 
-                    file = open('answer.txt', 'w')
+                    file = open(self.job_dir+'answer.txt', 'w')
                     output = ""
                     for i in range(self.nOutputs):
                         output += str(p[0][i])
@@ -513,21 +513,24 @@ class app:
         figCounter=0
         if not os.path.isdir(self.job_dir+'logs/test/'+ctime):
             os.makedirs(self.job_dir+'logs/test/'+ctime)
-        for index in sample:
 
-            target=self.Y[index]
-            prediction=model.predict(x=np.reshape(self.X[index],[1,self.nInputs,1]))
-            prediction=np.reshape(prediction,self.nOutputs)
+        prediction = model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
+        target=self.Y
+        for index in range(0,self.nDataSize):
+
+            _y=self.Y[index]
+            _p=prediction[index]
+            _p=np.reshape(_p,self.nOutputs)
 
 
-            testingfig[figCounter] = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
-            testingplot[figCounter] = testingfig[figCounter].add_subplot(111)
-            testingplot[figCounter].plot(target, linewidth=0.5, color='b')
-            testingplot[figCounter].plot(prediction, linewidth=0.5, color='r')
+            testingfig = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
+            testingplot = testingfig.add_subplot(111)
+            testingplot.plot(_y, linewidth=0.5, color='b')
+            testingplot.plot(_p, linewidth=0.5, color='r')
             #ylim(self.Y.min(),self.Y.max())
             #testingfig[figCounter].show()
-            testingfig[figCounter].savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
-            figCounter+=1
+            testingfig.savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
+            testingfig.close()
         #while True:
         #    pass
         ##plt.ioff()
@@ -756,7 +759,7 @@ def main(job_dir,mode=None,data_size=None,eval_size=None,epochs=None,overfit_epo
 
     if(mode.find('test')>0):
         #r=np.random()
-        z.threadTest(20)
+        z.threadTest(z.nDataSize)
 
     if(mode.find('predict')>0):
         z.threadPredict()
