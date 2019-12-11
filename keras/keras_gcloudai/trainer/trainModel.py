@@ -24,7 +24,7 @@ DISABLE_LOG=True
 ENABLE_TRAINING_LOG=False
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
-layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
+layersShortNames = np.array(["c1", "d", "p", "f", "lst"])
 
 
 class historyCallback(callbacks.Callback):
@@ -45,7 +45,7 @@ class historyCallback(callbacks.Callback):
                 output_f.write(input_f.read())
 
     #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef):
+    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef,_logDir,minEpochsBetweenSavingModel=0):
         self.modelName=_modelName
         self.metrics=_metrics
         self.ovfEpochs=_ovfEpochs
@@ -58,8 +58,37 @@ class historyCallback(callbacks.Callback):
         self.bestValAcc=0
         self.bestEpoch=0
 
+        self.minEpochsBetweenSavingModel=minEpochsBetweenSavingModel
         self.bestLoss=999999999
         self.bestValLoss=999999999
+
+        self.logDir=_logDir
+
+    def initData(self,xData,yData,nDataSize,nInputs,nOutputs):
+        self.X=xData
+        self.Y=yData
+        self.nDataSize=nDataSize
+        self.nInputs=nInputs
+        self.nOutputs=nOutputs
+
+
+    def threadTest(self,epoch):
+        try:
+            import matplotlib.pyplot as plt
+        except:
+            return
+
+        if not os.path.isdir(self.logDir+'/training_marks/'):
+            os.makedirs(self.logDir+'/training_marks/')
+
+        prediction = self.model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
+        target=self.Y
+
+        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
+        testingplot = testingfig.add_subplot(111)
+        testingplot.plot(target, linewidth=0.05, color='b')
+        testingplot.plot(prediction, linewidth=0.05, color='r')
+        testingfig.savefig(fname=self.logDir+'/training_marks/'+str(epoch))
 
     def on_epoch_end(self, epoch, logs=None):
 
@@ -127,9 +156,11 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestAcc=self._acc
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -139,9 +170,11 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestValAcc=self._val_acc
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -152,10 +185,12 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestAcc=self._acc
                 self.bestValAcc=self._val_acc
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -165,9 +200,11 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestLoss=self._loss
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -177,9 +214,11 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestValLoss=self._val_loss
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -190,31 +229,16 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                self.model.save_weights(self.modelName)
+                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+                    self.model.save_weights(self.modelName)
+                    self.bestEpoch=epoch
+                    self.threadTest(epoch)
                 self.bestLoss=self._loss
                 self.bestValLoss=self._val_loss
-                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
 
-        if(ENABLE_TRAINING_LOG):
-            if(self.bestEpoch==epoch):
-                try:
-                    with open('training_temp.txt', 'a') as f:
-                        try:
-                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(self._loss,self._val_loss,self._acc,self._val_acc))
-                        except:
-                            f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
-                        f.close()
-
-                except:
-                    with open('training_temp.txt', 'w') as f:
-                        try:
-                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(self._loss,self._val_loss,self._acc,self._val_acc))
-                        except:
-                            f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
-                        f.close()
 
         if(self.reductionCounter>=self.reductionEpochs):
             old_lr=backend.get_value(self.model.optimizer.lr)
@@ -226,7 +250,8 @@ class historyCallback(callbacks.Callback):
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
 
-
+        if(epoch % 100)==0:
+            self.threadTest(epoch)
 
 
 class app:
@@ -254,7 +279,7 @@ class app:
                    kernel_regularizer=kernel_reg,
                    ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -263,7 +288,7 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -272,7 +297,7 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -281,7 +306,9 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+
+
 
         model.add(Flatten())
 
@@ -327,23 +354,18 @@ class app:
         print(model.summary())
 
         sName = ""
+        sName+=str(self.nInputs)
+        sName+='.'
         for i in model.layers:
             for j in range(0, layersNames.size):
                 if (i.name.find(layersNames[j]) != -1):
-                    for k in i.input_shape:
-                        if (k != None):
-                            sName += str(k)
-                            sName += "."
-                        else:
-                            sName += "_."
+                    #for k in i.input_shape:
+                    #    if (k != None):
+                    #        sName += str(k)
+                    #        sName += "."
                     sName += layersShortNames[j]
                     sName += "."
-        for i in model.layers[model.layers.__len__() - 1].output_shape:
-            if (i != None):
-                sName += str(i)
-                sName += "."
-            else:
-                sName += "_."
+        sName+=str(self.nOutputs)
         self.setModelName(sName)
         #if (os.path.isfile(self.job_dir+self.model_name)):
         #    model.load_weights(self.model_name)
@@ -387,14 +409,13 @@ class app:
         #    metr = 'full_loss'
 
 
-        metr = 'full_acc'
+        metr = 'full_loss'
         if(metr=='train_acc' or metr=='train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
-
+        self.historyCallback.initData(self.X,self.Y,self.nDataSize,self.nInputs,self.nOutputs)
 
         if(self.sLogName==None):
             self.logDir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -402,6 +423,9 @@ class app:
             self.logDir = self.job_dir+"logs/fit/" + self.sLogName
 
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
+        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,
+                                          self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'],
+                                          self.logDir,10)
 
 
         #monitor = None
@@ -487,6 +511,7 @@ class app:
                     print(output)
 
 
+
     def threadTest(self,count):
 
         backend.reset_uids()
@@ -516,6 +541,13 @@ class app:
 
         prediction = model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
         target=self.Y
+
+        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
+        testingplot = testingfig.add_subplot(111)
+        testingplot.plot(target, linewidth=0.05, color='b')
+        testingplot.plot(prediction, linewidth=0.05, color='r')
+        testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/all')
+
         for index in range(0,self.nDataSize):
 
             _y=self.Y[index]
@@ -530,7 +562,8 @@ class app:
             #ylim(self.Y.min(),self.Y.max())
             #testingfig[figCounter].show()
             testingfig.savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
-            testingfig.close()
+            plt.close(testingfig)
+
         #while True:
         #    pass
         ##plt.ioff()
