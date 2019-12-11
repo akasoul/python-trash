@@ -514,6 +514,9 @@ class app:
 
     def threadTest(self,count):
 
+        yMin=-1.3
+        yMax=1.3
+
         backend.reset_uids()
         backend.clear_session()
 
@@ -544,6 +547,8 @@ class app:
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
+        if (yMin != 0 and yMax != 0):
+            plt.ylim(yMin, yMax)
         testingplot.plot(target, linewidth=0.05, color='b')
         testingplot.plot(prediction, linewidth=0.05, color='r')
         testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/all')
@@ -557,10 +562,10 @@ class app:
 
             testingfig = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
             testingplot = testingfig.add_subplot(111)
+            if(yMin!=0 and yMax!=0):
+                plt.ylim(yMin, yMax)
             testingplot.plot(_y, linewidth=0.5, color='b')
             testingplot.plot(_p, linewidth=0.5, color='r')
-            #ylim(self.Y.min(),self.Y.max())
-            #testingfig[figCounter].show()
             testingfig.savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
             plt.close(testingfig)
 
