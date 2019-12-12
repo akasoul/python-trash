@@ -734,7 +734,7 @@ class app:
 
 
 
-def main(job_dir,mode,data_size=None,eval_size=None,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
+def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
     print(mode)
     if(mode.find('train')>0):
