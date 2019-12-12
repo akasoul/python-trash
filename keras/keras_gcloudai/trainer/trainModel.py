@@ -13,11 +13,12 @@ from datetime import datetime
 
 modelName = "model.h5"
 useSettingsFile=False
+testEnable=True
 
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.2
+BatchMod = 0.05
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -78,6 +79,8 @@ class historyCallback(callbacks.Callback):
         except:
             return
 
+        if(not testEnable):
+            return
         if not os.path.isdir(self.logDir+'/training_marks/'):
             os.makedirs(self.logDir+'/training_marks/')
 
@@ -245,13 +248,13 @@ class historyCallback(callbacks.Callback):
             new_lr=old_lr*self.reductionKoef
             backend.set_value(self.model.optimizer.lr,new_lr)
             print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr,new_lr) )
+            self.threadTest(epoch)
+
             self.reductionCounter=0
 
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
 
-        if(epoch % 100)==0:
-            self.threadTest(epoch)
 
 
 class app:
@@ -279,7 +282,8 @@ class app:
                    kernel_regularizer=kernel_reg,
                    ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -288,7 +292,8 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -297,7 +302,8 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+
 
         model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
@@ -306,36 +312,13 @@ class app:
                          kernel_regularizer=kernel_reg,
                          ))
         model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(4)))  # , strides=(1)))
+        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+
 
 
 
         model.add(Flatten())
 
-        # model.add(Dense(100, activation='relu',
-        #                 kernel_initializer=kernel_init,
-        #                 bias_initializer=bias_init,
-        #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg,
-        #                 ))
-        # model.add(Dropout(self.settings['drop_rate']))
-        #
-        #
-        # model.add(Dense(100, activation='relu',
-        #                 kernel_initializer=kernel_init,
-        #                 bias_initializer=bias_init,
-        #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg,
-        #                 ))
-        # model.add(Dropout(self.settings['drop_rate']))
-        #
-        # model.add(Dense(100, activation='relu',
-        #                 kernel_initializer=kernel_init,
-        #                 bias_initializer=bias_init,
-        #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg,
-        #                 ))
-        # model.add(Dropout(self.settings['drop_rate']))
 
         model.add(Dense(self.nOutputs))
 
