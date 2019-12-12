@@ -736,8 +736,9 @@ class app:
 
 def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
-    print(mode)
-    if(mode.find('train')>0):
+    #print(mode)
+    #if(mode.find('train')>0):
+    if(mode==0):
         if(epochs!=None):
             z.setSettings('epochs',epochs)
         if(overfit_epochs!=None):
@@ -757,7 +758,8 @@ def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduct
         print(z.settings)
         z.threadTrain()
 
-    if(mode.find('optimise')>0):
+    #if(mode.find('optimise')>0):
+    if (mode == 1):
         l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
         l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
         ls_arr = np.array([0.000001, 0.00001, 0.0001, 0.001])
@@ -778,11 +780,13 @@ def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduct
                     z.setSettings('drop_rate', j)
                     z.threadTrain()
 
-    if(mode.find('test')>0):
+    #if(mode.find('test')>0):
+    if (mode == 2):
         #r=np.random()
         z.threadTest(z.nDataSize)
 
-    if(mode.find('predict')>0):
+    #if(mode.find('predict')>0):
+    if (mode == 3):
         z.threadPredict()
 
 
