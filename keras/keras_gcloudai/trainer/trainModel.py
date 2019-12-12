@@ -7,25 +7,23 @@ from sklearn import preprocessing
 from tensorflow import io
 import argparse
 import os
-import random
 from datetime import datetime
 
 
 modelName = "model.h5"
 useSettingsFile=False
-testEnable=True
 
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.05
+BatchMod = 0.5
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
 ENABLE_TRAINING_LOG=False
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
-layersShortNames = np.array(["c1", "d", "p", "f", "lst"])
+layersShortNames = np.array(["c1d", "d", "mp1d", "fl", "lst"])
 
 
 class historyCallback(callbacks.Callback):
@@ -46,7 +44,7 @@ class historyCallback(callbacks.Callback):
                 output_f.write(input_f.read())
 
     #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef,_logDir,minEpochsBetweenSavingModel=0):
+    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef):
         self.modelName=_modelName
         self.metrics=_metrics
         self.ovfEpochs=_ovfEpochs
@@ -59,39 +57,8 @@ class historyCallback(callbacks.Callback):
         self.bestValAcc=0
         self.bestEpoch=0
 
-        self.minEpochsBetweenSavingModel=minEpochsBetweenSavingModel
         self.bestLoss=999999999
         self.bestValLoss=999999999
-
-        self.logDir=_logDir
-
-    def initData(self,xData,yData,nDataSize,nInputs,nOutputs):
-        self.X=xData
-        self.Y=yData
-        self.nDataSize=nDataSize
-        self.nInputs=nInputs
-        self.nOutputs=nOutputs
-
-
-    def threadTest(self,epoch):
-        try:
-            import matplotlib.pyplot as plt
-        except:
-            return
-
-        if(not testEnable):
-            return
-        if not os.path.isdir(self.logDir+'/training_marks/'):
-            os.makedirs(self.logDir+'/training_marks/')
-
-        prediction = self.model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
-        target=self.Y
-
-        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
-        testingplot = testingfig.add_subplot(111)
-        testingplot.plot(target, linewidth=0.05, color='b')
-        testingplot.plot(prediction, linewidth=0.05, color='r')
-        testingfig.savefig(fname=self.logDir+'/training_marks/'+str(epoch))
 
     def on_epoch_end(self, epoch, logs=None):
 
@@ -159,11 +126,9 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestAcc=self._acc
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -173,11 +138,9 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestValAcc=self._val_acc
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -188,12 +151,10 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestAcc=self._acc
                 self.bestValAcc=self._val_acc
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -203,11 +164,9 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestLoss=self._loss
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -217,11 +176,9 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestValLoss=self._val_loss
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
@@ -232,28 +189,42 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
                 self.ovfCounter=0
                 self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
-                    self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
-                    self.threadTest(epoch)
+                self.model.save_weights(self.modelName)
                 self.bestLoss=self._loss
                 self.bestValLoss=self._val_loss
+                self.bestEpoch=epoch
             else:
                 self.ovfCounter+=1
                 self.reductionCounter+=1
 
+        if(ENABLE_TRAINING_LOG):
+            if(self.bestEpoch==epoch):
+                try:
+                    with open('training_temp.txt', 'a') as f:
+                        try:
+                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(self._loss,self._val_loss,self._acc,self._val_acc))
+                        except:
+                            f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
+                        f.close()
+
+                except:
+                    with open('training_temp.txt', 'w') as f:
+                        try:
+                            f.write("loss;{0:5f};val_loss;{1:5f};acc;{2:5f};val_acc;{3:5f};\n".format(self._loss,self._val_loss,self._acc,self._val_acc))
+                        except:
+                            f.write("loss;{0:5f};acc;{1:5f};\n".format(self._loss,self._acc))
+                        f.close()
 
         if(self.reductionCounter>=self.reductionEpochs):
             old_lr=backend.get_value(self.model.optimizer.lr)
             new_lr=old_lr*self.reductionKoef
             backend.set_value(self.model.optimizer.lr,new_lr)
             print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr,new_lr) )
-            self.threadTest(epoch)
-
             self.reductionCounter=0
 
         if(self.ovfCounter>=self.ovfEpochs):
             self.model_stop_training=True
+
 
 
 
@@ -271,56 +242,68 @@ class app:
         kernel_size = 10
         filters = 5
         model = Sequential()
-
-        #model.add(Flatten(input_shape=(self.nInputs, 1)))
         model.add(
-            Conv1D(kernel_size=20, filters=20, activation='relu',input_shape=(self.nInputs, 1),
+            Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', input_shape=(self.nInputs, 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
+                   # activity_regularizer=activity_reg
                    ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
-
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=kernel_size, filters=filters, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
                          ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
-
-
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
-                         kernel_initializer=kernel_init,
-                         bias_initializer=bias_init,
-                         bias_regularizer=bias_reg,
-                         kernel_regularizer=kernel_reg,
-                         ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
-
-
-
+        #model.add(MaxPool1D(pool_size=(2)))  # , strides=(1)))
 
         model.add(Flatten())
 
+        model.add(Dense(100, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(100, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(100, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
 
         model.add(Dense(self.nOutputs))
+        #model.add(Dense(self.nOutputs,activation='softmax'))
+        #model.add(Dense(self.nOutputs, activation='tanh',
+        #                kernel_initializer=kernel_init,
+        #                bias_initializer=bias_init,
+        #                 bias_regularizer=bias_reg,
+        #                 kernel_regularizer=kernel_reg
+        #                ))
 
         optimizer=None
         #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
@@ -337,18 +320,23 @@ class app:
         print(model.summary())
 
         sName = ""
-        sName+=str(self.nInputs)
-        sName+='.'
         for i in model.layers:
             for j in range(0, layersNames.size):
                 if (i.name.find(layersNames[j]) != -1):
-                    #for k in i.input_shape:
-                    #    if (k != None):
-                    #        sName += str(k)
-                    #        sName += "."
+                    for k in i.input_shape:
+                        if (k != None):
+                            sName += str(k)
+                            sName += "."
+                        else:
+                            sName += "_."
                     sName += layersShortNames[j]
                     sName += "."
-        sName+=str(self.nOutputs)
+        for i in model.layers[model.layers.__len__() - 1].output_shape:
+            if (i != None):
+                sName += str(i)
+                sName += "."
+            else:
+                sName += "_."
         self.setModelName(sName)
         #if (os.path.isfile(self.job_dir+self.model_name)):
         #    model.load_weights(self.model_name)
@@ -356,11 +344,92 @@ class app:
 
 
 
+    def initModel2(self):
+
+        # model
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        kernel_size = 10
+        filters = 5
+        model = Sequential()
+
+
+        model.add(Dense(50, activation='relu',input_shape=(self.nInputs, 1),
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+        model.add(Flatten())
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+        model.add(Dense(50, activation='relu',
+                        kernel_initializer=kernel_init,
+                        bias_initializer=bias_init,
+                        bias_regularizer=bias_reg,
+                        kernel_regularizer=kernel_reg,
+                        ))
+        model.add(Dropout(self.settings['drop_rate']))
+
+
+        model.add(Dense(self.nOutputs))
+
+
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False);
+
+        model.compile(
+             loss='mean_squared_error',
+            #loss='categorical_crossentropy',
+            optimizer=optimizer,
+            metrics=['accuracy'])
+        #print(model.summary())
+
+        sName = ""
+        for i in model.layers:
+            for j in range(0, layersNames.size):
+                if (i.name.find(layersNames[j]) != -1):
+                    for k in i.input_shape:
+                        if (k != None):
+                            sName += str(k)
+                            sName += "."
+                        else:
+                            sName += "_."
+                    sName += layersShortNames[j]
+                    sName += "."
+        for i in model.layers[model.layers.__len__() - 1].output_shape:
+            if (i != None):
+                sName += str(i)
+                sName += "."
+            else:
+                sName += "_."
+        self.setModelName(sName)
+        print(self.model_name)
+        #if (os.path.isfile(self.job_dir+self.model_name)):
+        #    model.load_weights(self.model_name)
+        return model
 
 
     def setModelName(self, name):
         self.model_name = name
         self.model_name += ".h5"
+
+    def loadModel(self):
+        try:
+            self.model.load_weights(self.job_dir+modelName)
+        except:
+            print('no model')
+
 
 
 
@@ -392,13 +461,14 @@ class app:
         #    metr = 'full_loss'
 
 
-        metr = 'full_loss'
+        metr = 'full_acc'
         if(metr=='train_acc' or metr=='train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initData(self.X,self.Y,self.nDataSize,self.nInputs,self.nOutputs)
+        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'])
+
 
         if(self.sLogName==None):
             self.logDir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -406,9 +476,6 @@ class app:
             self.logDir = self.job_dir+"logs/fit/" + self.sLogName
 
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
-        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,
-                                          self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'],
-                                          self.logDir,10)
 
 
         #monitor = None
@@ -447,116 +514,6 @@ class app:
 
 
         self.training_is_launched = False
-
-    def threadPredict(self):
-        backend.reset_uids()
-        backend.clear_session()
-
-        model = self.initModel()
-        try:
-            model.load_weights(self.job_dir+self.model_name)
-        except:
-            print('no model')
-            return
-        else:
-            print('model loaded')
-
-        while True:
-            if (os.path.isfile(self.job_dir+self.sDataInput1Path)):
-                X0=None
-                try:
-                    X0=np.genfromtxt(self.job_dir+self.sDataInput1Path)
-                #    X0 = self.loadFromFileTfGFile(self.job_dir + self.sDataInput1Path)
-                #except:
-                #    X0 = self.loadFromFile(self.job_dir + self.sDataInput1Path)
-                except:
-                    pass
-                else:
-                    X0 = np.float32(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs])
-                    X0 = self.scaler.transform(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs, 1])
-
-                    Y0 = np.zeros(shape=[1, self.nOutputs])
-                    Y0 = np.reshape(Y0, [1, self.nOutputs])
-
-                    os.remove(self.job_dir+self.sDataInput1Path)
-
-                    p = model.predict(x=X0)
-
-                    file = open(self.job_dir+'answer.txt', 'w')
-                    output = ""
-                    for i in range(self.nOutputs):
-                        output += str(p[0][i])
-                        output += " "
-                    file.write(output)
-                    file.close()
-                    print(output)
-
-
-
-    def threadTest(self,count):
-
-        yMin=-1.3
-        yMax=1.3
-
-        backend.reset_uids()
-        backend.clear_session()
-
-        model = self.initModel()
-        try:
-            model.load_weights(self.job_dir+self.model_name)
-        except:
-            print('no model')
-            return
-        else:
-            print('model loaded')
-
-        try:
-            import matplotlib.pyplot as plt
-        except:
-            return
-
-        testingfig=np.empty(dtype=plt.Figure,shape=count)
-        testingplot=np.empty(dtype=plt.Subplot,shape=count)
-        ctime=datetime.now().strftime("%Y%m%d-%H%M%S")
-        sample=random.sample(range(0,self.nDataSize),count)
-        figCounter=0
-        if not os.path.isdir(self.job_dir+'logs/test/'+ctime):
-            os.makedirs(self.job_dir+'logs/test/'+ctime)
-
-        prediction = model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
-        target=self.Y
-
-        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
-        testingplot = testingfig.add_subplot(111)
-        if (yMin != 0 and yMax != 0):
-            plt.ylim(yMin, yMax)
-        testingplot.plot(target, linewidth=0.05, color='b')
-        testingplot.plot(prediction, linewidth=0.05, color='r')
-        testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/all')
-
-        for index in range(0,self.nDataSize):
-
-            _y=self.Y[index]
-            _p=prediction[index]
-            _p=np.reshape(_p,self.nOutputs)
-
-
-            testingfig = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
-            testingplot = testingfig.add_subplot(111)
-            if(yMin!=0 and yMax!=0):
-                plt.ylim(yMin, yMax)
-            testingplot.plot(_y, linewidth=0.5, color='b')
-            testingplot.plot(_p, linewidth=0.5, color='r')
-            testingfig.savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
-            plt.close(testingfig)
-
-        #while True:
-        #    pass
-        ##plt.ioff()
-        #backend.reset_uids()
-        #backend.clear_session()
 
 
 
@@ -733,57 +690,52 @@ class app:
 
 
 
+def get_message():
+    return "Hello World!"
 
-def main(job_dir,mode=None,data_size=None,eval_size=None,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
+def main(job_dir,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
 
-    if(mode.find('train')>0):
-        if(epochs!=None):
-            z.setSettings('epochs',epochs)
-        if(overfit_epochs!=None):
-            z.setSettings('overfit_epochs',overfit_epochs)
-        if(reduction_epochs!=None):
-            z.setSettings('reduction_epochs',reduction_epochs)
-        if(ls_reduction_koef!=None):
-            z.setSettings('ls_reduction_koef',ls_reduction_koef)
-        if(ls!=None):
-            z.setSettings('ls',ls)
-        if(l1!=None):
-            z.setSettings('l1',l1)
-        if(l2!=None):
-            z.setSettings('l2',l2)
-        if(drop_rate!=None):
-            z.setSettings('drop_rate',drop_rate)
-        print(z.settings)
-        z.threadTrain()
+    # if(epochs!=None):
+    #     z.setSettings('epochs',epochs)
+    # if(overfit_epochs!=None):
+    #     z.setSettings('overfit_epochs',overfit_epochs)
+    # if(reduction_epochs!=None):
+    #     z.setSettings('reduction_epochs',reduction_epochs)
+    # if(ls_reduction_koef!=None):
+    #     z.setSettings('ls_reduction_koef',ls_reduction_koef)
+    # if(ls!=None):
+    #     z.setSettings('ls',ls)
+    # if(l1!=None):
+    #     z.setSettings('l1',l1)
+    # if(l2!=None):
+    #     z.setSettings('l2',l2)
+    # if(drop_rate!=None):
+    #     z.setSettings('drop_rate',drop_rate)
+    # print(z.settings)
+    # z.threadTrain()
 
-    if(mode.find('optimise')>0):
-        l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
-        l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
-        ls_arr = np.array([0.000001, 0.00001, 0.0001, 0.001])
-        dr_array = np.array([0.1, 0.3, 0.5])
-        for i in ls_arr:
-            for j in dr_array:
-                for k in l1_arr:
-                    # for l in l2_arr:
-                    name = "ls={0} dr={1} l1={2} l2={3}".format(i, j, k, k)
+
+    l1_arr=np.array([0.0,0.00001,0.0001,0.001])
+    l2_arr=np.array([0.0,0.00001,0.0001,0.001])
+    ls_arr=np.array([0.000001,0.00001,0.0001,0.001])
+    dr_array=np.array([0.1,0.2,0.3,0.4,0.5])
+
+    for i in ls_arr:
+        for j in dr_array:
+            for k in l1_arr:
+                for l in l2_arr:
+                    name="ls={0} dr={1} l1={2} l2={3}".format(i,j,k,l)
                     z.setLogName(name)
-                    z.setSettings('epochs', epochs)
-                    z.setSettings('overfit_epochs', overfit_epochs)
-                    z.setSettings('reduction_epochs', reduction_epochs)
-                    z.setSettings('ls_reduction_koef', ls_reduction_koef)
-                    z.setSettings('ls', i)
-                    z.setSettings('l1', k)
-                    z.setSettings('l2', k)
-                    z.setSettings('drop_rate', j)
+                    z.setSettings('epochs',epochs)
+                    z.setSettings('overfit_epochs',overfit_epochs)
+                    z.setSettings('reduction_epochs',reduction_epochs)
+                    z.setSettings('ls_reduction_koef',ls_reduction_koef)
+                    z.setSettings('ls',i)
+                    z.setSettings('l1',k)
+                    z.setSettings('l2',l)
+                    z.setSettings('drop_rate',j)
                     z.threadTrain()
-
-    if(mode.find('test')>0):
-        #r=np.random()
-        z.threadTest(z.nDataSize)
-
-    if(mode.find('predict')>0):
-        z.threadPredict()
 
 
 if __name__ == "__main__":
@@ -793,10 +745,6 @@ if __name__ == "__main__":
     parser.add_argument(
         '--job-dir',
         help='GCS location to write checkpoints and export models',
-        required=True)
-    parser.add_argument(
-        '--mode',
-        help='Work mode: train, test, optimisation',
         required=True)
     parser.add_argument(
         '--data-size',
