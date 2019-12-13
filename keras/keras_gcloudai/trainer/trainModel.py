@@ -738,6 +738,7 @@ def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduct
     z=app(job_dir,data_size,eval_size)
     #print(mode)
     #if(mode.find('train')>0):
+    mode=int(mode)
     if(mode==0):
         if(epochs!=None):
             z.setSettings('epochs',epochs)
