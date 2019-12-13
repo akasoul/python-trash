@@ -18,7 +18,7 @@ testEnable=True
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.1
+BatchMod = 0.5
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -268,7 +268,7 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size = 2
+        kernel_size = 5
         filters = 5
         model = Sequential()
 
