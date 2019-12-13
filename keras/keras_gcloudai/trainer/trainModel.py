@@ -18,7 +18,7 @@ testEnable=True
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.05
+BatchMod = 0.1
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -268,13 +268,12 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size = 10
+        kernel_size = 2
         filters = 5
         model = Sequential()
 
         #model.add(Flatten(input_shape=(self.nInputs, 1)))
-        model.add(
-            Conv1D(kernel_size=20, filters=20, activation='relu',input_shape=(self.nInputs, 1),
+        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu',input_shape=(self.nInputs, 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
@@ -285,7 +284,8 @@ class app:
         model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
 
 
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                         padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
@@ -295,7 +295,7 @@ class app:
         model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
 
 
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
@@ -305,7 +305,7 @@ class app:
         model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
 
 
-        model.add(Conv1D(kernel_size=20, filters=20, activation='relu', padding="same",
+        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
@@ -433,11 +433,11 @@ class app:
         self.log('start training')
 
         if(self.eval_size>0.0):
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,#shuffle=True,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
                   callbacks=self.callbacks,
                   validation_data=(self.X_test, self.Y_test))
         else:
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], batch_size=self.n_batches_train,verbose=1,#shuffle=True,
+            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
                   callbacks=self.callbacks)
 
         score = model.evaluate(self.X, self.Y)  # , batch_size=500)
