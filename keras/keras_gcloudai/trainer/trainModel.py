@@ -880,7 +880,18 @@ if __name__ == "__main__":
 #--l2=0.000
 #--drop-rate=0.1
 
-
+#--mode=0
+#--data-size=20000
+#--eval-size=0.2
+#--batch-size=0.05
+#--epochs=50000
+#--overfit-epochs=50000
+#--reduction-epochs=100
+#--ls-reduction-koef=0.9
+#--ls=0.00001
+#--l1=0.00005
+#--l2=0.00005
+#--drop-rate=0.1
 
 #rms drop 0.1
 #rms lr 0.001-0.01
