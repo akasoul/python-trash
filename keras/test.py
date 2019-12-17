@@ -1,7 +1,65 @@
-#import requests
-#
-#url = 'https://00e9e64bace4bb1bab9a67f200fb6281cfbba7489c7171e29a-apidata.googleusercontent.com/download/storage/v1/b/nnetworks-storage/o/out_data.txt?qk=AD5uMEstj88j5QxWhLN1b5-3ik7GMdS9f3bJ6oj3frnH7i3gQ_31SABdefpGvtDXdvXaoGVTdhfbfEktXZe6qzBBgfAoWwendYJC1gGtnYfyYRNEXy9UjXKD58GeG5Lz80PrNTUfdKimYX1IG6ajPVGytHHGPMKwVOQV1abDC0EVotl2-Pvt3VlsM5LbAJ6bCnflPmOf7-Wl2wI1NopY2ksATGyRJieUGTrIF51ofolPMqzWCMScPoR0PnoQ0B5Ht9dZ3gpbNL9qijXzkwWA25F80FI3wvXh3TyZAPfReoQclAZK7j2LK_ExZyM4p86CaGKwHRV9drYsuEC4CXyht84s-I8kPdq_EUdYvCTTSs4Mt5wtp6lyO2vcYYPUlo04JZk9C-I5yzpCRATH8DxRZjg1Yuq2iQnwPrQJUXPEbJC8wMEp0i2F2VPXSTm4pfv0iWHx99Ior4EOqX9xhiKyKxoU_F9C_eES6TVgxSgJsQiHmS_JOOJQqgRwEO21QhTbYxzRp7KrTnBJ5Nvn9O_474gbgnoyz4CZMkxcXc85La7kxAg1Oc4KBsayJYXh36Z2zlttQr5Zb3b51Pm0fqBuGsX39gyzo_8A0XTDtKpj3wl56bQDjz3IRpm3Myvl-ELofx59Qf8t94fSlutWPYS9Kncbq66RQ0AM1YUqL8WQOSGRafsEaztnP_o84kNWT-XI8J5uSMlIXn3N2_eBA6m5shWd6CP5-cW1iBP1lurs6VDIKA2C0SgYCZvu5RQzR1-sq5Sp5pZNBjSjaMeaOIboWa0yjfAaZ3DaDa_A2tugk0-imliC2LkI2pc'
-#myfile = requests.get(url, allow_redirects=True)
-#open('tempfile.txt', 'wb').write(myfile.content)
-from trainer import trainModel
-a=trainModel.app("C:\\Users\\Anton\\Documents\\1",1000)
+from os import path,mkdir,listdir,makedirs,chdir
+from shutil import copy as _copy
+from numpy import array,unique,append
+
+
+
+
+chdir("C:\ProgramData\Dinamika\Database")
+dir="Декабрь 2019\\"
+strtofind="122019"
+
+
+
+
+
+
+
+def copy(src,dst):
+    if(path.isdir(src)):
+        src=path.normpath(src)
+        dst=path.normpath(dst)
+        if not path.exists(dst):
+            mkdir(dst)
+
+        for item in listdir(src):
+            copy(path.join(src,item),path.join(dst,item))
+    else:
+        if(path.isfile(dst)):
+            if(path.getsize(src)!=path.getsize(dst)):
+                if(path.getmtime(src)!=path.getmtime(dst)):
+                    _copy(src, dst)
+        else:
+            _copy(src, dst)
+
+
+
+
+
+strarr=None
+a=listdir()
+for i in a:
+    if path.isdir(i):
+        b=listdir(i)
+        for j in b:
+            if(j.find(strtofind)>0):
+                try:
+                    if(strarr==None):
+                        strarr=array(i)
+                    else:
+                        strarr=append(strarr,i)
+                except:
+                    strarr = append(strarr, i)
+
+strarr=unique(strarr)
+
+if(not path.isdir(dir)):
+    makedirs(dir)
+
+for i in strarr:
+    if(i!=None):
+        src=i
+        dst=dir+i
+        copy(src, dst)
+        #shutil.rmtree(src,ignore_errors=True)
+print(strarr)

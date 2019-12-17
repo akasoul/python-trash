@@ -18,7 +18,7 @@ testEnable=True
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
 TestSizePercent = 0.2
-BatchMod = 0.5
+BatchMod = 0.05
 MaxBatchSize = 3000000000
 
 DISABLE_LOG=True
@@ -432,6 +432,9 @@ class app:
         #model.fit_generator()
         self.log('start training')
 
+        self.n_batches_train = int(self.nTrainSize * self.settings['batch_size'])
+        print("1 epoch = {0} batches".format(self.n_batches_train))
+
         if(self.eval_size>0.0):
             model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
                   callbacks=self.callbacks,
@@ -582,7 +585,8 @@ class app:
             'overfit_epochs': int,
             'reduction_epochs': int,
             'ls_reduction_koef':float,
-            'metrics': int
+            'metrics': int,
+            'batch_size': float
         }
         self.settings = {
             'epochs': 50000,
@@ -594,7 +598,8 @@ class app:
             'overfit_epochs': 5000,
             'reduction_epochs': 2500,
             'ls_reduction_koef':0.95,
-            'metrics': 0
+            'metrics': 0,
+            'batch_size': 0.1
         }
 
         self.sDataInputPath="in_data.txt"
@@ -707,7 +712,6 @@ class app:
 
         self.losses = 0
 
-        self.n_batches_train = int(self.nTrainSize * BatchMod)
 
         self.X = np.reshape(self.X, [self.nDataSize, self.nInputs, 1])
         self.Y = np.reshape(self.Y, [self.nDataSize, self.nOutputs])
@@ -734,7 +738,7 @@ class app:
 
 
 
-def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
+def main(job_dir,mode,data_size,eval_size,batch_size=None,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
     z=app(job_dir,data_size,eval_size)
     #print(mode)
     #if(mode.find('train')>0):
@@ -756,6 +760,8 @@ def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduct
             z.setSettings('l2',l2)
         if(drop_rate!=None):
             z.setSettings('drop_rate',drop_rate)
+        if(batch_size!=None):
+            z.setSettings('batch_size',batch_size)
         print(z.settings)
         z.threadTrain()
 
@@ -770,6 +776,9 @@ def main(job_dir,mode,data_size,eval_size,epochs=None,overfit_epochs=None,reduct
 
     #if(mode.find('optimise')>0):
     if (mode == 3):
+        if(batch_size!=None):
+            z.setSettings('batch_size',batch_size)
+
         l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
         l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
         ls_arr = np.array([0.000001, 0.00001, 0.0001, 0.001])
@@ -811,6 +820,10 @@ if __name__ == "__main__":
     parser.add_argument(
         '--eval-size',
         help='Eval size = ____ data size',
+        required=True)
+    parser.add_argument(
+        '--batch-size',
+        help='Batch size',
         required=True)
     parser.add_argument(
         '--epochs',
