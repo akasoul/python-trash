@@ -433,7 +433,8 @@ class app:
         self.log('start training')
 
         self.n_batches_train = int(self.nTrainSize * self.settings['batch_size'])
-        print("1 epoch = {0} batches".format(self.n_batches_train))
+        batchesPerEpoch=1.0/self.n_batches_train
+        print("1 epoch = {0} batches".format(batchesPerEpoch))
 
         if(self.eval_size>0.0):
             model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
