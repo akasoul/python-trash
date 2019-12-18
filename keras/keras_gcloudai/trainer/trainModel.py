@@ -92,6 +92,7 @@ class historyCallback(callbacks.Callback):
         testingplot.plot(target, linewidth=0.05, color='b')
         testingplot.plot(prediction, linewidth=0.05, color='r')
         testingfig.savefig(fname=self.logDir+'/training_marks/'+str(epoch))
+        plt.close(testingfig)
 
     def on_epoch_end(self, epoch, logs=None):
 
