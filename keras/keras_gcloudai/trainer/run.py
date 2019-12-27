@@ -1,5 +1,5 @@
 import os
-cmd1="python trainModel.py --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/ \
+cmd1="python model.py --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/ \
 --mode='test' \
 --data-size=5000 \
 --eval-size=0.2 \
@@ -14,7 +14,7 @@ cmd1="python trainModel.py --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/T
 
 
 
-cmd2="python trainModel.py \
+cmd2="python model.py \
 --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/ \
 --mode='test' \
 --data-size=5000 \
