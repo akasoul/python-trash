@@ -1,7 +1,7 @@
 import numpy as np
-from keras import optimizers, regularizers, callbacks, models, backend
+from keras import Model,optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
+from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -271,58 +271,65 @@ class app:
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         kernel_size = 5
         filters = 5
-        model = Sequential()
 
-        #model.add(Flatten(input_shape=(self.nInputs, 1)))
-        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu',input_shape=(self.nInputs, 1),
+
+        input=Input(shape=(self.nInputs, 1),name='main_input')
+
+
+        x=Conv1D(kernel_size=kernel_size, filters=20, activation='relu',input_shape=(self.nInputs, 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
-                   ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+                   )(input)
+        x=Dropout(self.settings['drop_rate'])(x)
+        x=MaxPool1D(pool_size=(3))(x)
 
-
-        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
                          padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
-                         ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+                         )(x)
+        x =Dropout(self.settings['drop_rate'])(x)
+        x =MaxPool1D(pool_size=(3))(x)
 
-
-        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
-                         ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+                         )(x)
+        x =Dropout(self.settings['drop_rate'])(x)
+        x =MaxPool1D(pool_size=(3))(x)
 
 
-        model.add(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
                          bias_regularizer=bias_reg,
                          kernel_regularizer=kernel_reg,
-                         ))
-        model.add(Dropout(self.settings['drop_rate']))
-        model.add(MaxPool1D(pool_size=(3)))  # , strides=(1)))
+                         )(x)
+        x =Dropout(self.settings['drop_rate'])(x)
+        x =MaxPool1D(pool_size=(3))(x)
+
+        #x =(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+        #                 kernel_initializer=kernel_init,
+        #                 bias_initializer=bias_init,
+        #                 bias_regularizer=bias_reg,
+        #                 kernel_regularizer=kernel_reg,
+        #                 ))(x)
+        #x =(Dropout(self.settings['drop_rate']))
+        #x =(MaxPool1D(pool_size=(3)))(x)  # , strides=(1)))
+
+        x = Flatten()(x)
 
 
+        output=(Dense(self.nOutputs,name='main_output'))(x)
 
-
-        model.add(Flatten())
-
-
-        model.add(Dense(self.nOutputs))
-
+        model = Model(inputs=[input], outputs=[output])
         optimizer=None
         #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
         try:
@@ -334,7 +341,9 @@ class app:
              loss='mean_squared_error',
             #loss='categorical_crossentropy',
             optimizer=optimizer,
-            metrics=['accuracy'])
+            metrics=['mae','accuracy'])
+            #metrics = ['accuracy'])
+
         print(model.summary())
 
         sName = ""
