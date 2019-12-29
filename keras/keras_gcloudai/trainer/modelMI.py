@@ -273,7 +273,8 @@ class app:
         filters = 5
 
 
-        input=Input(shape=(self.nInputs, 1),name='main_input')
+        input1=Input(shape=(self.X[0]['shape'], 1),name='main_input')
+        #input2=Input(shape=(self.nInputs, 1),name='main_input')
 
 
         x=Conv1D(kernel_size=kernel_size, filters=20, activation='relu',input_shape=(self.nInputs, 1),
@@ -282,7 +283,7 @@ class app:
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
-                   )(input)
+                   )(input1)
         x=Dropout(self.settings['drop_rate'])(x)
         x=MaxPool1D(pool_size=(3))(x)
 
@@ -327,7 +328,7 @@ class app:
         x = Flatten()(x)
 
 
-        output=(Dense(self.nOutputs,name='main_output'))(x)
+        output=(Dense(self.Y['shape'],name='main_output'))(x)
 
         model = Model(inputs=[input], outputs=[output])
         optimizer=None
@@ -614,8 +615,11 @@ class app:
         }
 
         self.sDataInputPath="in_data.txt"
+        self.sDataInputPathM="in_data{0}.txt"
         self.sDataInput1Path="input.txt"
         self.sDataOutputPath="out_data.txt"
+
+        self.inputFiles=2
 
         self.sLogName=None
 
@@ -655,69 +659,129 @@ class app:
 
 
     def loadFromFile(self,filename):
-        file = open(filename, 'r')
+        file = None
+        try:
+            file = open(filename, 'r')
+        except:
+            file = io.gfile.GFile(filename, 'r')
+
         strData = file.read()
         strData = strData.split()
-        doubleData = np.array(strData, dtype=float)
-        dim=int(doubleData.size/self.nDataSize)
-        doubleData=np.reshape(doubleData,[self.nDataSize, dim])
-        return doubleData
-
-    def loadFromFileTfGFile(self,filename):
-        file=io.gfile.GFile(filename,'r')
-
-        #file = open(filename, 'r')
-        strData = file.read()
-        strData = strData.split()
-        doubleData = np.array(strData, dtype=float)
+        doubleData = np.array(strData, dtype=np.float32)
         dim=int(doubleData.size/self.nDataSize)
         doubleData=np.reshape(doubleData,[self.nDataSize, dim])
         return doubleData
 
 
-    def loadData(self):
+
+    def loadData(self,path):
+        data=self.loadFromFile(path)
+        inputs=data.shape[1]
+        out={'data':data,
+             'shape':inputs}
+        return out
+
+    def prepareData(self):
         _file = False
 
         self.X=None
         self.Y=None
 
-        # import data
-        try:
-            self.X = self.loadFromFileTfGFile(self.job_dir+self.sDataInputPath)
-        except:
-            self.X = self.loadFromFile(self.job_dir+self.sDataInputPath)
-
-        try:
-            self.Y = self.loadFromFileTfGFile(self.job_dir+self.sDataOutputPath)
-        except:
-            self.Y = self.loadFromFile(self.job_dir+self.sDataOutputPath)
-
-        self.X = np.float32(self.X)
-        self.Y = np.float32(self.Y)
-
-        self.nInputs = self.X.shape[1]
-        try:
-            self.nOutputs = self.Y.shape[1]
-        except:
-            self.nOutputs = 1
-        self.nDataSize = self.X.shape[0]
-        self.X = np.reshape(self.X, [self.nDataSize, self.nInputs])
-        self.Y = np.reshape(self.Y, [self.nDataSize, self.nOutputs])
-        self.test_outputs = self.Y
-        # self.test_outputs.fill(0)
-
-        self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
-
-        self.X = self.scaler.fit_transform(self.X)
-        if(self.eval_size>0.0):
-            self.X_train, self.X_test, self.Y_train, self.Y_test = train_test_split(self.X, self.Y,
-                                                                                test_size=self.eval_size, shuffle=True)
-            self.nTestSize = self.X_test.shape[0]
+        if(self.inputFiles==1):
+            self.X = np.array([self.loadData(self.job_dir + self.sDataInputPath)])
         else:
-            self.X_train = self.X
-            self.Y_train = self.Y
+            self.X=np.array([self.loadData(self.job_dir+self.sDataInputPathM.format(0))])
+            for i in range(1,self.inputFiles):
+                self.X = np.append(self.X, self.loadData(self.job_dir + self.sDataInputPathM.format(i)))
 
-        self.nTrainSize = self.X_train.shape[0]
+
+        self.Y = np.array([self.loadData(self.job_dir + self.sDataOutputPath)])
+        #self.Y = self.loadFromFile(self.job_dir + self.sDataOutputPath)
+
+
+
+        #self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
+        #self.X = self.scaler.fit_transform(self.X)
+
+        self.t=self.X[0]['data'],self.X[1]['data']
+
+        if(self.eval_size>0.0):
+            self.nTestSize=self.nDataSize*self.eval_size
+            self.nTrainSize=self.nDataSize-self.nTestSize
+
+            self.X_train=np.empty(shape=self.inputFiles,dtype=dict)
+            self.X_test=np.empty(shape=self.inputFiles,dtype=dict)
+            self.Y_train=np.empty(shape=self.inputFiles,dtype=dict)
+            self.Y_test=np.empty(shape=self.inputFiles,dtype=dict)
+
+            for i in range(0,self.inputFiles):
+                self.X_train[i]={'data':None,
+                                 'shape':None}
+                self.X_test[i]={'data':None,
+                                 'shape':None}
+                self.Y_train[i]={'data':None,
+                                 'shape':None}
+                self.Y_test[i]={'data':None,
+                                 'shape':None}
+
+            src=None
+            for i in range(0,self.inputFiles):
+                if i==0:
+                    src=list([self.X[i]['data']])
+                else:
+                    src.append(self.X[i]['data'])
+            src.append(self.Y[0]['data'])
+            self.z=                    train_test_split(*src,
+                                     test_size=self.eval_size, shuffle=True)
+
+            if(self.inputFiles==1):
+                self.X0
+                self.X0_train, self.X0_test, \
+                self.Y_train, self.Y_test = \
+                    train_test_split(self.X[0]['data'],
+                                     self.Y[0]['data'],
+                                     test_size=self.eval_size, shuffle=True)
+
+            src=1
+
+            if(self.inputFiles==2):
+                    self.X0_train, self.X0_test, \
+                    self.X1_train, self.X1_test, \
+                    self.Y_train, self.Y_test = \
+                        train_test_split(self.X[0]['data'],
+                                         self.X[1]['data'],
+                                         self.Y[0]['data'],
+                                         test_size=self.eval_size, shuffle=True)
+
+            if(self.inputFiles==3):
+                    self.X0_train, self.X0_test, \
+                    self.X1_train, self.X1_test, \
+                    self.X2_train, self.X2_test, \
+                    self.Y_train, self.Y_test = \
+                        train_test_split(self.X[0]['data'],
+                                         self.X[1]['data'],
+                                         self.X[2]['data'],
+                                         self.Y[0]['data'],
+                                         test_size=self.eval_size, shuffle=True)
+
+            if(self.inputFiles==4):
+                    self.X0_train, self.X0_test, \
+                    self.X1_train, self.X1_test, \
+                    self.X2_train, self.X2_test, \
+                    self.X3_train, self.X3_test, \
+                    self.Y_train, self.Y_test = \
+                        train_test_split(self.X[0]['data'],
+                                         self.X[1]['data'],
+                                         self.X[2]['data'],
+                                         self.X[3]['data'],
+                                         self.Y[0]['data'],
+                                         test_size=self.eval_size, shuffle=True)
+
+        else:
+            self.X_train = self.X['data']
+            self.Y_train = self.Y['data']
+
+
 
         self.data_is_loaded = True
 
@@ -728,6 +792,7 @@ class app:
         self.Y = np.reshape(self.Y, [self.nDataSize, self.nOutputs])
         self.X_train = np.reshape(self.X_train, [self.nTrainSize, self.nInputs, 1])
         self.Y_train = np.reshape(self.Y_train, [self.nTrainSize, self.nOutputs])
+
         if(self.eval_size>0.0):
             self.X_test = np.reshape(self.X_test, [self.nTestSize, self.nInputs, 1])
             self.Y_test = np.reshape(self.Y_test, [self.nTestSize, self.nOutputs])
@@ -743,7 +808,7 @@ class app:
         self.initSettings()
 
         # loadData
-        self.loadData()
+        self.prepareData()
         self.log('data loaded')
 
 
