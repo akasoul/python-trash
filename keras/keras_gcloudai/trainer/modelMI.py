@@ -742,11 +742,11 @@ class app:
             self.z=train_test_split(*src,
                                      test_size=self.eval_size, shuffle=True)
 
-            for i in range(0,len(self.z)-2):
-                self.X_train[i*2]['data']=self.z[i*2]
-                self.X_test[i*2+1]['data']=self.z[i*2+1]
-            self.Y_train[0]['data']=self.z[len(self.z)-2]['data']
-            self.Y_test[0]['data'] =self.z[len(self.z)-1]['data']
+            for i in range(0,self.inputFiles):
+                self.X_train[i]['data']=self.z[i*2]
+                self.X_test[i]['data']=self.z[i*2+1]
+            self.Y_train[0]['data']=self.z[len(self.z)-2]
+            self.Y_test[0]['data'] =self.z[len(self.z)-1]
 
             if(self.inputFiles==1):
                 self.X0
