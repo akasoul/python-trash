@@ -711,28 +711,42 @@ class app:
 
             self.X_train=np.empty(shape=self.inputFiles,dtype=dict)
             self.X_test=np.empty(shape=self.inputFiles,dtype=dict)
-            self.Y_train=np.empty(shape=self.inputFiles,dtype=dict)
-            self.Y_test=np.empty(shape=self.inputFiles,dtype=dict)
+            self.Y_train=np.empty(shape=1,dtype=dict)
+            self.Y_test=np.empty(shape=1,dtype=dict)
 
             for i in range(0,self.inputFiles):
                 self.X_train[i]={'data':None,
                                  'shape':None}
                 self.X_test[i]={'data':None,
                                  'shape':None}
-                self.Y_train[i]={'data':None,
+
+            self.Y_train[0]={'data':None,
                                  'shape':None}
-                self.Y_test[i]={'data':None,
+            self.Y_test[0]={'data':None,
                                  'shape':None}
 
             src=None
             for i in range(0,self.inputFiles):
                 if i==0:
                     src=list([self.X[i]['data']])
+                    dst=list([self.X_train[i]['data']])
+                    dst.append(self.X_test[i]['data'])
                 else:
                     src.append(self.X[i]['data'])
+                    dst.append(self.X_train[i]['data'])
+                    dst.append(self.X_test[i]['data'])
             src.append(self.Y[0]['data'])
-            self.z=                    train_test_split(*src,
+            dst.append(self.Y_train[0]['data'])
+            dst.append(self.Y_test[0]['data'])
+
+            self.z=train_test_split(*src,
                                      test_size=self.eval_size, shuffle=True)
+
+            for i in range(0,len(self.z)-2):
+                self.X_train[i*2]['data']=self.z[i*2]
+                self.X_test[i*2+1]['data']=self.z[i*2+1]
+            self.Y_train[0]['data']=self.z[len(self.z)-2]['data']
+            self.Y_test[0]['data'] =self.z[len(self.z)-1]['data']
 
             if(self.inputFiles==1):
                 self.X0
