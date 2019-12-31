@@ -1,7 +1,7 @@
 import numpy as np
-from keras import Model,optimizers, regularizers, callbacks, models, backend
+from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
-from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM
+from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -10,10 +10,9 @@ import os
 import random
 from datetime import datetime
 
-
 modelName = "model.h5"
-useSettingsFile=False
-testEnable=True
+useSettingsFile = False
+testEnable = True
 
 Preprocessing_Min = 0.0
 Preprocessing_Max = 1.0
@@ -21,11 +20,11 @@ TestSizePercent = 0.2
 BatchMod = 0.05
 MaxBatchSize = 3000000000
 
-DISABLE_LOG=True
-ENABLE_TRAINING_LOG=False
+DISABLE_LOG = True
+ENABLE_TRAINING_LOG = False
 
-layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst"])
-layersShortNames = np.array(["c1", "d", "p", "f", "lst"])
+layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst","concatenate"])
+layersShortNames = np.array(["c1", "d", "p", "f", "lst","ctn"])
 
 
 class historyCallback(callbacks.Callback):
@@ -40,62 +39,67 @@ class historyCallback(callbacks.Callback):
         self.loss = np.array([_loss], dtype=float)
         self.acc = np.array([_acc], dtype=float)
 
-    def copyToGCS(self,inputPath,outputPath):
+    def copyToGCS(self, inputPath, outputPath):
         with open(inputPath, mode='rb') as input_f:
             with io.gfile.GFile(outputPath, mode='w+')  as output_f:
                 output_f.write(input_f.read())
 
-    #metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self,_modelName,_metrics,_ovfEpochs,_reductionEpochs,_reductionKoef,_logDir,minEpochsBetweenSavingModel=0):
-        self.modelName=_modelName
-        self.metrics=_metrics
-        self.ovfEpochs=_ovfEpochs
-        self.reductionEpochs=_reductionEpochs
-        self.reductionKoef=_reductionKoef
-        self.ovfCounter=0
-        self.reductionCounter=0
-        self.save=False
-        self.bestAcc=0
-        self.bestValAcc=0
-        self.bestEpoch=0
+    # metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
+    def initSettings(self, _modelName, _metrics, _ovfEpochs, _reductionEpochs, _reductionKoef, _logDir,
+                     minEpochsBetweenSavingModel=0):
+        self.modelName = _modelName
+        self.metrics = _metrics
+        self.ovfEpochs = _ovfEpochs
+        self.reductionEpochs = _reductionEpochs
+        self.reductionKoef = _reductionKoef
+        self.ovfCounter = 0
+        self.reductionCounter = 0
+        self.save = False
+        self.bestAcc = 0
+        self.bestValAcc = 0
+        self.bestEpoch = 0
 
-        self.minEpochsBetweenSavingModel=minEpochsBetweenSavingModel
-        self.bestLoss=999999999
-        self.bestValLoss=999999999
+        self.minEpochsBetweenSavingModel = minEpochsBetweenSavingModel
+        self.bestLoss = 999999999
+        self.bestValLoss = 999999999
 
-        self.logDir=_logDir
+        self.logDir = _logDir
 
-    def initData(self,xData,yData,nDataSize,nInputs,nOutputs):
-        self.X=xData
-        self.Y=yData
-        self.nDataSize=nDataSize
-        self.nInputs=nInputs
-        self.nOutputs=nOutputs
+    def initData(self, xData, yData, nDataSize, nInputFiles):
+        self.X = None
+        self.Y = None
+        self.inputFiles = nInputFiles
+
+        for i in range(0, self.inputFiles):
+            if i == 0:
+                self.X = list([xData[i]['data']])
+            else:
+                self.X.append(xData[i]['data'])
+        self.Y = list([yData[0]['data']])
 
 
-    def threadTest(self,epoch):
+    def threadTest(self, epoch):
         try:
             import matplotlib.pyplot as plt
         except:
             return
 
-        if(not testEnable):
+        if (not testEnable):
             return
-        if not os.path.isdir(self.logDir+'/training_marks/'):
-            os.makedirs(self.logDir+'/training_marks/')
+        if not os.path.isdir(self.logDir + '/training_marks/'):
+            os.makedirs(self.logDir + '/training_marks/')
 
-        prediction = self.model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
-        target=self.Y
+        prediction = self.model.predict(x=self.X)
+        target = self.Y[0]
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
         testingplot.plot(target, linewidth=0.05, color='b')
         testingplot.plot(prediction, linewidth=0.05, color='r')
-        testingfig.savefig(fname=self.logDir+'/training_marks/'+str(epoch))
+        testingfig.savefig(fname=self.logDir + '/training_marks/' + str(epoch))
         plt.close(testingfig)
 
     def on_epoch_end(self, epoch, logs=None):
-
 
         try:
             self._loss = logs.get('loss')
@@ -117,7 +121,7 @@ class historyCallback(callbacks.Callback):
         except:
             pass
 
-        if(self._acc==None or self._val_acc==None):
+        if (self._acc == None or self._val_acc == None):
             try:
                 self._acc = logs.get('acc')
             except:
@@ -140,8 +144,8 @@ class historyCallback(callbacks.Callback):
         except:
             self.acc = np.array([self._acc], dtype=float)
 
-
-        if(self.metrics=='val_acc' or self.metrics=='val_loss' or self.metrics=='full_acc'  or self.metrics=='full_loss'):
+        if (
+                self.metrics == 'val_acc' or self.metrics == 'val_loss' or self.metrics == 'full_acc' or self.metrics == 'full_loss'):
             try:
                 self.val_loss = np.append(self.val_loss, self._val_loss)
             except:
@@ -152,114 +156,108 @@ class historyCallback(callbacks.Callback):
             except:
                 self.val_acc = np.array([self._val_acc], dtype=float)
 
-
-
-
-        if(self.metrics=='train_acc'):
-            if(self._acc>=self.bestAcc):
-                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'train_acc'):
+            if (self._acc >= self.bestAcc):
+                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestAcc=self._acc
+                self.bestAcc = self._acc
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-        if(self.metrics=='val_acc'):
-            if(self._val_acc>=self.bestAccVal):
-                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'val_acc'):
+            if (self._val_acc >= self.bestAccVal):
+                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestValAcc=self._val_acc
+                self.bestValAcc = self._val_acc
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-        if(self.metrics=='full_acc'):
-            if(self._acc>=self.bestAcc and self._val_acc>=self.bestValAcc):
-                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc,self._acc))
-                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc,self._val_acc))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'full_acc'):
+            if (self._acc >= self.bestAcc and self._val_acc >= self.bestValAcc):
+                print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
+                print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestAcc=self._acc
-                self.bestValAcc=self._val_acc
+                self.bestAcc = self._acc
+                self.bestValAcc = self._val_acc
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-        if(self.metrics=='train_loss'):
-            if(self._loss<=self.bestLoss):
-                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'train_loss'):
+            if (self._loss <= self.bestLoss):
+                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestLoss=self._loss
+                self.bestLoss = self._loss
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-        if(self.metrics=='val_loss'):
-            if(self._val_loss<=self.bestValLoss):
-                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'val_loss'):
+            if (self._val_loss <= self.bestValLoss):
+                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestValLoss=self._val_loss
+                self.bestValLoss = self._val_loss
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-        if(self.metrics=='full_loss'):
-            if(self._loss<=self.bestLoss and self._val_loss<=self.bestValLoss):
-                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss,self._loss))
-                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss,self._val_loss))
-                self.ovfCounter=0
-                self.reductionCounter=0
-                if(epoch-self.bestEpoch>self.minEpochsBetweenSavingModel):
+        if (self.metrics == 'full_loss'):
+            if (self._loss <= self.bestLoss and self._val_loss <= self.bestValLoss):
+                print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
+                print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
+                self.ovfCounter = 0
+                self.reductionCounter = 0
+                if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.model.save_weights(self.modelName)
-                    self.bestEpoch=epoch
+                    self.bestEpoch = epoch
                     self.threadTest(epoch)
-                self.bestLoss=self._loss
-                self.bestValLoss=self._val_loss
+                self.bestLoss = self._loss
+                self.bestValLoss = self._val_loss
             else:
-                self.ovfCounter+=1
-                self.reductionCounter+=1
+                self.ovfCounter += 1
+                self.reductionCounter += 1
 
-
-        if(self.reductionCounter>=self.reductionEpochs):
-            old_lr=backend.get_value(self.model.optimizer.lr)
-            new_lr=old_lr*self.reductionKoef
-            backend.set_value(self.model.optimizer.lr,new_lr)
-            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr,new_lr) )
+        if (self.reductionCounter >= self.reductionEpochs):
+            old_lr = backend.get_value(self.model.optimizer.lr)
+            new_lr = old_lr * self.reductionKoef
+            backend.set_value(self.model.optimizer.lr, new_lr)
+            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
             self.threadTest(epoch)
 
-            self.reductionCounter=0
+            self.reductionCounter = 0
 
-        if(self.ovfCounter>=self.ovfEpochs):
-            self.model_stop_training=True
-
+        if (self.ovfCounter >= self.ovfEpochs):
+            self.model_stop_training = True
 
 
 class app:
-
 
     def initModel(self):
 
@@ -272,111 +270,116 @@ class app:
         kernel_size = 5
         filters = 5
 
+        input1 = Input(shape=(self.X[0]['shape'], 1), name='input1')
+        input2 = Input(shape=(self.X[1]['shape'], 1), name='input2')
 
-        input1=Input(shape=(self.X[0]['shape'], 1),name='main_input')
-        #input2=Input(shape=(self.nInputs, 1),name='main_input')
-
-
-        x=Conv1D(kernel_size=kernel_size, filters=20, activation='relu',input_shape=(self.nInputs, 1),
+        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[0]['shape'], 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
                    )(input1)
-        x=Dropout(self.settings['drop_rate'])(x)
-        x=MaxPool1D(pool_size=(3))(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=(3))(x)
 
-        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                         padding="same",
-                         kernel_initializer=kernel_init,
-                         bias_initializer=bias_init,
-                         bias_regularizer=bias_reg,
-                         kernel_regularizer=kernel_reg,
-                         )(x)
-        x =Dropout(self.settings['drop_rate'])(x)
-        x =MaxPool1D(pool_size=(3))(x)
+        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=(3))(x)
 
-        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-                         kernel_initializer=kernel_init,
-                         bias_initializer=bias_init,
-                         bias_regularizer=bias_reg,
-                         kernel_regularizer=kernel_reg,
-                         )(x)
-        x =Dropout(self.settings['drop_rate'])(x)
-        x =MaxPool1D(pool_size=(3))(x)
+        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=(3))(x)
 
-
-        x =Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-                         kernel_initializer=kernel_init,
-                         bias_initializer=bias_init,
-                         bias_regularizer=bias_reg,
-                         kernel_regularizer=kernel_reg,
-                         )(x)
-        x =Dropout(self.settings['drop_rate'])(x)
-        x =MaxPool1D(pool_size=(3))(x)
-
-        #x =(Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-        #                 kernel_initializer=kernel_init,
-        #                 bias_initializer=bias_init,
-        #                 bias_regularizer=bias_reg,
-        #                 kernel_regularizer=kernel_reg,
-        #                 ))(x)
-        #x =(Dropout(self.settings['drop_rate']))
-        #x =(MaxPool1D(pool_size=(3)))(x)  # , strides=(1)))
+        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=(3))(x)
 
         x = Flatten()(x)
 
+        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(input2)
+        y = Dropout(self.settings['drop_rate'])(y)
+        y = MaxPool1D(pool_size=(3))(y)
 
-        output=(Dense(self.Y['shape'],name='main_output'))(x)
+        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(y)
+        y = Dropout(self.settings['drop_rate'])(y)
+        y = MaxPool1D(pool_size=(3))(y)
 
-        model = Model(inputs=[input], outputs=[output])
-        optimizer=None
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        y=Flatten()(y)
+
+        z=concatenate([x,y])
+
+        output = \
+            (Dense(self.Y[0]['shape'],
+                   name='output'))(z)
+
+        model = Model(inputs=[input1, input2], outputs=[output])
+        optimizer = None
+        # optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
         try:
             optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
         except:
             optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
 
         model.compile(
-             loss='mean_squared_error',
-            #loss='categorical_crossentropy',
+            loss='mean_squared_error',
+            # loss='categorical_crossentropy',
             optimizer=optimizer,
-            metrics=['mae','accuracy'])
-            #metrics = ['accuracy'])
+            metrics=['mae', 'accuracy'])
+        # metrics = ['accuracy'])
 
         print(model.summary())
 
         sName = ""
-        sName+=str(self.nInputs)
-        sName+='.'
+        for i in range(self.inputFiles):
+            sName += str(self.X[i]['shape'])
+            sName += '.'
         for i in model.layers:
             for j in range(0, layersNames.size):
                 if (i.name.find(layersNames[j]) != -1):
-                    #for k in i.input_shape:
+                    # for k in i.input_shape:
                     #    if (k != None):
                     #        sName += str(k)
                     #        sName += "."
                     sName += layersShortNames[j]
                     sName += "."
-        sName+=str(self.nOutputs)
+        sName += str(self.Y[0]['shape'])
         self.setModelName(sName)
-        #if (os.path.isfile(self.job_dir+self.model_name)):
+        # if (os.path.isfile(self.job_dir+self.model_name)):
         #    model.load_weights(self.model_name)
         return model
-
-
-
-
 
     def setModelName(self, name):
         self.model_name = name
         self.model_name += ".h5"
-
-
-
-
-
 
     def threadTrain(self):
         self.training_is_launched = True
@@ -387,79 +390,104 @@ class app:
         model = self.initModel()
         self.log('model initialized')
 
-        score_train = model.evaluate(self.X_train, self.Y_train)  # , batch_size=500)
-        score_test=None
-        if(self.eval_size>0.0):
-            score_test = model.evaluate(self.X_test, self.Y_test)  # , batch_size=500)
+
+
+        train_x = None
+        train_y=None
+        test_x=None
+        test_y=None
+        all_x=None
+        all_y=None
+        for i in range(0, self.inputFiles):
+            if i == 0:
+                train_x = list([self.X_train[i]['data']])
+                all_x = list([self.X[i]['data']])
+                if(self.eval_size>0.0):
+                    test_x = list([self.X_test[i]['data']])
+            else:
+                train_x.append(self.X_train[i]['data'])
+                all_x.append(self.X[i]['data'])
+                if(self.eval_size>0.0):
+                    test_x.append(self.X_test[i]['data'])
+        train_y = list([self.Y_train[0]['data']])
+        all_y = list([self.Y[0]['data']])
+        if (self.eval_size > 0.0):
+             test_y = list([self.Y_test[0]['data']])
+
+
+
+        score_train = model.evaluate(test_x, test_y)  # , batch_size=500)
+        score_test = None
+        if (self.eval_size > 0.0):
+            score_test = model.evaluate(train_x, train_y)  # , batch_size=500)
 
         # self.historyCallback.loss=np.array[score_train[0]]
         # self.historyCallback.acc=np.array[score_train[1]]
         # self.historyCallback.val_loss=np.array[score_test[0]]
         # self.historyCallback.val_acc=np.array[score_test[1]]
 
-        #if (self.settings['metrics'] == 0):
+        # if (self.settings['metrics'] == 0):
         #    metr = 'full_acc'
-        #if (self.settings['metrics'] == 1):
+        # if (self.settings['metrics'] == 1):
         #    metr = 'full_loss'
 
-
         metr = 'full_loss'
-        if(metr=='train_acc' or metr=='train_loss'):
+        if (metr == 'train_acc' or metr == 'train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initData(self.X,self.Y,self.nDataSize,self.nInputs,self.nOutputs)
+        self.historyCallback.initData(self.X, self.Y, self.nDataSize, self.inputFiles)
 
-        if(self.sLogName==None):
-            self.logDir = self.job_dir+"logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        if (self.sLogName == None):
+            self.logDir = self.job_dir + "logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
         else:
-            self.logDir = self.job_dir+"logs/fit/" + self.sLogName
+            self.logDir = self.job_dir + "logs/fit/" + self.sLogName
 
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
-        self.historyCallback.initSettings(self.job_dir+self.model_name,metr,
-                                          self.settings['overfit_epochs'],self.settings['reduction_epochs'],self.settings['ls_reduction_koef'],
-                                          self.logDir,10)
+        self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
+                                          self.settings['overfit_epochs'], self.settings['reduction_epochs'],
+                                          self.settings['ls_reduction_koef'],
+                                          self.logDir, 10)
 
-
-        #monitor = None
-        #mode = None
-        #if (self.settings['metrics'] == 0):
+        # monitor = None
+        # mode = None
+        # if (self.settings['metrics'] == 0):
         #    monitor = 'val_acc'
         #    mode = 'max'
-        #if (self.settings['metrics'] == 1):
+        # if (self.settings['metrics'] == 1):
         #    monitor = 'val_loss'
         #    mode = 'min'
 
         self.callbacks = [
-            #callbacks.EarlyStopping(patience=self.settings['overfit_epochs'], monitor=monitor),
-            #callbacks.ModelCheckpoint(self.job_dir+self.model_name, monitor=monitor, verbose=1, save_best_only=True,
-            #                          save_weights_only=True,
-            #                          mode=mode, period=1),
             self.historyCallback,
             self.tb_log
         ]
 
-        #model.fit_generator()
+        # model.fit_generator()
         self.log('start training')
 
         self.n_batches_train = int(self.nTrainSize * self.settings['batch_size'])
-        batchesPerEpoch=1.0/self.n_batches_train
+        batchesPerEpoch = 1.0 / self.n_batches_train
         print("1 epoch = {0} batches".format(batchesPerEpoch))
 
-        if(self.eval_size>0.0):
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
-                  callbacks=self.callbacks,
-                  validation_data=(self.X_test, self.Y_test))
-        else:
-            model.fit(x=self.X_train, y=self.Y_train, epochs=self.settings['epochs'], verbose=1, batch_size=self.n_batches_train,#shuffle=True,
-                  callbacks=self.callbacks)
 
-        score = model.evaluate(self.X, self.Y)  # , batch_size=500)
+        if (self.eval_size > 0.0):
+            model.fit(x=train_x, y=train_y, epochs=self.settings['epochs'], verbose=1,
+                      batch_size=self.n_batches_train,
+                      # shuffle=True,
+                      callbacks=self.callbacks,
+                      validation_data=(test_x, test_y))
+        else:
+            model.fit(x=train_x, y=train_y, epochs=self.settings['epochs'], verbose=1,
+                      batch_size=self.n_batches_train,
+                      # shuffle=True,
+                      callbacks=self.callbacks)
+
+        #score = model.evaluate(self.X, self.Y)  # , batch_size=500)
 
         backend.reset_uids()
         backend.clear_session()
-
 
         self.training_is_launched = False
 
@@ -469,7 +497,7 @@ class app:
 
         model = self.initModel()
         try:
-            model.load_weights(self.job_dir+self.model_name)
+            model.load_weights(self.job_dir + self.model_name)
         except:
             print('no model')
             return
@@ -477,12 +505,12 @@ class app:
             print('model loaded')
 
         while True:
-            if (os.path.isfile(self.job_dir+self.sDataInput1Path)):
-                X0=None
+            if (os.path.isfile(self.job_dir + self.sDataInput1Path)):
+                X0 = None
                 try:
-                    X0=np.genfromtxt(self.job_dir+self.sDataInput1Path)
+                    X0 = np.genfromtxt(self.job_dir + self.sDataInput1Path)
                 #    X0 = self.loadFromFileTfGFile(self.job_dir + self.sDataInput1Path)
-                #except:
+                # except:
                 #    X0 = self.loadFromFile(self.job_dir + self.sDataInput1Path)
                 except:
                     pass
@@ -495,11 +523,11 @@ class app:
                     Y0 = np.zeros(shape=[1, self.nOutputs])
                     Y0 = np.reshape(Y0, [1, self.nOutputs])
 
-                    os.remove(self.job_dir+self.sDataInput1Path)
+                    os.remove(self.job_dir + self.sDataInput1Path)
 
                     p = model.predict(x=X0)
 
-                    file = open(self.job_dir+'answer.txt', 'w')
+                    file = open(self.job_dir + 'answer.txt', 'w')
                     output = ""
                     for i in range(self.nOutputs):
                         output += str(p[0][i])
@@ -508,19 +536,17 @@ class app:
                     file.close()
                     print(output)
 
+    def threadTest(self, count):
 
-
-    def threadTest(self,count):
-
-        yMin=-1.3
-        yMax=1.3
+        yMin = -1.3
+        yMax = 1.3
 
         backend.reset_uids()
         backend.clear_session()
 
         model = self.initModel()
         try:
-            model.load_weights(self.job_dir+self.model_name)
+            model.load_weights(self.job_dir + self.model_name)
         except:
             print('no model')
             return
@@ -532,58 +558,58 @@ class app:
         except:
             return
 
-        testingfig=np.empty(dtype=plt.Figure,shape=count)
-        testingplot=np.empty(dtype=plt.Subplot,shape=count)
-        ctime=datetime.now().strftime("%Y%m%d-%H%M%S")
-        sample=random.sample(range(0,self.nDataSize),count)
-        figCounter=0
-        if not os.path.isdir(self.job_dir+'logs/test/'+ctime):
-            os.makedirs(self.job_dir+'logs/test/'+ctime)
+        testingfig = np.empty(dtype=plt.Figure, shape=count)
+        testingplot = np.empty(dtype=plt.Subplot, shape=count)
+        ctime = datetime.now().strftime("%Y%m%d-%H%M%S")
+        sample = random.sample(range(0, self.nDataSize), count)
+        figCounter = 0
+        if not os.path.isdir(self.job_dir + 'logs/test/' + ctime):
+            os.makedirs(self.job_dir + 'logs/test/' + ctime)
 
-        prediction = model.predict(x=np.reshape(self.X, [self.nDataSize, self.nInputs, 1]))
-        target=self.Y
+        input=None
+        output=None
+        for i in range(0, self.inputFiles):
+            if i == 0:
+                input = list([self.X[i]['data']])
+            else:
+                input.append(self.X[i]['data'])
+        output = list([self.Y[0]['data']])
+
+        prediction = model.predict(x=input)
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
         if (yMin != 0 and yMax != 0):
             plt.ylim(yMin, yMax)
-        testingplot.plot(target, linewidth=0.05, color='b')
+        testingplot.plot(output, linewidth=0.05, color='b')
         testingplot.plot(prediction, linewidth=0.05, color='r')
         testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/all')
 
-        for index in range(0,self.nDataSize):
+        for index in range(0, self.nDataSize):
 
-            _y=self.Y[index]
-            _p=prediction[index]
-            _p=np.reshape(_p,self.nOutputs)
+            _y = self.Y[index]
+            _p = prediction[index]
+            _p = np.reshape(_p, self.nOutputs)
 
-
-            testingfig = plt.figure(num='Testing plot '+str(index),figsize=(10, 7), dpi=80 )
+            testingfig = plt.figure(num='Testing plot ' + str(index), figsize=(10, 7), dpi=80)
             testingplot = testingfig.add_subplot(111)
-            if(yMin!=0 and yMax!=0):
+            if (yMin != 0 and yMax != 0):
                 plt.ylim(yMin, yMax)
             testingplot.plot(_y, linewidth=0.5, color='b')
             testingplot.plot(_p, linewidth=0.5, color='r')
-            testingfig.savefig(fname=self.job_dir+'logs/test/'+ctime+'/'+str(index))
+            testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/' + str(index))
             plt.close(testingfig)
 
-        #while True:
+        # while True:
         #    pass
         ##plt.ioff()
-        #backend.reset_uids()
-        #backend.clear_session()
+        # backend.reset_uids()
+        # backend.clear_session()
 
-
-
-
-
-
-
-    def setSettings(self,settingName,settingValue):
+    def setSettings(self, settingName, settingValue):
         for i in self.settings:
-            if i==settingName:
-                self.settings[i]=self.settingsDtypes[i](settingValue)
-
+            if i == settingName:
+                self.settings[i] = self.settingsDtypes[i](settingValue)
 
     def initSettings(self):
 
@@ -596,7 +622,7 @@ class app:
             'drop_rate': float,
             'overfit_epochs': int,
             'reduction_epochs': int,
-            'ls_reduction_koef':float,
+            'ls_reduction_koef': float,
             'metrics': int,
             'batch_size': float
         }
@@ -609,38 +635,37 @@ class app:
             'drop_rate': 0.00,
             'overfit_epochs': 5000,
             'reduction_epochs': 2500,
-            'ls_reduction_koef':0.95,
+            'ls_reduction_koef': 0.95,
             'metrics': 0,
             'batch_size': 0.1
         }
 
-        self.sDataInputPath="in_data.txt"
-        self.sDataInputPathM="in_data{0}.txt"
-        self.sDataInput1Path="input.txt"
-        self.sDataOutputPath="out_data.txt"
+        self.sDataInputPath = "in_data.txt"
+        self.sDataInputPathM = "in_data{0}.txt"
+        self.sDataInput1Path = "input.txt"
+        self.sDataOutputPath = "out_data.txt"
 
-        self.inputFiles=2
+        self.inputFiles = 2
 
-        self.sLogName=None
+        self.sLogName = None
 
         self.training_is_launched = False
         self.run_is_launched = False
         self.saving_is_launched = False
-        self.data_is_loaded = False
         self.savepng_is_launched = False
         self.test_model = False
         self.model_is_tested = True
         self.testing_model = False
 
-    def setLogName(self,logName):
-        self.sLogName=logName
+    def setLogName(self, logName):
+        self.sLogName = logName
 
-    def log(self,str):
-        if DISABLE_LOG==True:
+    def log(self, str):
+        if DISABLE_LOG == True:
             return
-        logfilename=self.job_dir+"log.txt"
-        time=datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
-        file=None
+        logfilename = self.job_dir + "log.txt"
+        time = datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
+        file = None
         try:
             file = open(logfilename, 'a')
         except:
@@ -652,13 +677,12 @@ class app:
                 except:
                     file = io.gfile.GFile(logfilename, 'w')
 
-        if(file!=None):
-            file.write(time+' ')
-            file.write(str+'\n')
+        if (file != None):
+            file.write(time + ' ')
+            file.write(str + '\n')
             file.close()
 
-
-    def loadFromFile(self,filename):
+    def loadFromFile(self, filename):
         file = None
         try:
             file = open(filename, 'r')
@@ -668,68 +692,64 @@ class app:
         strData = file.read()
         strData = strData.split()
         doubleData = np.array(strData, dtype=np.float32)
-        dim=int(doubleData.size/self.nDataSize)
-        doubleData=np.reshape(doubleData,[self.nDataSize, dim])
+        dim = int(doubleData.size / self.nDataSize)
+        doubleData = np.reshape(doubleData, [self.nDataSize, dim])
         return doubleData
 
-
-
-    def loadData(self,path):
-        data=self.loadFromFile(path)
-        inputs=data.shape[1]
-        out={'data':data,
-             'shape':inputs}
+    def loadData(self, path):
+        data = self.loadFromFile(path)
+        inputs = data.shape[1]
+        out = {'data': data,
+               'shape': inputs}
         return out
 
     def prepareData(self):
         _file = False
 
-        self.X=None
-        self.Y=None
+        self.X = None
+        self.Y = None
 
-        if(self.inputFiles==1):
+        if (self.inputFiles == 1):
             self.X = np.array([self.loadData(self.job_dir + self.sDataInputPath)])
         else:
-            self.X=np.array([self.loadData(self.job_dir+self.sDataInputPathM.format(0))])
-            for i in range(1,self.inputFiles):
+            self.X = np.array([self.loadData(self.job_dir + self.sDataInputPathM.format(0))])
+            for i in range(1, self.inputFiles):
                 self.X = np.append(self.X, self.loadData(self.job_dir + self.sDataInputPathM.format(i)))
 
-
         self.Y = np.array([self.loadData(self.job_dir + self.sDataOutputPath)])
-        #self.Y = self.loadFromFile(self.job_dir + self.sDataOutputPath)
+        # self.Y = self.loadFromFile(self.job_dir + self.sDataOutputPath)
 
+        # self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
+        # self.X = self.scaler.fit_transform(self.X)
 
+        self.t = self.X[0]['data'], self.X[1]['data']
 
-        #self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
-        #self.X = self.scaler.fit_transform(self.X)
+        self.nTestSize = int(self.nDataSize * self.eval_size)
+        self.nTrainSize = int(self.nDataSize - self.nTestSize)
 
-        self.t=self.X[0]['data'],self.X[1]['data']
+        self.X_train = np.empty(shape=self.inputFiles, dtype=dict)
+        self.X_test = np.empty(shape=self.inputFiles, dtype=dict)
+        self.Y_train = np.empty(shape=1, dtype=dict)
+        self.Y_test = np.empty(shape=1, dtype=dict)
 
-        if(self.eval_size>0.0):
-            self.nTestSize=self.nDataSize*self.eval_size
-            self.nTrainSize=self.nDataSize-self.nTestSize
+        if (self.eval_size > 0.0):
 
-            self.X_train=np.empty(shape=self.inputFiles,dtype=dict)
-            self.X_test=np.empty(shape=self.inputFiles,dtype=dict)
-            self.Y_train=np.empty(shape=1,dtype=dict)
-            self.Y_test=np.empty(shape=1,dtype=dict)
+            for i in range(0, self.inputFiles):
+                self.X_train[i] = {'data': None,
+                                   'shape': None}
+                self.X_test[i] = {'data': None,
+                                  'shape': None}
 
-            for i in range(0,self.inputFiles):
-                self.X_train[i]={'data':None,
-                                 'shape':None}
-                self.X_test[i]={'data':None,
-                                 'shape':None}
+            self.Y_train[0] = {'data': None,
+                               'shape': None}
+            self.Y_test[0] = {'data': None,
+                              'shape': None}
 
-            self.Y_train[0]={'data':None,
-                                 'shape':None}
-            self.Y_test[0]={'data':None,
-                                 'shape':None}
-
-            src=None
-            for i in range(0,self.inputFiles):
-                if i==0:
-                    src=list([self.X[i]['data']])
-                    dst=list([self.X_train[i]['data']])
+            src = None
+            for i in range(0, self.inputFiles):
+                if i == 0:
+                    src = list([self.X[i]['data']])
+                    dst = list([self.X_train[i]['data']])
                     dst.append(self.X_test[i]['data'])
                 else:
                     src.append(self.X[i]['data'])
@@ -739,85 +759,46 @@ class app:
             dst.append(self.Y_train[0]['data'])
             dst.append(self.Y_test[0]['data'])
 
-            self.z=train_test_split(*src,
-                                     test_size=self.eval_size, shuffle=True)
+            split = train_test_split(*src, test_size=self.eval_size, shuffle=True)
 
-            for i in range(0,self.inputFiles):
-                self.X_train[i]['data']=self.z[i*2]
-                self.X_test[i]['data']=self.z[i*2+1]
-            self.Y_train[0]['data']=self.z[len(self.z)-2]
-            self.Y_test[0]['data'] =self.z[len(self.z)-1]
-
-            if(self.inputFiles==1):
-                self.X0
-                self.X0_train, self.X0_test, \
-                self.Y_train, self.Y_test = \
-                    train_test_split(self.X[0]['data'],
-                                     self.Y[0]['data'],
-                                     test_size=self.eval_size, shuffle=True)
-
-            src=1
-
-            if(self.inputFiles==2):
-                    self.X0_train, self.X0_test, \
-                    self.X1_train, self.X1_test, \
-                    self.Y_train, self.Y_test = \
-                        train_test_split(self.X[0]['data'],
-                                         self.X[1]['data'],
-                                         self.Y[0]['data'],
-                                         test_size=self.eval_size, shuffle=True)
-
-            if(self.inputFiles==3):
-                    self.X0_train, self.X0_test, \
-                    self.X1_train, self.X1_test, \
-                    self.X2_train, self.X2_test, \
-                    self.Y_train, self.Y_test = \
-                        train_test_split(self.X[0]['data'],
-                                         self.X[1]['data'],
-                                         self.X[2]['data'],
-                                         self.Y[0]['data'],
-                                         test_size=self.eval_size, shuffle=True)
-
-            if(self.inputFiles==4):
-                    self.X0_train, self.X0_test, \
-                    self.X1_train, self.X1_test, \
-                    self.X2_train, self.X2_test, \
-                    self.X3_train, self.X3_test, \
-                    self.Y_train, self.Y_test = \
-                        train_test_split(self.X[0]['data'],
-                                         self.X[1]['data'],
-                                         self.X[2]['data'],
-                                         self.X[3]['data'],
-                                         self.Y[0]['data'],
-                                         test_size=self.eval_size, shuffle=True)
+            for i in range(0, self.inputFiles):
+                self.X_train[i]['data'] = split[i * 2]
+                self.X_test[i]['data'] = split[i * 2 + 1]
+                self.X_train[i]['shape'] = self.X[i]['shape']
+                self.X_test[i]['shape'] = self.X[i]['shape']
+            self.Y_train[0]['data'] = split[len(split) - 2]
+            self.Y_test[0]['data'] = split[len(split) - 1]
+            self.Y_train[0]['shape'] = self.Y[0]['shape']
+            self.Y_test[0]['shape'] = self.Y[0]['shape']
 
         else:
-            self.X_train = self.X['data']
-            self.Y_train = self.Y['data']
-
-
-
-        self.data_is_loaded = True
+            self.X_train[0] = {'data': self.X[0]['data'],
+                               'shape': self.X[0]['shape']}
+            self.Y_train[0] = {'data': self.Y[0]['data'],
+                               'shape': self.Y[0]['shape']}
 
         self.losses = 0
 
+        for i in range(0, self.inputFiles):
+            self.X[i]['data'] = np.reshape(self.X[i]['data'], [self.nDataSize, self.X[i]['shape'], 1])
 
-        self.X = np.reshape(self.X, [self.nDataSize, self.nInputs, 1])
-        self.Y = np.reshape(self.Y, [self.nDataSize, self.nOutputs])
-        self.X_train = np.reshape(self.X_train, [self.nTrainSize, self.nInputs, 1])
-        self.Y_train = np.reshape(self.Y_train, [self.nTrainSize, self.nOutputs])
+            self.X_train[i]['data'] = np.reshape(self.X_train[i]['data'],
+                                                 [self.nTrainSize, self.X_train[i]['shape'], 1])
 
-        if(self.eval_size>0.0):
-            self.X_test = np.reshape(self.X_test, [self.nTestSize, self.nInputs, 1])
-            self.Y_test = np.reshape(self.Y_test, [self.nTestSize, self.nOutputs])
+            if (self.eval_size > 0.0):
+                self.X_test[i]['data'] = np.reshape(self.X_test[i]['data'],
+                                                    [self.nTestSize, self.X_test[i]['shape'], 1])
 
+        self.Y[0]['data'] = np.reshape(self.Y[0]['data'], [self.nDataSize, self.Y[0]['shape']])
+        self.Y_train[0]['data'] = np.reshape(self.Y_train[0]['data'], [self.nTrainSize, self.Y[0]['shape']])
+        if (self.eval_size > 0.0):
+            self.Y_test[0]['data'] = np.reshape(self.Y_test[0]['data'], [self.nTestSize, self.Y[0]['shape']])
 
-
-    def __init__(self,job_dir,data_size,eval_size):
+    def __init__(self, job_dir, data_size, eval_size):
         self.historyCallback = historyCallback()
-        self.job_dir=job_dir
-        self.eval_size=float(eval_size)
-        self.nDataSize=int(data_size)
+        self.job_dir = job_dir
+        self.eval_size = float(eval_size)
+        self.nDataSize = int(data_size)
         # self.initPlots()
         self.initSettings()
 
@@ -826,48 +807,47 @@ class app:
         self.log('data loaded')
 
 
-
-
-def main(job_dir,mode,data_size,eval_size,batch_size=None,epochs=None,overfit_epochs=None,reduction_epochs=None,ls_reduction_koef=None,ls=None,l1=None,l2=None,drop_rate=None):#, **args):
-    z=app(job_dir,data_size,eval_size)
-    #print(mode)
-    #if(mode.find('train')>0):
-    mode=int(mode)
-    if(mode==0):
-        if(epochs!=None):
-            z.setSettings('epochs',epochs)
-        if(overfit_epochs!=None):
-            z.setSettings('overfit_epochs',overfit_epochs)
-        if(reduction_epochs!=None):
-            z.setSettings('reduction_epochs',reduction_epochs)
-        if(ls_reduction_koef!=None):
-            z.setSettings('ls_reduction_koef',ls_reduction_koef)
-        if(ls!=None):
-            z.setSettings('ls',ls)
-        if(l1!=None):
-            z.setSettings('l1',l1)
-        if(l2!=None):
-            z.setSettings('l2',l2)
-        if(drop_rate!=None):
-            z.setSettings('drop_rate',drop_rate)
-        if(batch_size!=None):
-            z.setSettings('batch_size',batch_size)
+def main(job_dir, mode, data_size, eval_size, batch_size=None, epochs=None, overfit_epochs=None, reduction_epochs=None,
+         ls_reduction_koef=None, ls=None, l1=None, l2=None, drop_rate=None):  # , **args):
+    z = app(job_dir, data_size, eval_size)
+    # print(mode)
+    # if(mode.find('train')>0):
+    mode = int(mode)
+    if (mode == 0):
+        if (epochs != None):
+            z.setSettings('epochs', epochs)
+        if (overfit_epochs != None):
+            z.setSettings('overfit_epochs', overfit_epochs)
+        if (reduction_epochs != None):
+            z.setSettings('reduction_epochs', reduction_epochs)
+        if (ls_reduction_koef != None):
+            z.setSettings('ls_reduction_koef', ls_reduction_koef)
+        if (ls != None):
+            z.setSettings('ls', ls)
+        if (l1 != None):
+            z.setSettings('l1', l1)
+        if (l2 != None):
+            z.setSettings('l2', l2)
+        if (drop_rate != None):
+            z.setSettings('drop_rate', drop_rate)
+        if (batch_size != None):
+            z.setSettings('batch_size', batch_size)
         print(z.settings)
         z.threadTrain()
 
-    #if(mode.find('test')>0):
+    # if(mode.find('test')>0):
     if (mode == 1):
-        #r=np.random()
+        # r=np.random()
         z.threadTest(z.nDataSize)
 
-    #if(mode.find('predict')>0):
+    # if(mode.find('predict')>0):
     if (mode == 2):
         z.threadPredict()
 
-    #if(mode.find('optimise')>0):
+    # if(mode.find('optimise')>0):
     if (mode == 3):
-        if(batch_size!=None):
-            z.setSettings('batch_size',batch_size)
+        if (batch_size != None):
+            z.setSettings('batch_size', batch_size)
 
         l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
         l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
@@ -888,7 +868,6 @@ def main(job_dir,mode,data_size,eval_size,batch_size=None,epochs=None,overfit_ep
                     z.setSettings('l2', k)
                     z.setSettings('drop_rate', j)
                     z.threadTrain()
-
 
 
 if __name__ == "__main__":
@@ -951,24 +930,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     arguments = args.__dict__
 
-
-
     main(**arguments)
 
+# python3 setup.py sdist bdist_wheel
 
-#python3 setup.py sdist bdist_wheel
-
-#--job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/
-#--data-size=5000
-#--eval-size=0.2
-#--epochs=1000
-#--overfit-epochs=5000
-#--reduction-epochs=50000
-#--ls-reduction-koef=0.95
-#--ls=0.01
-#--l1=0.000
-#--l2=0.000
-#--drop-rate=0.1
+# --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/
+# --data-size=5000
+# --eval-size=0.2
+# --epochs=1000
+# --overfit-epochs=5000
+# --reduction-epochs=50000
+# --ls-reduction-koef=0.95
+# --ls=0.01
+# --l1=0.000
+# --l2=0.000
+# --drop-rate=0.1
 
 # --mode=0
 # --data-size=20000
@@ -984,5 +960,5 @@ if __name__ == "__main__":
 # --drop-rate=0.15
 
 
-#rms drop 0.1
-#rms lr 0.001-0.01
+# rms drop 0.1
+# rms lr 0.001-0.01
