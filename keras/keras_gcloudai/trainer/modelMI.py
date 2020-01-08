@@ -8,6 +8,7 @@ from tensorflow import io
 import argparse
 import os
 import random
+import threading
 from datetime import datetime
 
 modelName = "model.h5"
@@ -89,12 +90,20 @@ class historyCallback(callbacks.Callback):
         if not os.path.isdir(self.logDir + '/training_marks/'):
             os.makedirs(self.logDir + '/training_marks/')
 
-        prediction = self.model.predict(x=self.X)
-        target = self.Y[0]
+        input=None
+        output=None
+        for i in range(0, self.inputFiles):
+            if i == 0:
+                input = list([self.X[i]])
+            else:
+                input.append(self.X[i])
+        output = self.Y[0]
+
+        prediction = self.model.predict(x=input)
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
-        testingplot.plot(target, linewidth=0.05, color='b')
+        testingplot.plot(output, linewidth=0.05, color='b')
         testingplot.plot(prediction, linewidth=0.05, color='r')
         testingfig.savefig(fname=self.logDir + '/training_marks/' + str(epoch))
         plt.close(testingfig)
@@ -337,9 +346,10 @@ class app:
 
         z=concatenate([x,y])
 
-        output = \
-            (Dense(self.Y[0]['shape'],
+        output = (Dense(self.Y[0]['shape'],activation='tanh',
                    name='output'))(z)
+        #output = (Dense(units=(25,3),activation='softmax',
+        #           name='output'))(z)
 
         model = Model(inputs=[input1, input2], outputs=[output])
         optimizer = None
@@ -444,6 +454,11 @@ class app:
         else:
             self.logDir = self.job_dir + "logs/fit/" + self.sLogName
 
+
+        if not os.path.isdir(self.logDir):
+            os.makedirs(self.logDir)
+        self.runTensorboard()
+
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
         self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
                                           self.settings['overfit_epochs'], self.settings['reduction_epochs'],
@@ -505,36 +520,57 @@ class app:
             print('model loaded')
 
         while True:
-            if (os.path.isfile(self.job_dir + self.sDataInput1Path)):
-                X0 = None
-                try:
-                    X0 = np.genfromtxt(self.job_dir + self.sDataInput1Path)
-                #    X0 = self.loadFromFileTfGFile(self.job_dir + self.sDataInput1Path)
-                # except:
-                #    X0 = self.loadFromFile(self.job_dir + self.sDataInput1Path)
-                except:
-                    pass
+            allFilesFound=False
+            if (self.inputFiles == 1):
+                if (os.path.isfile(self.job_dir + self.sDataInput1Path)):
+                    allFilesFound=True
+            else:
+                for i in range(0, self.inputFiles):
+                    if(os.path.isfile(self.job_dir + self.sDataInput1PathM.format(0))):
+                        allFilesFound=True
+                    else:
+                        allFilesFound=False
+                        break
+
+
+            if (allFilesFound):
+
+                X0=None
+                if (self.inputFiles == 1):
+                    X0 = np.array([self.loadData(self.job_dir + self.sDataInput1Path,True)])
                 else:
-                    X0 = np.float32(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs])
-                    X0 = self.scaler.transform(X0)
-                    X0 = np.reshape(X0, [1, self.nInputs, 1])
+                    X0 = np.array([self.loadData(self.job_dir + self.sDataInput1PathM.format(0),True)])
+                    for i in range(1, self.inputFiles):
+                        X0 = np.append(X0, self.loadData(self.job_dir + self.sDataInput1PathM.format(i),True))
 
-                    Y0 = np.zeros(shape=[1, self.nOutputs])
-                    Y0 = np.reshape(Y0, [1, self.nOutputs])
 
+                for i in range(0,self.inputFiles):
+                    X0[i]['data']=np.reshape(X0[i]['data'],[1,X0[i]['shape'],1])
+
+                input = None
+                for i in range(0, self.inputFiles):
+                    if i == 0:
+                        input = list([X0[i]['data']])
+                    else:
+                        input.append(X0[i]['data'])
+
+
+                if(self.inputFiles==1):
                     os.remove(self.job_dir + self.sDataInput1Path)
+                else:
+                    for i in range(0,self.inputFiles):
+                        os.remove(self.job_dir + self.sDataInput1PathM.format(i))
 
-                    p = model.predict(x=X0)
+                p = model.predict(x=input)
 
-                    file = open(self.job_dir + 'answer.txt', 'w')
-                    output = ""
-                    for i in range(self.nOutputs):
-                        output += str(p[0][i])
-                        output += " "
-                    file.write(output)
-                    file.close()
-                    print(output)
+                file = open(self.job_dir + 'answer.txt', 'w')
+                output = ""
+                for i in range(self.nOutputs):
+                    output += str(p[0][i])
+                    output += " "
+                file.write(output)
+                file.close()
+                print(output)
 
     def threadTest(self, count):
 
@@ -573,9 +609,12 @@ class app:
                 input = list([self.X[i]['data']])
             else:
                 input.append(self.X[i]['data'])
-        output = list([self.Y[0]['data']])
+        output = self.Y[0]['data']
 
         prediction = model.predict(x=input)
+
+        #np.savetxt(self.job_dir+"prediction.txt",prediction,delimiter=" ")
+        #np.savetxt(self.job_dir+"output.txt",output,delimiter=" ")
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
@@ -587,9 +626,9 @@ class app:
 
         for index in range(0, self.nDataSize):
 
-            _y = self.Y[index]
+            _y = self.Y[0]['data'][index]
             _p = prediction[index]
-            _p = np.reshape(_p, self.nOutputs)
+            _p = np.reshape(_p, self.Y[0]['shape'])
 
             testingfig = plt.figure(num='Testing plot ' + str(index), figsize=(10, 7), dpi=80)
             testingplot = testingfig.add_subplot(111)
@@ -640,10 +679,17 @@ class app:
             'batch_size': 0.1
         }
 
-        self.sDataInputPath = "in_data.txt"
-        self.sDataInputPathM = "in_data{0}.txt"
         self.sDataInput1Path = "input.txt"
+        self.sDataInput1PathM = "input{0}.txt"
+        self.sDataInputPath = "in_data.txt"
+        self.sTrainDataInputPath = "in_data_train.txt"
+        self.sTestDataInputPath = "in_data_test.txt"
+        self.sDataInputPathM = "in_data{0}.txt"
+        self.sTrainDataInputPathM = "in_data_train{0}.txt"
+        self.sTestDataInputPathM = "in_data_test{0}.txt"
         self.sDataOutputPath = "out_data.txt"
+        self.sTrainDataOutputPath = "out_data_train.txt"
+        self.sTestDataOutputPath = "out_data_test.txt"
 
         self.inputFiles = 2
 
@@ -682,7 +728,7 @@ class app:
             file.write(str + '\n')
             file.close()
 
-    def loadFromFile(self, filename):
+    def loadFromFile(self, filename,onedimension=False):
         file = None
         try:
             file = open(filename, 'r')
@@ -692,12 +738,17 @@ class app:
         strData = file.read()
         strData = strData.split()
         doubleData = np.array(strData, dtype=np.float32)
-        dim = int(doubleData.size / self.nDataSize)
-        doubleData = np.reshape(doubleData, [self.nDataSize, dim])
+        dim=None
+        if(onedimension==False):
+            dim = int(doubleData.size / self.nDataSize)
+            doubleData = np.reshape(doubleData, [self.nDataSize, dim])
+        else:
+            dim = int(doubleData.size )
+            doubleData = np.reshape(doubleData, [1, dim])
         return doubleData
 
-    def loadData(self, path):
-        data = self.loadFromFile(path)
+    def loadData(self, path,onedimension=False):
+        data = self.loadFromFile(path,onedimension)
         inputs = data.shape[1]
         out = {'data': data,
                'shape': inputs}
@@ -722,7 +773,6 @@ class app:
         # self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
         # self.X = self.scaler.fit_transform(self.X)
 
-        self.t = self.X[0]['data'], self.X[1]['data']
 
         self.nTestSize = int(self.nDataSize * self.eval_size)
         self.nTrainSize = int(self.nDataSize - self.nTestSize)
@@ -794,6 +844,86 @@ class app:
         if (self.eval_size > 0.0):
             self.Y_test[0]['data'] = np.reshape(self.Y_test[0]['data'], [self.nTestSize, self.Y[0]['shape']])
 
+
+    def prepareTrainData(self):
+        if (self.inputFiles == 1):
+            self.X_train = np.array([self.loadData(self.job_dir + self.sTrainDataInputPath)])
+        else:
+            self.X_train = np.array([self.loadData(self.job_dir + self.sTrainDataInputPathM.format(0))])
+            for i in range(1, self.inputFiles):
+                self.X_train = np.append(self.X_train, self.loadData(self.job_dir + self.sTrainDataInputPathM.format(i)))
+
+        self.Y_train = np.array([self.loadData(self.job_dir + self.sTrainDataOutputPath)])
+
+        self.nTrainSize = int(self.nDataSize)
+
+        for i in range(0, self.inputFiles):
+            self.X_train[i]['data'] = np.reshape(self.X_train[i]['data'],
+                                                 [self.nTrainSize, self.X_train[i]['shape'], 1])
+
+
+        self.Y_train[0]['data'] = np.reshape(self.Y_train[0]['data'], [self.nTrainSize, self.Y_train[0]['shape']])
+
+        self.X = np.empty(shape=self.inputFiles, dtype=dict)
+        self.Y = np.empty(shape=1, dtype=dict)
+
+        for i in range(0, self.inputFiles):
+            self.X[i] = {'data': None,
+                               'shape': self.X_train[i]['shape']}
+        self.Y[0] = {'data': None,
+                           'shape': self.Y_train[0]['shape']}
+
+    def prepareTestData(self):
+        if (self.inputFiles == 1):
+            self.X_test = np.array([self.loadData(self.job_dir + self.sTrainDataInputPath)])
+        else:
+            self.X_test = np.array([self.loadData(self.job_dir + self.sTrainDataInputPathM.format(0))])
+            for i in range(1, self.inputFiles):
+                self.X_test = np.append(self.X_test, self.loadData(self.job_dir + self.sTrainDataInputPathM.format(i)))
+
+        self.Y_test = np.array([self.loadData(self.job_dir + self.sTrainDataOutputPath)])
+
+        self.nTestSize = int(self.nDataSize)
+
+        for i in range(0, self.inputFiles):
+            self.X_test[i]['data'] = np.reshape(self.X_test[i]['data'],
+                                                 [self.nTestSize, self.X_test[i]['shape'], 1])
+
+
+        self.Y_test[0]['data'] = np.reshape(self.Y_test[0]['data'], [self.nTestSize, self.Y_test[0]['shape']])
+
+
+    def prepareData2(self):
+        self.nDataSize=int(self.nTestSize+self.nTrainSize)
+
+        self.X=np.empty(shape=self.inputFiles,dtype=dict)
+        self.Y=np.empty(shape=1,dtype=dict)
+
+        for i in range(0, self.inputFiles):
+            self.X[i] = {'data': None,
+                               'shape': None}
+        self.Y[0] = {'data': None,
+                           'shape': None}
+
+        for i in range(0,self.inputFiles):
+            self.X[i]['data']=np.append(self.X_train[i]['data'],self.X_test[i]['data'])
+            self.X[i]['shape'] = self.X_train[i]['shape']
+            self.X[i]['data']=np.reshape(self.X[i]['data'],[self.nDataSize, self.X[i]['shape'], 1])
+
+        self.Y[0]['data']=np.append(self.Y_train[0]['data'],self.Y_test[0]['data'])
+        self.Y[0]['shape'] = self.Y_train[0]['shape']
+        self.Y[0]['data']=np.reshape(self.Y[0]['data'],[self.nDataSize, self.Y[0]['shape']])
+
+
+    def runTensorboard(self):
+        ts = threading.Thread(target=self.threadTensorboard)
+        ts.daemon = True
+        ts.start()
+
+    def threadTensorboard(self):
+        cmd="tensorboard --logdir {0}".format(self.logDir)
+        os.system(cmd)
+
     def __init__(self, job_dir, data_size, eval_size):
         self.historyCallback = historyCallback()
         self.job_dir = job_dir
@@ -803,7 +933,10 @@ class app:
         self.initSettings()
 
         # loadData
-        self.prepareData()
+        #self.prepareData()
+        self.prepareTrainData()
+        self.prepareTestData()
+        self.prepareData2()
         self.log('data loaded')
 
 
