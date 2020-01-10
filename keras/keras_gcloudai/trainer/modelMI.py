@@ -535,42 +535,58 @@ class app:
 
             if (allFilesFound):
 
+                goNext=False
                 X0=None
                 if (self.inputFiles == 1):
-                    X0 = np.array([self.loadData(self.job_dir + self.sDataInput1Path,True)])
+                    try:
+                        new_data=np.genfromtxt(self.loadData(self.job_dir + self.sDataInput1Path))
+                    except:
+                        goNext = True
+                        continue
+                    X0 = list([new_data])
                 else:
-                    X0 = np.array([self.loadData(self.job_dir + self.sDataInput1PathM.format(0),True)])
+                    try:
+                        new_data=np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(0))
+                    except:
+                        goNext=True
+                        continue
+                    X0 = list([new_data])
                     for i in range(1, self.inputFiles):
-                        X0 = np.append(X0, self.loadData(self.job_dir + self.sDataInput1PathM.format(i),True))
+                        try:
+                            new_data=np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(i))
+                        except:
+                            goNext = True
+                            continue
+                        X0.append(new_data)
 
-
-                for i in range(0,self.inputFiles):
-                    X0[i]['data']=np.reshape(X0[i]['data'],[1,X0[i]['shape'],1])
-
-                input = None
-                for i in range(0, self.inputFiles):
-                    if i == 0:
-                        input = list([X0[i]['data']])
-                    else:
-                        input.append(X0[i]['data'])
-
-
-                if(self.inputFiles==1):
-                    os.remove(self.job_dir + self.sDataInput1Path)
-                else:
+                if(goNext==False):
                     for i in range(0,self.inputFiles):
-                        os.remove(self.job_dir + self.sDataInput1PathM.format(i))
+                        X0[i]=np.reshape(X0[i],[1,self.X[i]['shape'],1])
 
-                p = model.predict(x=input)
+                    input = None
+                    for i in range(0, self.inputFiles):
+                        if i == 0:
+                            input = list([X0[i]])
+                        else:
+                            input.append(X0[i])
 
-                file = open(self.job_dir + 'answer.txt', 'w')
-                output = ""
-                for i in range(self.nOutputs):
-                    output += str(p[0][i])
-                    output += " "
-                file.write(output)
-                file.close()
-                print(output)
+
+                    if(self.inputFiles==1):
+                        os.remove(self.job_dir + self.sDataInput1Path)
+                    else:
+                        for i in range(0,self.inputFiles):
+                            os.remove(self.job_dir + self.sDataInput1PathM.format(i))
+
+                    p = model.predict(x=input)
+
+                    file = open(self.job_dir + 'answer.txt', 'w')
+                    output = ""
+                    for i in range(self.Y[0]['shape']):
+                        output += str(p[0][i])
+                        output += " "
+                    file.write(output)
+                    file.close()
+                    print(output)
 
     def threadTest(self, count):
 
