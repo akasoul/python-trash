@@ -345,7 +345,24 @@ class app:
         y=Flatten()(y)
 
         z=concatenate([x,y])
-
+        z=Dense(units=1024,activation='relu',
+                kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(z)
+        z=Dense(units=1024,activation='relu',
+                kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(z)
+        z=Dense(units=1024,activation='relu',
+                kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(z)
         output = (Dense(self.Y[0]['shape'],activation='tanh',
                    name='output'))(z)
         #output = (Dense(units=(25,3),activation='softmax',
@@ -629,8 +646,8 @@ class app:
 
         prediction = model.predict(x=input)
 
-        #np.savetxt(self.job_dir+"prediction.txt",prediction,delimiter=" ")
-        #np.savetxt(self.job_dir+"output.txt",output,delimiter=" ")
+        np.savetxt(self.job_dir+"prediction.txt",prediction,delimiter=" ")
+        np.savetxt(self.job_dir+"output.txt",output,delimiter=" ")
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
