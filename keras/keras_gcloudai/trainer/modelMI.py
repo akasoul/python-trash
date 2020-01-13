@@ -787,6 +787,9 @@ class app:
                'shape': inputs}
         return out
 
+    def _prepareData(self,input_train,output_train,input_test,output_test):
+        pass
+
     def prepareData(self):
         _file = False
 
