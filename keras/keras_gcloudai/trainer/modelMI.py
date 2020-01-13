@@ -474,7 +474,7 @@ class app:
 
         if not os.path.isdir(self.logDir):
             os.makedirs(self.logDir)
-        self.runTensorboard()
+        #self.runTensorboard()
 
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
         self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
@@ -761,7 +761,7 @@ class app:
             file.write(str + '\n')
             file.close()
 
-    def loadFromFile(self, filename,onedimension=False):
+    def loadFromFile(self, filename,oneFrame=False):
         file = None
         try:
             file = open(filename, 'r')
@@ -772,7 +772,7 @@ class app:
         strData = strData.split()
         doubleData = np.array(strData, dtype=np.float32)
         dim=None
-        if(onedimension==False):
+        if(oneFrame==False):
             dim = int(doubleData.size / self.nDataSize)
             doubleData = np.reshape(doubleData, [self.nDataSize, dim])
         else:
@@ -780,8 +780,8 @@ class app:
             doubleData = np.reshape(doubleData, [1, dim])
         return doubleData
 
-    def loadData(self, path,onedimension=False):
-        data = self.loadFromFile(path,onedimension)
+    def loadData(self, path,oneFrame=False):
+        data = self.loadFromFile(path,oneFrame)
         inputs = data.shape[1]
         out = {'data': data,
                'shape': inputs}
@@ -908,13 +908,13 @@ class app:
 
     def prepareTestData(self):
         if (self.inputFiles == 1):
-            self.X_test = np.array([self.loadData(self.job_dir + self.sTrainDataInputPath)])
+            self.X_test = np.array([self.loadData(self.job_dir + self.sTestDataInputPath)])
         else:
-            self.X_test = np.array([self.loadData(self.job_dir + self.sTrainDataInputPathM.format(0))])
+            self.X_test = np.array([self.loadData(self.job_dir + self.sTestDataInputPathM.format(0))])
             for i in range(1, self.inputFiles):
-                self.X_test = np.append(self.X_test, self.loadData(self.job_dir + self.sTrainDataInputPathM.format(i)))
+                self.X_test = np.append(self.X_test, self.loadData(self.job_dir + self.sTestDataInputPathM.format(i)))
 
-        self.Y_test = np.array([self.loadData(self.job_dir + self.sTrainDataOutputPath)])
+        self.Y_test = np.array([self.loadData(self.job_dir + self.sTestDataOutputPath)])
 
         self.nTestSize = int(self.nDataSize)
 
