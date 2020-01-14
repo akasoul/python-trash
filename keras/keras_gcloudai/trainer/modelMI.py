@@ -351,18 +351,21 @@ class app:
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
                    )(z)
+        z=Dropout(self.settings['drop_rate'])(z)
         z=Dense(units=1024,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
                    )(z)
+        z=Dropout(self.settings['drop_rate'])(z)
         z=Dense(units=1024,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
                    )(z)
+        z=Dropout(self.settings['drop_rate'])(z)
         output = (Dense(self.Y[0]['shape'],activation='tanh',
                    name='output'))(z)
         #output = (Dense(units=(25,3),activation='softmax',
