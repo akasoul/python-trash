@@ -258,7 +258,6 @@ class historyCallback(callbacks.Callback):
             new_lr = old_lr * self.reductionKoef
             backend.set_value(self.model.optimizer.lr, new_lr)
             print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
-            self.threadTest(epoch)
 
             self.reductionCounter = 0
 
@@ -344,26 +343,31 @@ class app:
 
         y=Flatten()(y)
 
+        denseUnits=512
         z=concatenate([x,y])
-        z=Dense(units=1024,activation='relu',
+        z=Dense(units=denseUnits,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
                    )(z)
         z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=1024,activation='relu',
+        z=Dense(units=denseUnits,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
                    )(z)
         z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=1024,activation='relu',
+        z=Dense(units=denseUnits,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
+                   )(z)
+        z=Dropout(self.settings['drop_rate'])(z)
+        z=Dense(units=denseUnits,activation='relu',
+                kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   )(z)
+        z=Dropout(self.settings['drop_rate'])(z)
+        z=Dense(units=denseUnits,activation='relu',
+                kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
                    )(z)
         z=Dropout(self.settings['drop_rate'])(z)
         output = (Dense(self.Y[0]['shape'],activation='tanh',
@@ -378,12 +382,13 @@ class app:
             optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
         except:
             optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
 
         model.compile(
             loss='mean_squared_error',
             # loss='categorical_crossentropy',
             optimizer=optimizer,
-            metrics=['mae', 'accuracy'])
+            metrics=['accuracy'])
         # metrics = ['accuracy'])
 
         print(model.summary())
