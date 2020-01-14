@@ -280,6 +280,9 @@ class app:
 
         input1 = Input(shape=(self.X[0]['shape'], 1), name='input1')
         input2 = Input(shape=(self.X[1]['shape'], 1), name='input2')
+        input3 = Input(shape=(self.X[2]['shape'], 1), name='input3')
+        input4 = Input(shape=(self.X[3]['shape'], 1), name='input4')
+        input5 = Input(shape=(self.X[4]['shape'], 1), name='input5')
 
         x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[0]['shape'], 1),
                    padding="same",
@@ -290,7 +293,6 @@ class app:
                    )(input1)
         x = Dropout(self.settings['drop_rate'])(x)
         x = MaxPool1D(pool_size=(3))(x)
-
         x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
                    padding="same",
                    kernel_initializer=kernel_init,
@@ -300,7 +302,6 @@ class app:
                    )(x)
         x = Dropout(self.settings['drop_rate'])(x)
         x = MaxPool1D(pool_size=(3))(x)
-
         x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
@@ -309,7 +310,6 @@ class app:
                    )(x)
         x = Dropout(self.settings['drop_rate'])(x)
         x = MaxPool1D(pool_size=(3))(x)
-
         x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
@@ -318,33 +318,97 @@ class app:
                    )(x)
         x = Dropout(self.settings['drop_rate'])(x)
         x = MaxPool1D(pool_size=(3))(x)
-
         x = Flatten()(x)
 
-        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
+
+        y1 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
                    )(input2)
-        y = Dropout(self.settings['drop_rate'])(y)
-        y = MaxPool1D(pool_size=(3))(y)
-
-        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+        y1 = Dropout(self.settings['drop_rate'])(y1)
+        y1 = MaxPool1D(pool_size=(3))(y1)
+        y1 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
                    padding="same",
                    kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
                    bias_regularizer=bias_reg,
                    kernel_regularizer=kernel_reg,
-                   )(y)
-        y = Dropout(self.settings['drop_rate'])(y)
-        y = MaxPool1D(pool_size=(3))(y)
+                   )(y1)
+        y1 = Dropout(self.settings['drop_rate'])(y1)
+        y1 = MaxPool1D(pool_size=(3))(y1)
+        y1=Flatten()(y1)
 
-        y=Flatten()(y)
+
+        y2 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[2]['shape'], 1),
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(input3)
+        y2 = Dropout(self.settings['drop_rate'])(y2)
+        y2 = MaxPool1D(pool_size=(3))(y2)
+        y2 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(y2)
+        y2 = Dropout(self.settings['drop_rate'])(y2)
+        y2 = MaxPool1D(pool_size=(3))(y2)
+        y2=Flatten()(y2)
+
+
+        y3 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[3]['shape'], 1),
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(input4)
+        y3 = Dropout(self.settings['drop_rate'])(y3)
+        y3 = MaxPool1D(pool_size=(3))(y3)
+        y3 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(y3)
+        y3 = Dropout(self.settings['drop_rate'])(y3)
+        y3 = MaxPool1D(pool_size=(3))(y3)
+        y3=Flatten()(y3)
+
+
+        y4 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[4]['shape'], 1),
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(input5)
+        y4 = Dropout(self.settings['drop_rate'])(y4)
+        y4 = MaxPool1D(pool_size=(3))(y4)
+        y4 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+                   padding="same",
+                   kernel_initializer=kernel_init,
+                   bias_initializer=bias_init,
+                   bias_regularizer=bias_reg,
+                   kernel_regularizer=kernel_reg,
+                   )(y4)
+        y4 = Dropout(self.settings['drop_rate'])(y4)
+        y4 = MaxPool1D(pool_size=(3))(y4)
+        y4=Flatten()(y4)
+
+
+
 
         denseUnits=512
-        z=concatenate([x,y])
+        z=concatenate([x,y1,y2,y3,y4])
         z=Dense(units=denseUnits,activation='relu',
                 kernel_initializer=kernel_init,
                    bias_initializer=bias_init,
@@ -375,7 +439,7 @@ class app:
         #output = (Dense(units=(25,3),activation='softmax',
         #           name='output'))(z)
 
-        model = Model(inputs=[input1, input2], outputs=[output])
+        model = Model(inputs=[input1, input2,input3,input4,input5], outputs=[output])
         optimizer = None
         # optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
         try:
@@ -732,7 +796,7 @@ class app:
         self.sTrainDataOutputPath = "out_data_train.txt"
         self.sTestDataOutputPath = "out_data_test.txt"
 
-        self.inputFiles = 2
+        self.inputFiles = 5
 
         self.sLogName = None
 
@@ -1139,3 +1203,157 @@ if __name__ == "__main__":
 
 # rms drop 0.1
 # rms lr 0.001-0.01
+
+
+
+
+
+
+
+
+
+
+#    def initModel(self):
+#
+#        # model
+#        kernel_init = 'glorot_uniform'
+#        bias_init = 'zeros'
+#        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+#        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+#        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+#        kernel_size = 5
+#        filters = 5
+#
+#        input1 = Input(shape=(self.X[0]['shape'], 1), name='input1')
+#        input2 = Input(shape=(self.X[1]['shape'], 1), name='input2')
+#
+#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[0]['shape'], 1),
+#                   padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(input1)
+#        x = Dropout(self.settings['drop_rate'])(x)
+#        x = MaxPool1D(pool_size=(3))(x)
+#
+#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+#                   padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(x)
+#        x = Dropout(self.settings['drop_rate'])(x)
+#        x = MaxPool1D(pool_size=(3))(x)
+#
+#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(x)
+#        x = Dropout(self.settings['drop_rate'])(x)
+#        x = MaxPool1D(pool_size=(3))(x)
+#
+#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(x)
+#        x = Dropout(self.settings['drop_rate'])(x)
+#        x = MaxPool1D(pool_size=(3))(x)
+#
+#        x = Flatten()(x)
+#
+#        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
+#                   padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(input2)
+#        y = Dropout(self.settings['drop_rate'])(y)
+#        y = MaxPool1D(pool_size=(3))(y)
+#
+#        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
+#                   padding="same",
+#                   kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   bias_regularizer=bias_reg,
+#                   kernel_regularizer=kernel_reg,
+#                   )(y)
+#        y = Dropout(self.settings['drop_rate'])(y)
+#        y = MaxPool1D(pool_size=(3))(y)
+#
+#        y=Flatten()(y)
+#
+#        denseUnits=512
+#        z=concatenate([x,y])
+#        z=Dense(units=denseUnits,activation='relu',
+#                kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   )(z)
+#        z=Dropout(self.settings['drop_rate'])(z)
+#        z=Dense(units=denseUnits,activation='relu',
+#                kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   )(z)
+#        z=Dropout(self.settings['drop_rate'])(z)
+#        z=Dense(units=denseUnits,activation='relu',
+#                kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   )(z)
+#        z=Dropout(self.settings['drop_rate'])(z)
+#        z=Dense(units=denseUnits,activation='relu',
+#                kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   )(z)
+#        z=Dropout(self.settings['drop_rate'])(z)
+#        z=Dense(units=denseUnits,activation='relu',
+#                kernel_initializer=kernel_init,
+#                   bias_initializer=bias_init,
+#                   )(z)
+#        z=Dropout(self.settings['drop_rate'])(z)
+#        output = (Dense(self.Y[0]['shape'],activation='tanh',
+#                   name='output'))(z)
+#        #output = (Dense(units=(25,3),activation='softmax',
+#        #           name='output'))(z)
+#
+#        model = Model(inputs=[input1, input2], outputs=[output])
+#        optimizer = None
+#        # optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+#        try:
+#            optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
+#        except:
+#            optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+#        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
+#
+#        model.compile(
+#            loss='mean_squared_error',
+#            # loss='categorical_crossentropy',
+#            optimizer=optimizer,
+#            metrics=['accuracy'])
+#        # metrics = ['accuracy'])
+#
+#        print(model.summary())
+#
+#        sName = ""
+#        for i in range(self.inputFiles):
+#            sName += str(self.X[i]['shape'])
+#            sName += '.'
+#        for i in model.layers:
+#            for j in range(0, layersNames.size):
+#                if (i.name.find(layersNames[j]) != -1):
+#                    # for k in i.input_shape:
+#                    #    if (k != None):
+#                    #        sName += str(k)
+#                    #        sName += "."
+#                    sName += layersShortNames[j]
+#                    sName += "."
+#        sName += str(self.Y[0]['shape'])
+#        self.setModelName(sName)
+#        # if (os.path.isfile(self.job_dir+self.model_name)):
+#        #    model.load_weights(self.model_name)
+#        return model
