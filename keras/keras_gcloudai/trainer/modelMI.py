@@ -1,7 +1,7 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
-from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate
+from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -24,8 +24,8 @@ MaxBatchSize = 3000000000
 DISABLE_LOG = True
 ENABLE_TRAINING_LOG = False
 
-layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst","concatenate"])
-layersShortNames = np.array(["c1", "d", "p", "f", "lst","ctn"])
+layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst", "concatenate"])
+layersShortNames = np.array(["c1", "d", "p", "f", "lst", "ctn"])
 
 
 class historyCallback(callbacks.Callback):
@@ -78,7 +78,6 @@ class historyCallback(callbacks.Callback):
                 self.X.append(xData[i]['data'])
         self.Y = list([yData[0]['data']])
 
-
     def threadTest(self, epoch):
         try:
             import matplotlib.pyplot as plt
@@ -90,8 +89,8 @@ class historyCallback(callbacks.Callback):
         if not os.path.isdir(self.logDir + '/training_marks/'):
             os.makedirs(self.logDir + '/training_marks/')
 
-        input=None
-        output=None
+        input = None
+        output = None
         for i in range(0, self.inputFiles):
             if i == 0:
                 input = list([self.X[i]])
@@ -271,182 +270,152 @@ class app:
 
         # model
         kernel_init = 'glorot_uniform'
-        bias_init = 'zeros'
+        bias_init = 'he_uniform'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size = 5
+        kernel_size = 2
         filters = 5
 
-        input1 = Input(shape=(self.X[0]['shape'], 1), name='input1')
-        input2 = Input(shape=(self.X[1]['shape'], 1), name='input2')
-        input3 = Input(shape=(self.X[2]['shape'], 1), name='input3')
-        input4 = Input(shape=(self.X[3]['shape'], 1), name='input4')
-        input5 = Input(shape=(self.X[4]['shape'], 1), name='input5')
+        input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
+        input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
+        input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
+        input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
+        input4 = Input(shape=(self.X[4]['shape'], 1), name='input4')
+        input5 = Input(shape=(self.X[5]['shape'], 1), name='input5')
+        input6 = Input(shape=(self.X[6]['shape'], 1), name='input6')
+        input7 = Input(shape=(self.X[7]['shape'], 1), name='input7')
+        input8 = Input(shape=(self.X[8]['shape'], 1), name='input8')
+        input9 = Input(shape=(self.X[9]['shape'], 1), name='input9')
+        input10 = Input(shape=(self.X[10]['shape'], 1), name='input10')
+        input11 = Input(shape=(self.X[11]['shape'], 1), name='input11')
 
-        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[0]['shape'], 1),
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(input1)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=(3))(x)
-        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=(3))(x)
-        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=(3))(x)
-        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=(3))(x)
-        x = Flatten()(x)
+        x0=self.conv1DLayer(input0,kernel_size,20,2,self.X[0]['shape'])
+        x0=self.conv1DLayer(x0,kernel_size,20,2)
+        x0=self.conv1DLayer(x0,kernel_size,20,2)
+        x0=self.conv1DLayer(x0,kernel_size,20,2)
+        x0=Flatten()(x0)
 
 
-        y1 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(input2)
-        y1 = Dropout(self.settings['drop_rate'])(y1)
-        y1 = MaxPool1D(pool_size=(3))(y1)
-        y1 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(y1)
-        y1 = Dropout(self.settings['drop_rate'])(y1)
-        y1 = MaxPool1D(pool_size=(3))(y1)
-        y1=Flatten()(y1)
+        x1=self.conv1DLayer(input1,kernel_size,20,2,self.X[1]['shape'])
+        x1=self.conv1DLayer(x1,kernel_size,20,2)
+        x1=self.conv1DLayer(x1,kernel_size,20,2)
+        x1=self.conv1DLayer(x1,kernel_size,20,2)
+        x1=Flatten()(x1)
 
 
-        y2 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[2]['shape'], 1),
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(input3)
-        y2 = Dropout(self.settings['drop_rate'])(y2)
-        y2 = MaxPool1D(pool_size=(3))(y2)
-        y2 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(y2)
-        y2 = Dropout(self.settings['drop_rate'])(y2)
-        y2 = MaxPool1D(pool_size=(3))(y2)
-        y2=Flatten()(y2)
+        x2=self.conv1DLayer(input2,kernel_size,20,2,self.X[2]['shape'])
+        x2=self.conv1DLayer(x2,kernel_size,20,2)
+        x2=self.conv1DLayer(x2,kernel_size,20,2)
+        x2=self.conv1DLayer(x2,kernel_size,20,2)
+        x2=Flatten()(x2)
 
 
-        y3 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[3]['shape'], 1),
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(input4)
-        y3 = Dropout(self.settings['drop_rate'])(y3)
-        y3 = MaxPool1D(pool_size=(3))(y3)
-        y3 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(y3)
-        y3 = Dropout(self.settings['drop_rate'])(y3)
-        y3 = MaxPool1D(pool_size=(3))(y3)
-        y3=Flatten()(y3)
+        x3=self.conv1DLayer(input3,kernel_size,20,2,self.X[3]['shape'])
+        x3=self.conv1DLayer(x3,kernel_size,20,2)
+        x3=self.conv1DLayer(x3,kernel_size,20,2)
+        x3=self.conv1DLayer(x3,kernel_size,20,2)
+        x3=Flatten()(x3)
 
 
-        y4 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[4]['shape'], 1),
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(input5)
-        y4 = Dropout(self.settings['drop_rate'])(y4)
-        y4 = MaxPool1D(pool_size=(3))(y4)
-        y4 = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-                   padding="same",
-                   kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   bias_regularizer=bias_reg,
-                   kernel_regularizer=kernel_reg,
-                   )(y4)
-        y4 = Dropout(self.settings['drop_rate'])(y4)
-        y4 = MaxPool1D(pool_size=(3))(y4)
-        y4=Flatten()(y4)
+        x4=self.conv1DLayer(input4,kernel_size,20,2,self.X[4]['shape'])
+        x4=self.conv1DLayer(x4,kernel_size,20,2)
+        x4=self.conv1DLayer(x4,kernel_size,20,2)
+        x4=self.conv1DLayer(x4,kernel_size,20,2)
+        x4=Flatten()(x4)
 
+        x5=self.conv1DLayer(input5,kernel_size,20,2,self.X[5]['shape'])
+        x5=self.conv1DLayer(x5,kernel_size,20,2)
+        x5=self.conv1DLayer(x5,kernel_size,20,2)
+        x5=self.conv1DLayer(x5,kernel_size,20,2)
+        x5=Flatten()(x5)
 
+        x6=self.conv1DLayer(input6,kernel_size,20,2,self.X[6]['shape'])
+        x6=self.conv1DLayer(x6,kernel_size,20,2)
+        x6=self.conv1DLayer(x6,kernel_size,20,2)
+        x6=self.conv1DLayer(x6,kernel_size,20,2)
+        x6=Flatten()(x6)
 
+        x7=self.conv1DLayer(input7,kernel_size,20,2,self.X[7]['shape'])
+        x7=self.conv1DLayer(x7,kernel_size,20,2)
+        x7=self.conv1DLayer(x7,kernel_size,20,2)
+        x7=self.conv1DLayer(x7,kernel_size,20,2)
+        x7=Flatten()(x7)
 
-        denseUnits=512
-        z=concatenate([x,y1,y2,y3,y4])
-        z=Dense(units=denseUnits,activation='relu',
-                kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   )(z)
-        z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=denseUnits,activation='relu',
-                kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   )(z)
-        z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=denseUnits,activation='relu',
-                kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   )(z)
-        z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=denseUnits,activation='relu',
-                kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   )(z)
-        z=Dropout(self.settings['drop_rate'])(z)
-        z=Dense(units=denseUnits,activation='relu',
-                kernel_initializer=kernel_init,
-                   bias_initializer=bias_init,
-                   )(z)
-        z=Dropout(self.settings['drop_rate'])(z)
-        output = (Dense(self.Y[0]['shape'],activation='tanh',
-                   name='output'))(z)
-        #output = (Dense(units=(25,3),activation='softmax',
+        x8=self.conv1DLayer(input8,kernel_size,20,2,self.X[8]['shape'])
+        x8=self.conv1DLayer(x8,kernel_size,20,2)
+        x8=self.conv1DLayer(x8,kernel_size,20,2)
+        x8=self.conv1DLayer(x8,kernel_size,20,2)
+        x8=Flatten()(x8)
+
+        x9=self.conv1DLayer(input9,kernel_size,20,2,self.X[9]['shape'])
+        x9=self.conv1DLayer(x9,kernel_size,20,2)
+        x9=self.conv1DLayer(x9,kernel_size,20,2)
+        x9=self.conv1DLayer(x9,kernel_size,20,2)
+        x9=Flatten()(x9)
+
+        x10=self.conv1DLayer(input10,kernel_size,20,2,self.X[10]['shape'])
+        x10=self.conv1DLayer(x10,kernel_size,20,2)
+        x10=self.conv1DLayer(x10,kernel_size,20,2)
+        x10=self.conv1DLayer(x10,kernel_size,20,2)
+        x10=Flatten()(x10)
+
+        x11=self.conv1DLayer(input11,kernel_size,20,2,self.X[11]['shape'])
+        x11=self.conv1DLayer(x11,kernel_size,20,2)
+        x11=self.conv1DLayer(x11,kernel_size,20,2)
+        x11=self.conv1DLayer(x11,kernel_size,20,2)
+        x11=Flatten()(x11)
+
+        denseUnits = 512
+        z = concatenate([x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11])
+        z = Dense(units=denseUnits, activation='relu',
+                  kernel_initializer=kernel_init,
+                  bias_initializer=bias_init,
+                  bias_regularizer=bias_reg,
+                  kernel_regularizer=kernel_reg,
+                  )(z)
+        z = Dropout(self.settings['drop_rate'])(z)
+        z = Dense(units=denseUnits, activation='relu',
+                  kernel_initializer=kernel_init,
+                  bias_initializer=bias_init,
+                  bias_regularizer=bias_reg,
+                  kernel_regularizer=kernel_reg,
+                  )(z)
+        z = Dropout(self.settings['drop_rate'])(z)
+        z = Dense(units=denseUnits, activation='relu',
+                  kernel_initializer=kernel_init,
+                  bias_initializer=bias_init,
+                  bias_regularizer=bias_reg,
+                  kernel_regularizer=kernel_reg,
+                  )(z)
+        z = Dropout(self.settings['drop_rate'])(z)
+        z = Dense(units=denseUnits, activation='relu',
+                  kernel_initializer=kernel_init,
+                  bias_initializer=bias_init,
+                  bias_regularizer=bias_reg,
+                  kernel_regularizer=kernel_reg,
+                  )(z)
+        z = Dropout(self.settings['drop_rate'])(z)
+        z = Dense(units=denseUnits, activation='relu',
+                  kernel_initializer=kernel_init,
+                  bias_initializer=bias_init,
+                  bias_regularizer=bias_reg,
+                  kernel_regularizer=kernel_reg,
+                  )(z)
+        z = Dropout(self.settings['drop_rate'])(z)
+        output = (Dense(self.Y[0]['shape'], activation='tanh',
+                        name='output'))(z)
+        # output = (Dense(units=(25,3),activation='softmax',
         #           name='output'))(z)
 
-        model = Model(inputs=[input1, input2,input3,input4,input5], outputs=[output])
+        model = Model(inputs=[input0, input1, input2, input3, input4, input5, input6, input7, input8, input9, input10, input11], outputs=[output])
         optimizer = None
         # optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
         try:
             optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
         except:
             optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
+        # optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
 
         model.compile(
             loss='mean_squared_error',
@@ -476,6 +445,38 @@ class app:
         #    model.load_weights(self.model_name)
         return model
 
+    def conv1DLayer(self, input, kernel_size, filters_count, pool_size, inputShape=0):
+        kernel_init = 'glorot_uniform'
+        bias_init = 'he_uniform'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        if (inputShape != 0):
+            output = Conv1D(kernel_size=kernel_size, filters=filters_count, activation='relu',
+                            input_shape=(inputShape, 1),
+                            padding="same",
+                            kernel_initializer=kernel_init,
+                            bias_initializer=bias_init,
+                            bias_regularizer=bias_reg,
+                            kernel_regularizer=kernel_reg,
+                            )(input)
+            output = Dropout(self.settings['drop_rate'])(output)
+            output = MaxPool1D(pool_size=(pool_size))(output)
+            output = BatchNormalization()(output)
+            return output
+        else:
+            output = Conv1D(kernel_size=kernel_size, filters=filters_count, activation='relu',
+                            padding="same",
+                            kernel_initializer=kernel_init,
+                            bias_initializer=bias_init,
+                            bias_regularizer=bias_reg,
+                            kernel_regularizer=kernel_reg,
+                            )(input)
+            output = Dropout(self.settings['drop_rate'])(output)
+            output = MaxPool1D(pool_size=(pool_size))(output)
+            output = BatchNormalization()(output)
+            return output
+
     def setModelName(self, name):
         self.model_name = name
         self.model_name += ".h5"
@@ -489,31 +490,27 @@ class app:
         model = self.initModel()
         self.log('model initialized')
 
-
-
         train_x = None
-        train_y=None
-        test_x=None
-        test_y=None
-        all_x=None
-        all_y=None
+        train_y = None
+        test_x = None
+        test_y = None
+        all_x = None
+        all_y = None
         for i in range(0, self.inputFiles):
             if i == 0:
                 train_x = list([self.X_train[i]['data']])
                 all_x = list([self.X[i]['data']])
-                if(self.eval_size>0.0):
+                if (self.eval_size > 0.0):
                     test_x = list([self.X_test[i]['data']])
             else:
                 train_x.append(self.X_train[i]['data'])
                 all_x.append(self.X[i]['data'])
-                if(self.eval_size>0.0):
+                if (self.eval_size > 0.0):
                     test_x.append(self.X_test[i]['data'])
         train_y = list([self.Y_train[0]['data']])
         all_y = list([self.Y[0]['data']])
         if (self.eval_size > 0.0):
-             test_y = list([self.Y_test[0]['data']])
-
-
+            test_y = list([self.Y_test[0]['data']])
 
         score_train = model.evaluate(test_x, test_y)  # , batch_size=500)
         score_test = None
@@ -543,10 +540,9 @@ class app:
         else:
             self.logDir = self.job_dir + "logs/fit/" + self.sLogName
 
-
         if not os.path.isdir(self.logDir):
             os.makedirs(self.logDir)
-        #self.runTensorboard()
+        # self.runTensorboard()
 
         self.tb_log = callbacks.TensorBoard(log_dir=self.logDir, histogram_freq=2000)
         self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
@@ -575,7 +571,6 @@ class app:
         batchesPerEpoch = 1.0 / self.n_batches_train
         print("1 epoch = {0} batches".format(batchesPerEpoch))
 
-
         if (self.eval_size > 0.0):
             model.fit(x=train_x, y=train_y, epochs=self.settings['epochs'], verbose=1,
                       batch_size=self.n_batches_train,
@@ -588,7 +583,7 @@ class app:
                       # shuffle=True,
                       callbacks=self.callbacks)
 
-        #score = model.evaluate(self.X, self.Y)  # , batch_size=500)
+        # score = model.evaluate(self.X, self.Y)  # , batch_size=500)
 
         backend.reset_uids()
         backend.clear_session()
@@ -609,48 +604,47 @@ class app:
             print('model loaded')
 
         while True:
-            allFilesFound=False
+            allFilesFound = False
             if (self.inputFiles == 1):
                 if (os.path.isfile(self.job_dir + self.sDataInput1Path)):
-                    allFilesFound=True
+                    allFilesFound = True
             else:
                 for i in range(0, self.inputFiles):
-                    if(os.path.isfile(self.job_dir + self.sDataInput1PathM.format(0))):
-                        allFilesFound=True
+                    if (os.path.isfile(self.job_dir + self.sDataInput1PathM.format(0))):
+                        allFilesFound = True
                     else:
-                        allFilesFound=False
+                        allFilesFound = False
                         break
-
 
             if (allFilesFound):
 
-                goNext=False
-                X0=None
+                goNext = False
+                X0 = None
                 if (self.inputFiles == 1):
                     try:
-                        new_data=np.genfromtxt(self.loadData(self.job_dir + self.sDataInput1Path))
+                        new_data = np.genfromtxt(self.loadData(self.job_dir + self.sDataInput1Path))
                     except:
                         goNext = True
                         continue
                     X0 = list([new_data])
                 else:
                     try:
-                        new_data=np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(0))
+                        new_data = np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(0))
                     except:
-                        goNext=True
+                        goNext = True
                         continue
                     X0 = list([new_data])
                     for i in range(1, self.inputFiles):
                         try:
-                            new_data=np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(i))
+                            new_data = np.genfromtxt(self.job_dir + self.sDataInput1PathM.format(i))
                         except:
                             goNext = True
                             continue
                         X0.append(new_data)
 
-                if(goNext==False):
-                    for i in range(0,self.inputFiles):
-                        X0[i]=np.reshape(X0[i],[1,self.X[i]['shape'],1])
+                if (goNext == False):
+                    for i in range(0, self.inputFiles):
+                        X0[i] = np.reshape(X0[i], [1, self.X[i]['shape'], 1])
 
                     input = None
                     for i in range(0, self.inputFiles):
@@ -659,11 +653,10 @@ class app:
                         else:
                             input.append(X0[i])
 
-
-                    if(self.inputFiles==1):
+                    if (self.inputFiles == 1):
                         os.remove(self.job_dir + self.sDataInput1Path)
                     else:
-                        for i in range(0,self.inputFiles):
+                        for i in range(0, self.inputFiles):
                             os.remove(self.job_dir + self.sDataInput1PathM.format(i))
 
                     p = model.predict(x=input)
@@ -707,8 +700,8 @@ class app:
         if not os.path.isdir(self.job_dir + 'logs/test/' + ctime):
             os.makedirs(self.job_dir + 'logs/test/' + ctime)
 
-        input=None
-        output=None
+        input = None
+        output = None
         for i in range(0, self.inputFiles):
             if i == 0:
                 input = list([self.X[i]['data']])
@@ -718,8 +711,8 @@ class app:
 
         prediction = model.predict(x=input)
 
-        np.savetxt(self.job_dir+"prediction.txt",prediction,delimiter=" ")
-        np.savetxt(self.job_dir+"output.txt",output,delimiter=" ")
+        np.savetxt(self.job_dir + "prediction.txt", prediction, delimiter=" ")
+        np.savetxt(self.job_dir + "output.txt", output, delimiter=" ")
 
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
@@ -796,7 +789,7 @@ class app:
         self.sTrainDataOutputPath = "out_data_train.txt"
         self.sTestDataOutputPath = "out_data_test.txt"
 
-        self.inputFiles = 5
+        self.inputFiles = 12
 
         self.sLogName = None
 
@@ -833,7 +826,7 @@ class app:
             file.write(str + '\n')
             file.close()
 
-    def loadFromFile(self, filename,oneFrame=False):
+    def loadFromFile(self, filename, oneFrame=False):
         file = None
         try:
             file = open(filename, 'r')
@@ -843,23 +836,23 @@ class app:
         strData = file.read()
         strData = strData.split()
         doubleData = np.array(strData, dtype=np.float32)
-        dim=None
-        if(oneFrame==False):
+        dim = None
+        if (oneFrame == False):
             dim = int(doubleData.size / self.nDataSize)
             doubleData = np.reshape(doubleData, [self.nDataSize, dim])
         else:
-            dim = int(doubleData.size )
+            dim = int(doubleData.size)
             doubleData = np.reshape(doubleData, [1, dim])
         return doubleData
 
-    def loadData(self, path,oneFrame=False):
-        data = self.loadFromFile(path,oneFrame)
+    def loadData(self, path, oneFrame=False):
+        data = self.loadFromFile(path, oneFrame)
         inputs = data.shape[1]
         out = {'data': data,
                'shape': inputs}
         return out
 
-    def _prepareData(self,input_train,output_train,input_test,output_test):
+    def _prepareData(self, input_train, output_train, input_test, output_test):
         pass
 
     def prepareData(self):
@@ -880,7 +873,6 @@ class app:
 
         # self.scaler = preprocessing.MinMaxScaler(feature_range=(Preprocessing_Min, Preprocessing_Max))
         # self.X = self.scaler.fit_transform(self.X)
-
 
         self.nTestSize = int(self.nDataSize * self.eval_size)
         self.nTrainSize = int(self.nDataSize - self.nTestSize)
@@ -952,14 +944,14 @@ class app:
         if (self.eval_size > 0.0):
             self.Y_test[0]['data'] = np.reshape(self.Y_test[0]['data'], [self.nTestSize, self.Y[0]['shape']])
 
-
     def prepareTrainData(self):
         if (self.inputFiles == 1):
             self.X_train = np.array([self.loadData(self.job_dir + self.sTrainDataInputPath)])
         else:
             self.X_train = np.array([self.loadData(self.job_dir + self.sTrainDataInputPathM.format(0))])
             for i in range(1, self.inputFiles):
-                self.X_train = np.append(self.X_train, self.loadData(self.job_dir + self.sTrainDataInputPathM.format(i)))
+                self.X_train = np.append(self.X_train,
+                                         self.loadData(self.job_dir + self.sTrainDataInputPathM.format(i)))
 
         self.Y_train = np.array([self.loadData(self.job_dir + self.sTrainDataOutputPath)])
 
@@ -969,7 +961,6 @@ class app:
             self.X_train[i]['data'] = np.reshape(self.X_train[i]['data'],
                                                  [self.nTrainSize, self.X_train[i]['shape'], 1])
 
-
         self.Y_train[0]['data'] = np.reshape(self.Y_train[0]['data'], [self.nTrainSize, self.Y_train[0]['shape']])
 
         self.X = np.empty(shape=self.inputFiles, dtype=dict)
@@ -977,9 +968,9 @@ class app:
 
         for i in range(0, self.inputFiles):
             self.X[i] = {'data': None,
-                               'shape': self.X_train[i]['shape']}
+                         'shape': self.X_train[i]['shape']}
         self.Y[0] = {'data': None,
-                           'shape': self.Y_train[0]['shape']}
+                     'shape': self.Y_train[0]['shape']}
 
     def prepareTestData(self):
         if (self.inputFiles == 1):
@@ -995,33 +986,30 @@ class app:
 
         for i in range(0, self.inputFiles):
             self.X_test[i]['data'] = np.reshape(self.X_test[i]['data'],
-                                                 [self.nTestSize, self.X_test[i]['shape'], 1])
-
+                                                [self.nTestSize, self.X_test[i]['shape'], 1])
 
         self.Y_test[0]['data'] = np.reshape(self.Y_test[0]['data'], [self.nTestSize, self.Y_test[0]['shape']])
 
-
     def prepareData2(self):
-        self.nDataSize=int(self.nTestSize+self.nTrainSize)
+        self.nDataSize = int(self.nTestSize + self.nTrainSize)
 
-        self.X=np.empty(shape=self.inputFiles,dtype=dict)
-        self.Y=np.empty(shape=1,dtype=dict)
+        self.X = np.empty(shape=self.inputFiles, dtype=dict)
+        self.Y = np.empty(shape=1, dtype=dict)
 
         for i in range(0, self.inputFiles):
             self.X[i] = {'data': None,
-                               'shape': None}
+                         'shape': None}
         self.Y[0] = {'data': None,
-                           'shape': None}
+                     'shape': None}
 
-        for i in range(0,self.inputFiles):
-            self.X[i]['data']=np.append(self.X_train[i]['data'],self.X_test[i]['data'])
+        for i in range(0, self.inputFiles):
+            self.X[i]['data'] = np.append(self.X_train[i]['data'], self.X_test[i]['data'])
             self.X[i]['shape'] = self.X_train[i]['shape']
-            self.X[i]['data']=np.reshape(self.X[i]['data'],[self.nDataSize, self.X[i]['shape'], 1])
+            self.X[i]['data'] = np.reshape(self.X[i]['data'], [self.nDataSize, self.X[i]['shape'], 1])
 
-        self.Y[0]['data']=np.append(self.Y_train[0]['data'],self.Y_test[0]['data'])
+        self.Y[0]['data'] = np.append(self.Y_train[0]['data'], self.Y_test[0]['data'])
         self.Y[0]['shape'] = self.Y_train[0]['shape']
-        self.Y[0]['data']=np.reshape(self.Y[0]['data'],[self.nDataSize, self.Y[0]['shape']])
-
+        self.Y[0]['data'] = np.reshape(self.Y[0]['data'], [self.nDataSize, self.Y[0]['shape']])
 
     def runTensorboard(self):
         ts = threading.Thread(target=self.threadTensorboard)
@@ -1029,7 +1017,7 @@ class app:
         ts.start()
 
     def threadTensorboard(self):
-        cmd="tensorboard --logdir {0}".format(self.logDir)
+        cmd = "tensorboard --logdir {0}".format(self.logDir)
         os.system(cmd)
 
     def __init__(self, job_dir, data_size, eval_size):
@@ -1041,7 +1029,7 @@ class app:
         self.initSettings()
 
         # loadData
-        #self.prepareData()
+        # self.prepareData()
         self.prepareTrainData()
         self.prepareTestData()
         self.prepareData2()
@@ -1203,14 +1191,6 @@ if __name__ == "__main__":
 
 # rms drop 0.1
 # rms lr 0.001-0.01
-
-
-
-
-
-
-
-
 
 
 #    def initModel(self):
