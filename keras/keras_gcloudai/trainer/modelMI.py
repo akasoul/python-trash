@@ -1,7 +1,7 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
-from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, Activation, add
+from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, Activation, add, AveragePooling1D, multiply
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -283,9 +283,9 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size = 2
+        kernel_size = 3
         kernel_size2 = 5
-        filters = 2
+        filters = 1
         pool_size = 5
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
@@ -293,63 +293,35 @@ class app:
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
-        # x0 = self.conv1DMPLayer(input0, kernel_size2, filters, pool_size, 'elu', 'glorot_normal', 'he_normal', self.X[0]['shape'])
-        # x0 = self.conv1DMPLayer(x0, kernel_size, filters, pool_size, 'elu', 'glorot_normal', 'he_normal')
-        # x0 = Flatten()(x0)
-        #
-        # x1 = self.conv1DMPLayer(input1, kernel_size2, filters, pool_size, 'elu', 'glorot_normal', 'he_normal', self.X[1]['shape'])
-        # x1 = self.conv1DMPLayer(x1, kernel_size, filters, pool_size, 'elu', 'glorot_normal', 'he_normal')
-        # x1 = Flatten()(x1)
-        #
-        # x2 = self.conv1DMPLayer(input2, kernel_size2, filters, pool_size, 'elu', 'glorot_normal', 'he_normal', self.X[2]['shape'])
-        # x2 = self.conv1DMPLayer(x2, kernel_size, filters, pool_size, 'elu', 'glorot_normal', 'he_normal')
-        # x2 = Flatten()(x2)
-        #
-        # x3 = self.conv1DMPLayer(input3, kernel_size2, filters, pool_size, 'elu', 'glorot_normal', 'he_normal', self.X[3]['shape'])
-        # x3 = self.conv1DMPLayer(x3, kernel_size, filters, pool_size, 'elu', 'glorot_normal', 'he_normal')
-        # x3 = Flatten()(x3)
 
         strides = 2
+        depth=4
+        resdepth=1
 
+        x0 = self.conv1DResLayer(input0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
+        for i in range(0,depth):
+            x0 = self.conv1DResLayer(x0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        #x0 = Flatten()(x0)
 
-        x0 = self.conv1DResLayer(input0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x0 = Flatten()(x0)
+        x1 = self.conv1DResLayer(input1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
+        for i in range(0,depth):
+            x1 = self.conv1DResLayer(x1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        #x1 = Flatten()(x1)
 
-        x1 = self.conv1DResLayer(input1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x1 = Flatten()(x1)
+        x2 = self.conv1DResLayer(input2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
+        for i in range(0,depth):
+            x2 = self.conv1DResLayer(x2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        #x2 = Flatten()(x2)
 
-        x2 = self.conv1DResLayer(input2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x2 = Flatten()(x2)
-
-        x3 = self.conv1DResLayer(input3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        x3 = Flatten()(x3)
+        x3 = self.conv1DResLayer(input3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
+        for i in range(0,depth):
+            x3 = self.conv1DResLayer(x3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        #x3 = Flatten()(x3)
 
         denseUnits = 512
         z = concatenate([x0, x1, x2, x3])
+        #z = MaxPool1D(100)(z)
+        z = Flatten()(z)
         #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
         #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
         #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
@@ -372,8 +344,8 @@ class app:
             # loss='mean_squared_error',
             loss='categorical_crossentropy',
             optimizer=optimizer,
-            metrics=['accuracy','binary_crossentropy'])
-        # metrics = ['accuracy'])
+            #metrics=['accuracy','binary_accuracy'])
+         metrics = ['accuracy'])
 
         print(model.summary())
 
@@ -441,22 +413,33 @@ class app:
             output = BatchNormalization()(output)
             return output
 
-    def conv1DResLayer(self, input, kernel_size, filters, activation, kernel_init, bias_init, pooling=False, pool_size=1, inputShape=0):
+    def conv1DResLayer(self, input, kernel_size, filters, convolutions, activation, kernel_init, bias_init, pooling=False, pool_size=1, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         if (inputShape != 0):
             x=input
+            output=input
+            for i in range(0,convolutions):
+                output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
+                                input_shape=(inputShape, 1),
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )(output)
+                output = BatchNormalization()(output)
+                output = Activation(activation=activation)(output)
+                filters=filters*2
+
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
-                            input_shape=(inputShape, 1),
                             padding="same",
-                            #strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
                             kernel_regularizer=kernel_reg,
-                            )(input)
-            output = Dropout(self.settings['drop_rate'])(output)
+                            )(output)
             output = BatchNormalization()(output)
             output=add([output,x])
             output=Activation(activation=activation)(output)
@@ -464,20 +447,30 @@ class app:
             #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
         else:
-            x=input
-            output = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+            x = input
+            output = input
+            for i in range(0, convolutions):
+                output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )(output)
+                output = BatchNormalization()(output)
+                output = Activation(activation=activation)(output)
+                filters=filters*2
+            output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             padding="same",
-                            #strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
                             kernel_regularizer=kernel_reg,
-                            )(input)
-            output = Dropout(self.settings['drop_rate'])(output)
+                            )(output)
             output = BatchNormalization()(output)
-            output=add([output,x])
-            output=Activation(activation=activation)(output)
-            #if(pooling==True):
+            output = add([output, x])
+            output = Activation(activation=activation)(output)
+            # if(pooling==True):
             #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
 
