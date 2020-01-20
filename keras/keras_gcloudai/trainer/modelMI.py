@@ -311,40 +311,41 @@ class app:
 
         strides = 2
 
-        x0 = self.conv1DResLayer(input0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
-        x0 = self.conv1DResLayer(x0, kernel_size, strides,   'elu', 'glorot_uniform', 'zeros')
+
+        x0 = self.conv1DResLayer(input0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x0 = self.conv1DResLayer(x0, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
         x0 = Flatten()(x0)
 
-        x1 = self.conv1DResLayer(input1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x1 = self.conv1DResLayer(x1, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
+        x1 = self.conv1DResLayer(input1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x1 = self.conv1DResLayer(x1, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
         x1 = Flatten()(x1)
 
-        x2 = self.conv1DResLayer(input2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x2 = self.conv1DResLayer(x2, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
+        x2 = self.conv1DResLayer(input2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x2 = self.conv1DResLayer(x2, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
         x2 = Flatten()(x2)
 
-        x3 = self.conv1DResLayer(input3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
-        x3 = self.conv1DResLayer(x3, kernel_size, strides, 'elu', 'glorot_uniform', 'zeros')
+        x3 = self.conv1DResLayer(input3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
+        x3 = self.conv1DResLayer(x3, kernel_size, filters, 'elu', 'glorot_uniform', 'zeros', True, 2)
         x3 = Flatten()(x3)
 
         denseUnits = 512
@@ -363,12 +364,9 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        # try:
-        #    optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
-        # except:
-        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-        # optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
             # loss='mean_squared_error',
@@ -443,13 +441,13 @@ class app:
             output = BatchNormalization()(output)
             return output
 
-    def conv1DResLayer(self, input, kernel_size, strides, activation, kernel_init, bias_init, inputShape=0):
+    def conv1DResLayer(self, input, kernel_size, filters, activation, kernel_init, bias_init, pooling=False, pool_size=1, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         if (inputShape != 0):
             x=input
-            output = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
+            output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             input_shape=(inputShape, 1),
                             padding="same",
                             #strides=strides,
@@ -460,22 +458,14 @@ class app:
                             )(input)
             output = Dropout(self.settings['drop_rate'])(output)
             output = BatchNormalization()(output)
-            # output = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
-            #                 padding="same",
-            #                 #strides=strides,
-            #                 kernel_initializer=kernel_init,
-            #                 bias_initializer=bias_init,
-            #                 bias_regularizer=bias_reg,
-            #                 kernel_regularizer=kernel_reg,
-            #                 )(output)
-            # output = Dropout(self.settings['drop_rate'])(output)
-            # output = BatchNormalization()(output)
             output=add([output,x])
             output=Activation(activation=activation)(output)
+            #if(pooling==True):
+            #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
         else:
             x=input
-            output = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+            output = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                             padding="same",
                             #strides=strides,
                             kernel_initializer=kernel_init,
@@ -485,18 +475,10 @@ class app:
                             )(input)
             output = Dropout(self.settings['drop_rate'])(output)
             output = BatchNormalization()(output)
-            output = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
-                            padding="same",
-                            #strides=strides,
-                            kernel_initializer=kernel_init,
-                            bias_initializer=bias_init,
-                            bias_regularizer=bias_reg,
-                            kernel_regularizer=kernel_reg,
-                            )(output)
-            output = Dropout(self.settings['drop_rate'])(output)
-            output = BatchNormalization()(output)
             output=add([output,x])
             output=Activation(activation=activation)(output)
+            #if(pooling==True):
+            #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
 
     def conv1DMPResLayer(self, input, kernel_size, filters, activation, kernel_init, bias_init, inputShape=0):
