@@ -1448,3 +1448,20 @@ if __name__ == "__main__":
 #        # if (os.path.isfile(self.job_dir+self.model_name)):
 #        #    model.load_weights(self.model_name)
 #        return model
+
+
+
+
+# --mode=0
+# --ctr=0
+# --data-size=40000
+# --eval-size=0.2
+# --batch-size=0.05
+# --epochs=100000
+# --overfit-epochs=50000
+# --reduction-epochs=100000
+# --ls-reduction-koef=0.99
+# --ls=0.0001
+# --l1=0.00
+# --l2=0.00
+# --drop-rate=0.15
