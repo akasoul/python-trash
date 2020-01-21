@@ -320,7 +320,9 @@ class app:
         #x3 = Flatten()(x3)
 
         denseUnits = 512
-        z = concatenate([x0, x1, x2, x3])
+        z = add([x0, x1, x2, x3])
+        #for i in range(0,depth):
+        #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
         #z = MaxPool1D(100)(z)
         z = Flatten()(z)
         #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
