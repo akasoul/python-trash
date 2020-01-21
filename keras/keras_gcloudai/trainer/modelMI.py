@@ -283,10 +283,14 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
         kernel_size = 3
         kernel_size2 = 5
-        filters = 1
+        filters = 3
         pool_size = 5
+        strides = 2
+        depth=4
+        resdepth=1
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
         input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
@@ -294,9 +298,6 @@ class app:
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
 
-        strides = 2
-        depth=4
-        resdepth=1
 
         x0 = self.conv1DResLayer(input0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
         for i in range(0,depth):
@@ -431,7 +432,6 @@ class app:
                                 )(output)
                 output = BatchNormalization()(output)
                 output = Activation(activation=activation)(output)
-                filters=filters*2
 
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             padding="same",
@@ -459,7 +459,6 @@ class app:
                                 )(output)
                 output = BatchNormalization()(output)
                 output = Activation(activation=activation)(output)
-                filters=filters*2
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             padding="same",
                             kernel_initializer=kernel_init,
