@@ -1,7 +1,8 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
-from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, Activation, add, AveragePooling1D, multiply
+from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
+    Activation, add, AveragePooling1D, multiply
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -104,8 +105,6 @@ class historyCallback(callbacks.Callback):
 
         prediction = self.model.predict(x=input)
 
-
-
         testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
         testingplot = testingfig.add_subplot(111)
         testingplot.plot(output, linewidth=0.05, color='b')
@@ -113,8 +112,8 @@ class historyCallback(callbacks.Callback):
         testingfig.savefig(fname=self.logDir + '/tests/images/' + str(epoch))
         plt.close(testingfig)
 
-        arrayToFile=np.column_stack((prediction[:,0],output[:,0]))
-        np.savetxt(self.logDir + '/tests/texts/' + str(epoch)+".txt", arrayToFile, delimiter=" ",fmt='%1.3f')
+        arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
+        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
     def on_epoch_end(self, epoch, logs=None):
 
@@ -289,46 +288,44 @@ class app:
         filters = 3
         pool_size = 5
         strides = 2
-        depth=4
-        resdepth=1
+        depth = 4
+        resdepth = 1
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
         input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
+        x0 = self.resUnit(input0, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
+        for i in range(0, depth):
+            x0 = self.resUnit(x0, 'elu', 'glorot_uniform', 'zeros')
+        # x0 = Flatten()(x0)
 
+        x1 = self.resUnit(input1, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
+        for i in range(0, depth):
+            x1 = self.resUnit(x1, 'elu', 'glorot_uniform', 'zeros')
+        # x1 = Flatten()(x1)
 
-        x0 = self.conv1DResLayer(input0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
-        for i in range(0,depth):
-            x0 = self.conv1DResLayer(x0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        #x0 = Flatten()(x0)
+        x2 = self.resUnit(input2, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
+        for i in range(0, depth):
+            x2 = self.resUnit(x2, 'elu', 'glorot_uniform', 'zeros')
+        # x2 = Flatten()(x2)
 
-        x1 = self.conv1DResLayer(input1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
-        for i in range(0,depth):
-            x1 = self.conv1DResLayer(x1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        #x1 = Flatten()(x1)
-
-        x2 = self.conv1DResLayer(input2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
-        for i in range(0,depth):
-            x2 = self.conv1DResLayer(x2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        #x2 = Flatten()(x2)
-
-        x3 = self.conv1DResLayer(input3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
-        for i in range(0,depth):
-            x3 = self.conv1DResLayer(x3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        #x3 = Flatten()(x3)
+        x3 = self.resUnit(input3, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
+        for i in range(0, depth):
+            x3 = self.resUnit(x3, 'elu', 'glorot_uniform', 'zeros')
+        # x3 = Flatten()(x3)
 
         denseUnits = 512
         z = add([x0, x1, x2, x3])
-        #for i in range(0,depth):
+        # for i in range(0,depth):
         #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        #z = MaxPool1D(100)(z)
+        # z = MaxPool1D(100)(z)
         z = Flatten()(z)
-        #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-        #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-        #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-        #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+        # z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+        # z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+        # z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+        # z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
 
         output = (Dense(self.Y[0]['shape'], activation='softmax',
                         name='output'))(z)
@@ -340,15 +337,15 @@ class app:
             outputs=[output])
         optimizer = None
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
+        # optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        # optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
             # loss='mean_squared_error',
             loss='categorical_crossentropy',
             optimizer=optimizer,
-            #metrics=['accuracy','binary_accuracy'])
-         metrics = ['accuracy'])
+            # metrics=['accuracy','binary_accuracy'])
+            metrics=['accuracy'])
 
         print(model.summary())
 
@@ -356,7 +353,8 @@ class app:
 
         return model
 
-    def conv1DMPLayer(self, input, kernel_size, filters_count, pool_size, activation, kernel_init, bias_init, inputShape=0):
+    def conv1DMPLayer(self, input, kernel_size, filters_count, pool_size, activation, kernel_init, bias_init,
+                      inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
@@ -416,14 +414,15 @@ class app:
             output = BatchNormalization()(output)
             return output
 
-    def conv1DResLayer(self, input, kernel_size, filters, convolutions, activation, kernel_init, bias_init, pooling=False, pool_size=1, inputShape=0):
+    def conv1DResLayer(self, input, kernel_size, filters, convolutions, activation, kernel_init, bias_init,
+                       pooling=False, pool_size=1, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         if (inputShape != 0):
-            x=input
-            output=input
-            for i in range(0,convolutions):
+            x = input
+            output = input
+            for i in range(0, convolutions):
                 output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                                 input_shape=(inputShape, 1),
                                 padding="same",
@@ -443,9 +442,9 @@ class app:
                             kernel_regularizer=kernel_reg,
                             )(output)
             output = BatchNormalization()(output)
-            output=add([output,x])
-            output=Activation(activation=activation)(output)
-            #if(pooling==True):
+            output = add([output, x])
+            output = Activation(activation=activation)(output)
+            # if(pooling==True):
             #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
         else:
@@ -475,16 +474,94 @@ class app:
             #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
 
+    def resUnit(self, input, activation, kernel_init, bias_init, inputShape=0):
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        useActivationInside=False
+
+        def conv1dinput(kernel):
+
+            return Conv1D(kernel_size=kernel, filters=1, activation=None,
+                                input_shape=(inputShape, 1),
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )
+        def conv1d(kernel):
+            return Conv1D(kernel_size=kernel, filters=1, activation=None,
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )
+        t0 = input
+        t1 = input
+        t2 = input
+        t3 = input
+        if (inputShape != 0):
+            t1 = conv1dinput(1)(t1)
+            t1 = BatchNormalization()(t1)
+            if(useActivationInside==True):
+                t1 = Activation(activation=activation)(t1)
+
+            t2 = conv1dinput(1)(t2)
+            t2 = BatchNormalization()(t2)
+            if(useActivationInside==True):
+                t2 = Activation(activation=activation)(t2)
+
+            t3 = conv1dinput(1)(t3)
+            t3 = BatchNormalization()(t3)
+            if(useActivationInside==True):
+                t3 = Activation(activation=activation)(t3)
+        else:
+            t1 = conv1d(1)(t1)
+            t1 = BatchNormalization()(t1)
+            if (useActivationInside == True):
+                t1 = Activation(activation=activation)(t1)
+
+            t2 = conv1d(1)(t2)
+            t2 = BatchNormalization()(t2)
+            if (useActivationInside == True):
+                t2 = Activation(activation=activation)(t2)
+
+            t3 = conv1d(1)(t3)
+            t3 = BatchNormalization()(t3)
+            if (useActivationInside == True):
+                t3 = Activation(activation=activation)(t3)
+
+        t2=conv1d(3)(t2)
+        t2 = BatchNormalization()(t2)
+        if (useActivationInside == True):
+            t2 = Activation(activation=activation)(t2)
+
+        t3=conv1d(3)(t3)
+        t3 = BatchNormalization()(t3)
+        if (useActivationInside == True):
+            t3 = Activation(activation=activation)(t3)
+
+        t3=conv1d(5)(t3)
+        t3 = BatchNormalization()(t3)
+        if (useActivationInside == True):
+            t3 = Activation(activation=activation)(t3)
+
+        t=add([t0,t1,t2,t3])
+        t=Activation(activation=activation)(t)
+        return t
+
     def conv1DMPResLayer(self, input, kernel_size, filters, activation, kernel_init, bias_init, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         if (inputShape != 0):
-            x=input
+            x = input
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             input_shape=(inputShape, 1),
                             padding="same",
-                            #strides=strides,
+                            # strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
@@ -494,7 +571,7 @@ class app:
             output = BatchNormalization()(output)
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             padding="same",
-                            #strides=strides,
+                            # strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
@@ -502,15 +579,15 @@ class app:
                             )(output)
             output = Dropout(self.settings['drop_rate'])(output)
             output = BatchNormalization()(output)
-            output=add([output,x])
-            output=Activation(activation=activation)(output)
-            output=MaxPool1D(pool_size=(2))(output)
+            output = add([output, x])
+            output = Activation(activation=activation)(output)
+            output = MaxPool1D(pool_size=(2))(output)
             return output
         else:
-            x=input
+            x = input
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                             padding="same",
-                            #strides=strides,
+                            # strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
@@ -520,7 +597,7 @@ class app:
             output = BatchNormalization()(output)
             output = Conv1D(kernel_size=kernel_size, filters=filters, activation=None,
                             padding="same",
-                            #strides=strides,
+                            # strides=strides,
                             kernel_initializer=kernel_init,
                             bias_initializer=bias_init,
                             bias_regularizer=bias_reg,
@@ -528,11 +605,10 @@ class app:
                             )(output)
             output = Dropout(self.settings['drop_rate'])(output)
             output = BatchNormalization()(output)
-            output=add([output,x])
-            output=Activation(activation=activation)(output)
-            output=MaxPool1D(pool_size=(2))(output)
+            output = add([output, x])
+            output = Activation(activation=activation)(output)
+            output = MaxPool1D(pool_size=(2))(output)
             return output
-
 
     def denseLayer(self, input, units, activation, kernel_init, bias_init):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
@@ -562,7 +638,7 @@ class app:
                     sName += layersShortNames[j]
                     sName += "."
         sName += str(self.Y[0]['shape'])
-        name=hashlib.md5()
+        name = hashlib.md5()
         name.update(sName.encode())
 
         self.model_name = name.hexdigest()
@@ -575,7 +651,7 @@ class app:
         backend.clear_session()
 
         model = self.initModel()
-        if(self.ctr==True):
+        if (self.ctr == True):
             try:
                 model.load_weights(self.job_dir + self.model_name)
             except:
@@ -583,7 +659,6 @@ class app:
 
             else:
                 print('model loaded')
-
 
         train_x = None
         train_y = None
@@ -611,9 +686,9 @@ class app:
         score_test = None
         if (self.eval_size > 0.0):
             score_test = model.evaluate(train_x, train_y)  # , batch_size=500)
-        print("loss {0} \nacc {1}".format(score_train[0],score_train[1]))
+        print("loss {0} \nacc {1}".format(score_train[0], score_train[1]))
         if (self.eval_size > 0.0):
-            print("val_loss {0} \nval_acc {1}".format(score_test[0],score_test[1]))
+            print("val_loss {0} \nval_acc {1}".format(score_test[0], score_test[1]))
 
         # self.historyCallback.loss=np.array[score_train[0]]
         # self.historyCallback.acc=np.array[score_train[1]]
@@ -904,7 +979,7 @@ class app:
         self.test_model = False
         self.model_is_tested = True
         self.testing_model = False
-        self.ctr=False
+        self.ctr = False
 
     def setLogName(self, logName):
         self.sLogName = logName
@@ -1147,7 +1222,7 @@ def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_e
     # print(mode)
     # if(mode.find('train')>0):
     mode = int(mode)
-    ctr= int(ctr)
+    ctr = int(ctr)
     if (mode == 0):
         if (epochs != None):
             z.setSettings('epochs', epochs)
@@ -1168,10 +1243,9 @@ def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_e
         if (batch_size != None):
             z.setSettings('batch_size', batch_size)
         print(z.settings)
-        if(ctr==1):
-            z.ctr=True
+        if (ctr == 1):
+            z.ctr = True
         z.threadTrain()
-
 
     # if(mode.find('test')>0):
     if (mode == 1):
@@ -1450,8 +1524,6 @@ if __name__ == "__main__":
 #        # if (os.path.isfile(self.job_dir+self.model_name)):
 #        #    model.load_weights(self.model_name)
 #        return model
-
-
 
 
 # --mode=0
