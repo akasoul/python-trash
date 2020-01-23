@@ -288,7 +288,7 @@ class app:
         filters = 3
         pool_size = 5
         strides = 2
-        depth = 4
+        depth = 2
         resdepth = 1
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
@@ -296,24 +296,24 @@ class app:
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
-        x0 = self.resUnit(input0, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
+        x0 = self.resUnit(input0,1, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
         for i in range(0, depth):
-            x0 = self.resUnit(x0, 'elu', 'glorot_uniform', 'zeros')
+            x0 = self.resUnit(x0,i+1, 'elu', 'glorot_uniform', 'zeros')
         # x0 = Flatten()(x0)
 
-        x1 = self.resUnit(input1, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
+        x1 = self.resUnit(input1,1, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
         for i in range(0, depth):
-            x1 = self.resUnit(x1, 'elu', 'glorot_uniform', 'zeros')
+            x1 = self.resUnit(x1,i+1, 'elu', 'glorot_uniform', 'zeros')
         # x1 = Flatten()(x1)
 
-        x2 = self.resUnit(input2, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
+        x2 = self.resUnit(input2,1, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
         for i in range(0, depth):
-            x2 = self.resUnit(x2, 'elu', 'glorot_uniform', 'zeros')
+            x2 = self.resUnit(x2,i+1, 'elu', 'glorot_uniform', 'zeros')
         # x2 = Flatten()(x2)
 
-        x3 = self.resUnit(input3, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
+        x3 = self.resUnit(input3,1, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
         for i in range(0, depth):
-            x3 = self.resUnit(x3, 'elu', 'glorot_uniform', 'zeros')
+            x3 = self.resUnit(x3,i+1, 'elu', 'glorot_uniform', 'zeros')
         # x3 = Flatten()(x3)
 
         denseUnits = 512
@@ -474,7 +474,7 @@ class app:
             #    output=MaxPool1D(pool_size=pool_size)(output)
             return output
 
-    def resUnit(self, input, activation, kernel_init, bias_init, inputShape=0):
+    def resUnit(self, input,filters, activation, kernel_init, bias_init, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
@@ -482,7 +482,7 @@ class app:
 
         def conv1dinput(kernel):
 
-            return Conv1D(kernel_size=kernel, filters=1, activation=None,
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
                                 input_shape=(inputShape, 1),
                                 padding="same",
                                 kernel_initializer=kernel_init,
@@ -491,7 +491,7 @@ class app:
                                 kernel_regularizer=kernel_reg,
                                 )
         def conv1d(kernel):
-            return Conv1D(kernel_size=kernel, filters=1, activation=None,
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
                                 padding="same",
                                 kernel_initializer=kernel_init,
                                 bias_initializer=bias_init,
@@ -1539,3 +1539,86 @@ if __name__ == "__main__":
 # --l1=0.00
 # --l2=0.00
 # --drop-rate=0.15
+
+
+
+    # def initModel(self):
+    #
+    #     # model
+    #     kernel_init = 'glorot_uniform'
+    #     bias_init = 'zeros'
+    #     kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+    #     bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+    #     activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+    #
+    #     kernel_size = 3
+    #     kernel_size2 = 5
+    #     filters = 3
+    #     pool_size = 5
+    #     strides = 2
+    #     depth=4
+    #     resdepth=1
+    #
+    #     input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
+    #     input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
+    #     input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
+    #     input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
+    #
+    #
+    #
+    #     x0 = self.conv1DResLayer(input0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
+    #     for i in range(0,depth):
+    #         x0 = self.conv1DResLayer(x0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+    #     #x0 = Flatten()(x0)
+    #
+    #     x1 = self.conv1DResLayer(input1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
+    #     for i in range(0,depth):
+    #         x1 = self.conv1DResLayer(x1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+    #     #x1 = Flatten()(x1)
+    #
+    #     x2 = self.conv1DResLayer(input2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
+    #     for i in range(0,depth):
+    #         x2 = self.conv1DResLayer(x2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+    #     #x2 = Flatten()(x2)
+    #
+    #     x3 = self.conv1DResLayer(input3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
+    #     for i in range(0,depth):
+    #         x3 = self.conv1DResLayer(x3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+    #     #x3 = Flatten()(x3)
+    #
+    #     denseUnits = 512
+    #     z = add([x0, x1, x2, x3])
+    #     #for i in range(0,depth):
+    #     #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
+    #     #z = MaxPool1D(100)(z)
+    #     z = Flatten()(z)
+    #     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+    #     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+    #     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+    #     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
+    #
+    #     output = (Dense(self.Y[0]['shape'], activation='softmax',
+    #                     name='output'))(z)
+    #     # output = (Dense(units=(25,3),activation='softmax',
+    #     #           name='output'))(z)
+    #
+    #     model = Model(
+    #         inputs=[input0, input1, input2, input3],
+    #         outputs=[output])
+    #     optimizer = None
+    #     optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+    #     #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+    #     #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
+    #
+    #     model.compile(
+    #         # loss='mean_squared_error',
+    #         loss='categorical_crossentropy',
+    #         optimizer=optimizer,
+    #         #metrics=['accuracy','binary_accuracy'])
+    #      metrics = ['accuracy'])
+    #
+    #     print(model.summary())
+    #
+    #     self.setModelName(model)
+    #
+    #     return model
