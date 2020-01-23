@@ -678,10 +678,10 @@ class app:
 
         kernel_size = 3
         kernel_size2 = 5
-        filters = 1
+        filters = 2
         pool_size = 5
         strides = 2
-        depth = 3
+        depth = 4
         resdepth = 1
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
