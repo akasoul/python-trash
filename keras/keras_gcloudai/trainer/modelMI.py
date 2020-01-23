@@ -288,7 +288,7 @@ class app:
         filters = 3
         pool_size = 5
         strides = 2
-        depth = 2
+        depth = 5
         resdepth = 1
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
@@ -296,24 +296,24 @@ class app:
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
-        x0 = self.resUnit(input0,1, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
+        x0 = self.resUnit2(input0,filters, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
         for i in range(0, depth):
-            x0 = self.resUnit(x0,i+1, 'elu', 'glorot_uniform', 'zeros')
+            x0 = self.resUnit2(x0,filters, 'elu', 'glorot_uniform', 'zeros')
         # x0 = Flatten()(x0)
 
-        x1 = self.resUnit(input1,1, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
+        x1 = self.resUnit2(input1,filters, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
         for i in range(0, depth):
-            x1 = self.resUnit(x1,i+1, 'elu', 'glorot_uniform', 'zeros')
+            x1 = self.resUnit2(x1,filters, 'elu', 'glorot_uniform', 'zeros')
         # x1 = Flatten()(x1)
 
-        x2 = self.resUnit(input2,1, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
+        x2 = self.resUnit2(input2,filters, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
         for i in range(0, depth):
-            x2 = self.resUnit(x2,i+1, 'elu', 'glorot_uniform', 'zeros')
+            x2 = self.resUnit2(x2,filters, 'elu', 'glorot_uniform', 'zeros')
         # x2 = Flatten()(x2)
 
-        x3 = self.resUnit(input3,1, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
+        x3 = self.resUnit2(input3,1, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
         for i in range(0, depth):
-            x3 = self.resUnit(x3,i+1, 'elu', 'glorot_uniform', 'zeros')
+            x3 = self.resUnit2(x3,filters, 'elu', 'glorot_uniform', 'zeros')
         # x3 = Flatten()(x3)
 
         denseUnits = 512
@@ -551,6 +551,75 @@ class app:
         t=add([t0,t1,t2,t3])
         t=Activation(activation=activation)(t)
         return t
+
+
+
+    def resUnit2(self, input,filters, activation, kernel_init, bias_init, inputShape=0):
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        useActivationInside=False
+
+        def conv1dinput(kernel):
+
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                                input_shape=(inputShape, 1),
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )
+        def conv1d(kernel):
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                                padding="same",
+                                kernel_initializer=kernel_init,
+                                bias_initializer=bias_init,
+                                bias_regularizer=bias_reg,
+                                kernel_regularizer=kernel_reg,
+                                )
+        t0 = input
+        t1 = input
+        t2 = input
+        t3 = input
+
+        if (inputShape != 0):
+            t3 = conv1dinput(1)(t3)
+            t3 = BatchNormalization()(t3)
+            if(useActivationInside==True):
+                t3 = Activation(activation=activation)(t3)
+            t2=t3
+            t1=t3
+        else:
+            t3 = conv1d(1)(t3)
+            t3 = BatchNormalization()(t3)
+            if(useActivationInside==True):
+                t3 = Activation(activation=activation)(t3)
+            t2=t3
+            t1=t3
+
+        t3=conv1d(3)(t3)
+        t3=BatchNormalization()(t3)
+
+        t2=t3
+
+        t3=conv1d(5)(t3)
+        t3=BatchNormalization()(t3)
+
+        t3=Activation(activation=activation)(t3)
+
+        t2=add([t2,t3])
+        t2=Activation(activation=activation)(t2)
+
+        t1=add([t1,t2])
+        t1=Activation(activation=activation)(t1)
+
+        t0=add([t0,t1])
+        t0=Activation(activation=activation)(t0)
+
+        return t0
+
+
 
     def conv1DMPResLayer(self, input, kernel_size, filters, activation, kernel_init, bias_init, inputShape=0):
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
