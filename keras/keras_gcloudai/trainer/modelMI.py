@@ -2,7 +2,7 @@ import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.models import Sequential
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ELU
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -587,7 +587,8 @@ class elements:
         t1=conv1d(1)(t1)
 
         t0=add([t0,t1])
-        t0=Activation(activation=activation)(t0)
+        t0=activation(t0)
+        #t0=Activation(activation=activation)(t0)
 
         return t0
 
@@ -689,24 +690,24 @@ class app:
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
-        x0 = e.resUnit3(input0,filters, 'elu', 'glorot_uniform', 'zeros', self.X[0]['shape'])
+        x0 = e.resUnit3(input0,filters, Activation('tanh'), 'glorot_uniform', 'zeros', self.X[0]['shape'])
         for i in range(0, depth):
-            x0 = e.resUnit3(x0,filters, 'elu', 'glorot_uniform', 'zeros')
+            x0 = e.resUnit3(x0,filters, LeakyReLU(), 'glorot_uniform', 'zeros')
         # x0 = Flatten()(x0)
 
-        x1 = e.resUnit3(input1,filters, 'elu', 'glorot_uniform', 'zeros', self.X[1]['shape'])
+        x1 = e.resUnit3(input1,filters, Activation('tanh'), 'glorot_uniform', 'zeros', self.X[1]['shape'])
         for i in range(0, depth):
-            x1 = e.resUnit3(x1,filters, 'elu', 'glorot_uniform', 'zeros')
+            x1 = e.resUnit3(x1,filters, LeakyReLU(), 'glorot_uniform', 'zeros')
         # x1 = Flatten()(x1)
 
-        x2 = e.resUnit3(input2,filters, 'elu', 'glorot_uniform', 'zeros', self.X[2]['shape'])
+        x2 = e.resUnit3(input2,filters, Activation('tanh'), 'glorot_uniform', 'zeros', self.X[2]['shape'])
         for i in range(0, depth):
-            x2 = e.resUnit3(x2,filters, 'elu', 'glorot_uniform', 'zeros')
+            x2 = e.resUnit3(x2,filters, LeakyReLU(), 'glorot_uniform', 'zeros')
         # x2 = Flatten()(x2)
 
-        x3 = e.resUnit3(input3,filters, 'elu', 'glorot_uniform', 'zeros', self.X[3]['shape'])
+        x3 = e.resUnit3(input3,filters, Activation('tanh'), 'glorot_uniform', 'zeros', self.X[3]['shape'])
         for i in range(0, depth):
-            x3 = e.resUnit3(x3,filters, 'elu', 'glorot_uniform', 'zeros')
+            x3 = e.resUnit3(x3,filters, LeakyReLU(), 'glorot_uniform', 'zeros')
         # x3 = Flatten()(x3)
 
         denseUnits = 512
