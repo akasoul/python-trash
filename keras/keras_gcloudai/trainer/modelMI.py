@@ -1,5 +1,6 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
+from keras.utils import plot_model
 from keras.models import Sequential
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
     Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU
@@ -48,7 +49,7 @@ class historyCallback(callbacks.Callback):
                 output_f.write(input_f.read())
 
     # metrics: train_acc,val_acc,full_acc,train_loss,val_loss,full_loss
-    def initSettings(self, _modelName, _metrics, _ovfEpochs, _reductionEpochs, _reductionKoef, _logDir,
+    def initSettings(self, _modelName, _metrics, _ovfEpochs, _reductionEpochs, _reductionKoef, _logDir, _saveWholeModel,
                      minEpochsBetweenSavingModel=0):
         self.modelName = _modelName
         self.metrics = _metrics
@@ -59,6 +60,7 @@ class historyCallback(callbacks.Callback):
         self.reductionCounter = 0
         self.save = False
         self.minEpochsBetweenSavingModel = minEpochsBetweenSavingModel
+        self.saveWholeModel=_saveWholeModel
 
         self.bestEpoch = -minEpochsBetweenSavingModel
 
@@ -112,7 +114,8 @@ class historyCallback(callbacks.Callback):
         testingfig.savefig(fname=self.logDir + '/tests/images/' + str(epoch))
         plt.close(testingfig)
 
-        arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
+        #arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
+        arrayToFile = np.column_stack((prediction, output))
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
     def on_epoch_end(self, epoch, logs=None):
@@ -177,7 +180,10 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -191,7 +197,10 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -206,7 +215,10 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -221,7 +233,10 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -235,7 +250,10 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -250,7 +268,10 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
-                self.model.save_weights(self.modelName)
+                if(self.saveWholeModel==True):
+                    self.model.save(self.modelName)
+                else:
+                    self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
                     self.threadTest(epoch)
@@ -526,7 +547,7 @@ class elements:
         output = activation(output)
         return output
 
-    def resUnit2(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0):
+    def resUnit2(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0, useBatchnorm=False):
         kernel_reg = regularizers.l2(self.settings['l2'])
         bias_reg = regularizers.l2(self.settings['l2'])
 
@@ -550,6 +571,9 @@ class elements:
                           kernel_regularizer=kernel_reg,
                           )
 
+        if(useBatchnorm==True):
+            input=BatchNormalization()(input)
+
         t0 = input
         t1 = input
 
@@ -564,7 +588,6 @@ class elements:
 
         output = activation(output)
         output=Dropout(self.settings['drop_rate'])(output)
-        #output=BatchNormalization()(output)
         return output
 
     def resUnit235(self, input, filters, activation, kernel_init, bias_init, inputShape=0):
@@ -727,10 +750,10 @@ class app:
 
         kernel_size = 3
         kernel_size2 = 5
-        filters = 32
+        filters = 128
         pool_size = 5
         strides = 2
-        depth1 = 4
+        depth1 = 6
         depth2 = 3
         depth3 = 3
         resdepth = 1
@@ -747,25 +770,25 @@ class app:
 
         denseUnits = 100
         kernel_start=5
-        x0 = e.resUnit2(input0, filters, kernel_size, activation2, 'glorot_normal', 'zeros', self.X[0]['shape'])
+        x0 = e.resUnit2(input0, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[0]['shape'], True)
         for i in range(0, depth1):
-            x0 = e.resUnit2(x0, filters, kernel_size, activation2, 'glorot_normal', 'zeros')
+            x0 = e.resUnit2(x0, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
             x0=MaxPool1D(pool_size=2)(x0)
 
 
-        x1 = e.resUnit2(input1, filters, kernel_size, activation2, 'glorot_normal', 'zeros', self.X[1]['shape'])
+        x1 = e.resUnit2(input1, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[1]['shape'], True)
         for i in range(0, depth1):
-            x1 = e.resUnit2(x1, filters, kernel_size, activation2, 'glorot_normal', 'zeros')
+            x1 = e.resUnit2(x1, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
             x1 = MaxPool1D(pool_size=2)(x1)
 
-        x2 = e.resUnit2(input2, filters, kernel_size, activation2, 'glorot_normal', 'zeros', self.X[2]['shape'])
+        x2 = e.resUnit2(input2, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[2]['shape'], True)
         for i in range(0, depth1):
-            x2 = e.resUnit2(x2, filters, kernel_size, activation2, 'glorot_normal', 'zeros')
+            x2 = e.resUnit2(x2, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
             x2 = MaxPool1D(pool_size=2)(x2)
 
-        x3 = e.resUnit2(input3, filters, kernel_size, activation2, 'glorot_normal', 'zeros', self.X[3]['shape'])
+        x3 = e.resUnit2(input3, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[3]['shape'], True)
         for i in range(0, depth1):
-            x3 = e.resUnit2(x3, filters, kernel_size, activation2, 'glorot_normal', 'zeros')
+            x3 = e.resUnit2(x3, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
             x3 = MaxPool1D(pool_size=2)(x3)
 
         denseUnits = 400
@@ -780,7 +803,7 @@ class app:
         #    z = e.denseUnit(z, denseUnits, activation2, 'glorot_normal', 'zeros')
         # z = e.denseLayer(z, denseUnits, Activation(activation='tanh'), 'glorot_normal', 'zeros')
         #z=e.LSTMUnit(z,denseUnits, activation2, 'glorot_normal', 'zeros')
-        output = e.denseUnit(z, 2, Activation(activation='softmax'), 'glorot_normal', 'zeros',False,False)
+        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), 'glorot_uniform', 'zeros',False,False)
 
         # output = (Dense(self.Y[0]['shape'], activation='softmax',
         #                name='output'))(z)
@@ -791,8 +814,8 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
@@ -805,7 +828,7 @@ class app:
         print(model.summary())
 
         self.setModelName(model)
-
+        #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
         return model
 
     def setModelName(self, model):
@@ -847,7 +870,10 @@ class app:
         model = self.initModel()
         if (self.ctr == True):
             try:
-                model.load_weights(self.job_dir + self.model_name)
+                if(self.settings['saveWholeModel']==True):
+                    model.load(self.job_dir + self.model_name)
+                else:
+                    model.load_weights(self.job_dir + self.model_name)
             except:
                 print('no model')
 
@@ -925,8 +951,7 @@ class app:
         self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
                                           self.settings['overfit_epochs'], self.settings['reduction_epochs'],
                                           self.settings['ls_reduction_koef'],
-                                          self.logDir, 5)
-
+                                          self.logDir, self.settings['saveWholeModel'], 5)
         lrScheduler = callbacks.LearningRateScheduler(self.lrSchedule)
 
         self.callbacks = [
@@ -963,7 +988,10 @@ class app:
 
         model = self.initModel()
         try:
-            model.load_weights(self.job_dir + self.model_name)
+            if (self.settings['saveWholeModel'] == True):
+                model.load(self.job_dir + self.model_name)
+            else:
+                model.load_weights(self.job_dir + self.model_name)
         except:
             print('no model')
             return
@@ -1047,7 +1075,10 @@ class app:
 
         model = self.initModel()
         try:
-            model.load_weights(self.job_dir + self.model_name)
+            if (self.settings['saveWholeModel'] == True):
+                model.load(self.job_dir + self.model_name)
+            else:
+                model.load_weights(self.job_dir + self.model_name)
         except:
             print('no model')
             return
@@ -1128,7 +1159,8 @@ class app:
             'reduction_epochs': int,
             'ls_reduction_koef': float,
             'metrics': int,
-            'batch_size': float
+            'batch_size': float,
+            'saveWholeModel': bool
         }
         self.settings = {
             'epochs': 50000,
@@ -1141,7 +1173,8 @@ class app:
             'reduction_epochs': 2500,
             'ls_reduction_koef': 0.95,
             'metrics': 0,
-            'batch_size': 0.1
+            'batch_size': 0.1,
+            'saveWholeModel': True
         }
 
         self.sDataInput1Path = "input.txt"
@@ -1411,28 +1444,31 @@ def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_e
     # if(mode.find('train')>0):
     mode = int(mode)
     ctr = int(ctr)
+
+    if (epochs != None):
+        z.setSettings('epochs', epochs)
+    if (overfit_epochs != None):
+        z.setSettings('overfit_epochs', overfit_epochs)
+    if (reduction_epochs != None):
+        z.setSettings('reduction_epochs', reduction_epochs)
+    if (ls_reduction_koef != None):
+        z.setSettings('ls_reduction_koef', ls_reduction_koef)
+    if (ls != None):
+        z.setSettings('ls', ls)
+    if (l1 != None):
+        z.setSettings('l1', l1)
+    if (l2 != None):
+        z.setSettings('l2', l2)
+    if (drop_rate != None):
+        z.setSettings('drop_rate', drop_rate)
+    if (batch_size != None):
+        z.setSettings('batch_size', batch_size)
+    print(z.settings)
+    if (ctr == 1):
+        z.ctr = True
+
+
     if (mode == 0):
-        if (epochs != None):
-            z.setSettings('epochs', epochs)
-        if (overfit_epochs != None):
-            z.setSettings('overfit_epochs', overfit_epochs)
-        if (reduction_epochs != None):
-            z.setSettings('reduction_epochs', reduction_epochs)
-        if (ls_reduction_koef != None):
-            z.setSettings('ls_reduction_koef', ls_reduction_koef)
-        if (ls != None):
-            z.setSettings('ls', ls)
-        if (l1 != None):
-            z.setSettings('l1', l1)
-        if (l2 != None):
-            z.setSettings('l2', l2)
-        if (drop_rate != None):
-            z.setSettings('drop_rate', drop_rate)
-        if (batch_size != None):
-            z.setSettings('batch_size', batch_size)
-        print(z.settings)
-        if (ctr == 1):
-            z.ctr = True
         z.threadTrain()
 
     # if(mode.find('test')>0):
@@ -1446,27 +1482,18 @@ def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_e
 
     # if(mode.find('optimise')>0):
     if (mode == 3):
-        if (batch_size != None):
-            z.setSettings('batch_size', batch_size)
+        z.ctr = False
 
-        l1_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
-        l2_arr = np.array([0.0, 0.00001, 0.0001, 0.001])
-        ls_arr = np.array([0.000001, 0.00001, 0.0001, 0.001])
-        dr_array = np.array([0.1, 0.3, 0.5])
+        ls_arr = np.array([0.000000001, 0.00000001, 0.0000001, 0.000001, 0.00001, 0.0001])
         for i in ls_arr:
-            for j in dr_array:
-                for k in l1_arr:
                     # for l in l2_arr:
-                    name = "ls={0} dr={1} l1={2} l2={3}".format(i, j, k, k)
+                    name = "ls={0}".format(i)
                     z.setLogName(name)
                     z.setSettings('epochs', epochs)
                     z.setSettings('overfit_epochs', overfit_epochs)
                     z.setSettings('reduction_epochs', reduction_epochs)
                     z.setSettings('ls_reduction_koef', ls_reduction_koef)
                     z.setSettings('ls', i)
-                    z.setSettings('l1', k)
-                    z.setSettings('l2', k)
-                    z.setSettings('drop_rate', j)
                     z.threadTrain()
 
 
