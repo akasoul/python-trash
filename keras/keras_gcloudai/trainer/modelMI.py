@@ -740,10 +740,77 @@ class elements:
 
 class app:
 
+    def initModel78_80(self):
+        e = elements(self.settings)
+
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+
+        filters = 96
+        depth1 = 15
+        pool_period=3
+        kernel_size=3
+
+        activation2 = ReLU()
+
+        input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
+        input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
+        input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
+        input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
+
+
+        x0 = e.resUnit2(input0, filters, kernel_size, activation2, kernel_init, bias_init, self.X[0]['shape'], True)
+        for i in range(0, depth1):
+            x0 = e.resUnit2(x0, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x0=MaxPool1D(pool_size=2)(x0)
+
+
+        x1 = e.resUnit2(input1, filters, kernel_size, activation2, kernel_init, bias_init, self.X[1]['shape'], True)
+        for i in range(0, depth1):
+            x1 = e.resUnit2(x1, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x1 = MaxPool1D(pool_size=2)(x1)
+
+        x2 = e.resUnit2(input2, filters, kernel_size, activation2, kernel_init, bias_init, self.X[2]['shape'], True)
+        for i in range(0, depth1):
+            x2 = e.resUnit2(x2, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x2 = MaxPool1D(pool_size=2)(x2)
+
+        x3 = e.resUnit2(input3, filters, kernel_size, activation2, kernel_init, bias_init, self.X[3]['shape'], True)
+        for i in range(0, depth1):
+            x3 = e.resUnit2(x3, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x3 = MaxPool1D(pool_size=2)(x3)
+
+        z = concatenate([x0, x1, x2, x3])
+
+        z = Flatten()(z)
+        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), kernel_init, bias_init ,False,False)
+
+        model = Model(
+            inputs=[input0, input1, input2, input3],
+            outputs=[output])
+        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+
+        model.compile(
+            loss='mean_squared_error',
+            optimizer=optimizer,
+            metrics=['accuracy'])
+
+        print(model.summary())
+
+        self.setModelName(model)
+        return model
+
+
     def initModel(self):
         e = elements(self.settings)
         # model
+
         kernel_init = 'he_normal'
+        kernel_init = 'glorot_uniform'
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
@@ -754,14 +821,14 @@ class app:
         filters = 96
         pool_size = 5
         strides = 2
-        depth1 = 25
+        depth1 = 15
         depth2 = 3
         depth3 = 3
         resdepth = 1
 
         denseUnits = 100
         kernel_start=5
-        pool_period=5
+        pool_period=3
 
         kernel_size=3
 
@@ -822,8 +889,8 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
@@ -838,6 +905,8 @@ class app:
         self.setModelName(model)
         #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
         return model
+
+
 
     def setModelName(self, model):
         sName = ""
@@ -1576,276 +1645,5 @@ if __name__ == "__main__":
 
     main(**arguments)
 
-# python3 setup.py sdist bdist_wheel
-
-# --job-dir=C:/Users/Anton/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/
-# --data-size=5000
-# --eval-size=0.2
-# --epochs=1000
-# --overfit-epochs=5000
-# --reduction-epochs=50000
-# --ls-reduction-koef=0.95
-# --ls=0.01
-# --l1=0.000
-# --l2=0.000
-# --drop-rate=0.1
-
-# --mode=0
-# --data-size=20000
-# --eval-size=0.2
-# --batch-size=0.2
-# --epochs=100000
-# --overfit-epochs=50000
-# --reduction-epochs=1000
-# --ls-reduction-koef=0.99
-# --ls=0.0001
-# --l1=0.00001
-# --l2=0.00001
-# --drop-rate=0.15
 
 
-# rms drop 0.1
-# rms lr 0.001-0.01
-
-
-#    def initModel(self):
-#
-#        # model
-#        kernel_init = 'glorot_uniform'
-#        bias_init = 'zeros'
-#        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#        kernel_size = 5
-#        filters = 5
-#
-#        input1 = Input(shape=(self.X[0]['shape'], 1), name='input1')
-#        input2 = Input(shape=(self.X[1]['shape'], 1), name='input2')
-#
-#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[0]['shape'], 1),
-#                   padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(input1)
-#        x = Dropout(self.settings['drop_rate'])(x)
-#        x = MaxPool1D(pool_size=(3))(x)
-#
-#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-#                   padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(x)
-#        x = Dropout(self.settings['drop_rate'])(x)
-#        x = MaxPool1D(pool_size=(3))(x)
-#
-#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(x)
-#        x = Dropout(self.settings['drop_rate'])(x)
-#        x = MaxPool1D(pool_size=(3))(x)
-#
-#        x = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(x)
-#        x = Dropout(self.settings['drop_rate'])(x)
-#        x = MaxPool1D(pool_size=(3))(x)
-#
-#        x = Flatten()(x)
-#
-#        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu', input_shape=(self.X[1]['shape'], 1),
-#                   padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(input2)
-#        y = Dropout(self.settings['drop_rate'])(y)
-#        y = MaxPool1D(pool_size=(3))(y)
-#
-#        y = Conv1D(kernel_size=kernel_size, filters=20, activation='relu',
-#                   padding="same",
-#                   kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   bias_regularizer=bias_reg,
-#                   kernel_regularizer=kernel_reg,
-#                   )(y)
-#        y = Dropout(self.settings['drop_rate'])(y)
-#        y = MaxPool1D(pool_size=(3))(y)
-#
-#        y=Flatten()(y)
-#
-#        denseUnits=512
-#        z=concatenate([x,y])
-#        z=Dense(units=denseUnits,activation='relu',
-#                kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   )(z)
-#        z=Dropout(self.settings['drop_rate'])(z)
-#        z=Dense(units=denseUnits,activation='relu',
-#                kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   )(z)
-#        z=Dropout(self.settings['drop_rate'])(z)
-#        z=Dense(units=denseUnits,activation='relu',
-#                kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   )(z)
-#        z=Dropout(self.settings['drop_rate'])(z)
-#        z=Dense(units=denseUnits,activation='relu',
-#                kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   )(z)
-#        z=Dropout(self.settings['drop_rate'])(z)
-#        z=Dense(units=denseUnits,activation='relu',
-#                kernel_initializer=kernel_init,
-#                   bias_initializer=bias_init,
-#                   )(z)
-#        z=Dropout(self.settings['drop_rate'])(z)
-#        output = (Dense(self.Y[0]['shape'],activation='tanh',
-#                   name='output'))(z)
-#        #output = (Dense(units=(25,3),activation='softmax',
-#        #           name='output'))(z)
-#
-#        model = Model(inputs=[input1, input2], outputs=[output])
-#        optimizer = None
-#        # optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-#        try:
-#            optimizer = optimizers.RMSprop(learning_rate=self.settings['ls'], rho=0.9)
-#        except:
-#            optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-#        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'],momentum=0.1)
-#
-#        model.compile(
-#            loss='mean_squared_error',
-#            # loss='categorical_crossentropy',
-#            optimizer=optimizer,
-#            metrics=['accuracy'])
-#        # metrics = ['accuracy'])
-#
-#        print(model.summary())
-#
-#        sName = ""
-#        for i in range(self.inputFiles):
-#            sName += str(self.X[i]['shape'])
-#            sName += '.'
-#        for i in model.layers:
-#            for j in range(0, layersNames.size):
-#                if (i.name.find(layersNames[j]) != -1):
-#                    # for k in i.input_shape:
-#                    #    if (k != None):
-#                    #        sName += str(k)
-#                    #        sName += "."
-#                    sName += layersShortNames[j]
-#                    sName += "."
-#        sName += str(self.Y[0]['shape'])
-#        self.setModelName(sName)
-#        # if (os.path.isfile(self.job_dir+self.model_name)):
-#        #    model.load_weights(self.model_name)
-#        return model
-
-
-# --mode=0
-# --ctr=0
-# --data-size=40000
-# --eval-size=0.2
-# --batch-size=0.05
-# --epochs=100000
-# --overfit-epochs=50000
-# --reduction-epochs=100000
-# --ls-reduction-koef=0.99
-# --ls=0.0001
-# --l1=0.00
-# --l2=0.00
-# --drop-rate=0.15
-
-
-# def initModel(self):
-#
-#     # model
-#     kernel_init = 'glorot_uniform'
-#     bias_init = 'zeros'
-#     kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#     bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#     activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-#
-#     kernel_size = 3
-#     kernel_size2 = 5
-#     filters = 3
-#     pool_size = 5
-#     strides = 2
-#     depth=4
-#     resdepth=1
-#
-#     input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
-#     input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
-#     input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
-#     input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
-#
-#
-#
-#     x0 = self.conv1DResLayer(input0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[0]['shape'])
-#     for i in range(0,depth):
-#         x0 = self.conv1DResLayer(x0, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-#     #x0 = Flatten()(x0)
-#
-#     x1 = self.conv1DResLayer(input1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[1]['shape'])
-#     for i in range(0,depth):
-#         x1 = self.conv1DResLayer(x1, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-#     #x1 = Flatten()(x1)
-#
-#     x2 = self.conv1DResLayer(input2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[2]['shape'])
-#     for i in range(0,depth):
-#         x2 = self.conv1DResLayer(x2, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-#     #x2 = Flatten()(x2)
-#
-#     x3 = self.conv1DResLayer(input3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2, self.X[3]['shape'])
-#     for i in range(0,depth):
-#         x3 = self.conv1DResLayer(x3, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-#     #x3 = Flatten()(x3)
-#
-#     denseUnits = 512
-#     z = add([x0, x1, x2, x3])
-#     #for i in range(0,depth):
-#     #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-#     #z = MaxPool1D(100)(z)
-#     z = Flatten()(z)
-#     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-#     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-#     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-#     #z = self.denseLayer(z, denseUnits, 'relu','glorot_uniform','zeros')
-#
-#     output = (Dense(self.Y[0]['shape'], activation='softmax',
-#                     name='output'))(z)
-#     # output = (Dense(units=(25,3),activation='softmax',
-#     #           name='output'))(z)
-#
-#     model = Model(
-#         inputs=[input0, input1, input2, input3],
-#         outputs=[output])
-#     optimizer = None
-#     optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-#     #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-#     #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
-#
-#     model.compile(
-#         # loss='mean_squared_error',
-#         loss='categorical_crossentropy',
-#         optimizer=optimizer,
-#         #metrics=['accuracy','binary_accuracy'])
-#      metrics = ['accuracy'])
-#
-#     print(model.summary())
-#
-#     self.setModelName(model)
-#
-#     return model
