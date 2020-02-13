@@ -1,7 +1,7 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.utils import plot_model
-from keras.models import Sequential
+from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
     Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU
 from sklearn.model_selection import train_test_split
@@ -582,6 +582,7 @@ class elements:
         else:
             t1 = conv1d(kernel_size)(t1)
 
+        t1=activation(t1)
         t1=conv1d(kernel_size)(t1)
 
         output = add([t0, t1])
@@ -742,7 +743,7 @@ class app:
     def initModel(self):
         e = elements(self.settings)
         # model
-        kernel_init = 'glorot_uniform'
+        kernel_init = 'he_normal'
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
@@ -750,13 +751,17 @@ class app:
 
         kernel_size = 3
         kernel_size2 = 5
-        filters = 128
+        filters = 96
         pool_size = 5
         strides = 2
-        depth1 = 6
+        depth1 = 25
         depth2 = 3
         depth3 = 3
         resdepth = 1
+
+        denseUnits = 100
+        kernel_start=5
+        pool_period=5
 
         kernel_size=3
 
@@ -768,28 +773,31 @@ class app:
         input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
-        denseUnits = 100
-        kernel_start=5
-        x0 = e.resUnit2(input0, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[0]['shape'], True)
+
+        x0 = e.resUnit2(input0, filters, kernel_size, activation2, kernel_init, bias_init, self.X[0]['shape'], True)
         for i in range(0, depth1):
-            x0 = e.resUnit2(x0, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
-            x0=MaxPool1D(pool_size=2)(x0)
+            x0 = e.resUnit2(x0, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x0=MaxPool1D(pool_size=2)(x0)
 
 
-        x1 = e.resUnit2(input1, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[1]['shape'], True)
+        x1 = e.resUnit2(input1, filters, kernel_size, activation2, kernel_init, bias_init, self.X[1]['shape'], True)
         for i in range(0, depth1):
-            x1 = e.resUnit2(x1, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
-            x1 = MaxPool1D(pool_size=2)(x1)
+            x1 = e.resUnit2(x1, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x1 = MaxPool1D(pool_size=2)(x1)
 
-        x2 = e.resUnit2(input2, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[2]['shape'], True)
+        x2 = e.resUnit2(input2, filters, kernel_size, activation2, kernel_init, bias_init, self.X[2]['shape'], True)
         for i in range(0, depth1):
-            x2 = e.resUnit2(x2, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
-            x2 = MaxPool1D(pool_size=2)(x2)
+            x2 = e.resUnit2(x2, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x2 = MaxPool1D(pool_size=2)(x2)
 
-        x3 = e.resUnit2(input3, filters, kernel_size, activation2, 'glorot_uniform', 'zeros', self.X[3]['shape'], True)
+        x3 = e.resUnit2(input3, filters, kernel_size, activation2, kernel_init, bias_init, self.X[3]['shape'], True)
         for i in range(0, depth1):
-            x3 = e.resUnit2(x3, filters, kernel_size, activation2, 'glorot_uniform', 'zeros')
-            x3 = MaxPool1D(pool_size=2)(x3)
+            x3 = e.resUnit2(x3, filters, kernel_size, activation2, kernel_init, bias_init)
+            if(i%pool_period==0):
+                x3 = MaxPool1D(pool_size=2)(x3)
 
         denseUnits = 400
         z = concatenate([x0, x1, x2, x3])
@@ -803,7 +811,7 @@ class app:
         #    z = e.denseUnit(z, denseUnits, activation2, 'glorot_normal', 'zeros')
         # z = e.denseLayer(z, denseUnits, Activation(activation='tanh'), 'glorot_normal', 'zeros')
         #z=e.LSTMUnit(z,denseUnits, activation2, 'glorot_normal', 'zeros')
-        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), 'glorot_uniform', 'zeros',False,False)
+        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), kernel_init, bias_init ,False,False)
 
         # output = (Dense(self.Y[0]['shape'], activation='softmax',
         #                name='output'))(z)
@@ -814,8 +822,8 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
-        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
@@ -846,19 +854,24 @@ class app:
 
         self.model_name = name.hexdigest()
         self.model_name += ".h5"
+        print(self.model_name)
+
 
     def lrSchedule(self, epoch):
         lr = self.settings['ls']
         return lr
-        if(epoch % 10 == 0):
-            return lr*(0.1**(epoch/10))
-        if epoch > 100:
+        if epoch > 50:
             lr *= 0.1
-        elif epoch > 200:
+            return lr
+        if epoch > 100:
             lr *= 0.01
-        elif epoch > 300:
+            return lr
+        if epoch > 150:
             lr *= 0.001
-        # print('Learning rate: ', lr)
+            return lr
+        if epoch > 200:
+            lr *= 0.0001
+            return lr
         return lr
 
     def threadTrain(self):
@@ -871,7 +884,7 @@ class app:
         if (self.ctr == True):
             try:
                 if(self.settings['saveWholeModel']==True):
-                    model.load(self.job_dir + self.model_name)
+                    model=load_model(self.job_dir + self.model_name)
                 else:
                     model.load_weights(self.job_dir + self.model_name)
             except:
@@ -989,7 +1002,7 @@ class app:
         model = self.initModel()
         try:
             if (self.settings['saveWholeModel'] == True):
-                model.load(self.job_dir + self.model_name)
+                model = load_model(self.job_dir + self.model_name)
             else:
                 model.load_weights(self.job_dir + self.model_name)
         except:
@@ -1076,7 +1089,7 @@ class app:
         model = self.initModel()
         try:
             if (self.settings['saveWholeModel'] == True):
-                model.load(self.job_dir + self.model_name)
+                model = load_model(self.job_dir + self.model_name)
             else:
                 model.load_weights(self.job_dir + self.model_name)
         except:

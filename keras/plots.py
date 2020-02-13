@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-b = np.genfromtxt("1072.txt")
+b = np.genfromtxt("1855.txt")
 
 #count1=0
 #count2=0
