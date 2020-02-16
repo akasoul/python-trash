@@ -31,7 +31,7 @@ layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst", "c
 layersShortNames = np.array(["c1", "d", "p", "f", "lst", "ctn"])
 
 
-class historyCallback(callbacks.Callback):
+class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
     def initArrays2(self, _loss, _val_loss, _acc, _val_acc):
         self.loss = np.array([_loss], dtype=float)
@@ -63,7 +63,7 @@ class historyCallback(callbacks.Callback):
         self.saveWholeModel=_saveWholeModel
 
         self.bestEpoch = -minEpochsBetweenSavingModel
-
+        #self.best_weights=self.model.get_weights()
         self.bestLoss = self.loss[0]
         self.bestValLoss = self.val_loss[0]
         self.bestAcc = self.acc[0]
@@ -118,7 +118,12 @@ class historyCallback(callbacks.Callback):
         arrayToFile = np.column_stack((prediction, output))
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
+
+
+
     def on_epoch_end(self, epoch, logs=None):
+
+        logs['lr'] = backend.get_value(self.model.optimizer.lr)
 
         try:
             self._loss = logs.get('loss')
@@ -180,6 +185,7 @@ class historyCallback(callbacks.Callback):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -197,6 +203,7 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+                self.best_weights = self.model.get_weights()
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -215,6 +222,7 @@ class historyCallback(callbacks.Callback):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+                self.best_weights = self.model.get_weights()
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -233,6 +241,7 @@ class historyCallback(callbacks.Callback):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+                self.best_weights = self.model.get_weights()
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -250,6 +259,7 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+                self.best_weights = self.model.get_weights()
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -268,6 +278,7 @@ class historyCallback(callbacks.Callback):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
+                self.best_weights = self.model.get_weights()
                 if(self.saveWholeModel==True):
                     self.model.save(self.modelName)
                 else:
@@ -285,7 +296,16 @@ class historyCallback(callbacks.Callback):
             old_lr = backend.get_value(self.model.optimizer.lr)
             new_lr = old_lr * self.reductionKoef
             backend.set_value(self.model.optimizer.lr, new_lr)
-            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
+            #if (self.saveWholeModel == True):
+            #    self.model = load_model(self.modelName)
+            #else:
+            #    self.model.load_weights(self.modelName)
+            try:
+                self.model.set_weights(self.best_weights)
+            except:
+                pass
+            else:
+                print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
 
             self.reductionCounter = 0
 
@@ -591,6 +611,94 @@ class elements:
         output=Dropout(self.settings['drop_rate'])(output)
         return output
 
+    def resUnit3(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0, advFilters=False):
+        kernel_reg = regularizers.l2(self.settings['l2'])
+        bias_reg = regularizers.l2(self.settings['l2'])
+
+        def conv1dinput(kernel):
+
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          input_shape=(inputShape, 1),
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+        def conv1d(kernel):
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+
+        t0 = input
+        t1 = input
+
+        if (inputShape != 0):
+            t1 = conv1dinput(kernel_size)(t1)
+            if(advFilters==True):
+                t0=conv1dinput(kernel_size)(t0)
+        else:
+            t1 = conv1d(kernel_size)(t1)
+            if(advFilters==True):
+                t0 = conv1d(kernel_size)(t0)
+
+        t1=BatchNormalization()(t1)
+        t1=activation(t1)
+
+        t1=conv1d(kernel_size)(t1)
+        t1=BatchNormalization()(t1)
+
+        output = add([t0, t1])
+
+        output = activation(output)
+        output=Dropout(self.settings['drop_rate'])(output)
+        return output
+
+    def convUnit(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0):
+        kernel_reg = regularizers.l2(self.settings['l2'])
+        bias_reg = regularizers.l2(self.settings['l2'])
+
+        def conv1dinput(kernel):
+
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          input_shape=(inputShape, 1),
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+        def conv1d(kernel):
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+
+        t1 = input
+
+        if (inputShape != 0):
+            t1 = conv1dinput(kernel_size)(t1)
+        else:
+            t1 = conv1d(kernel_size)(t1)
+
+        t1=activation(t1)
+
+        t1=Dropout(self.settings['drop_rate'])(t1)
+        return t1
+
+
+
     def resUnit235(self, input, filters, activation, kernel_init, bias_init, inputShape=0):
         kernel_reg = regularizers.l2(self.settings['l2'])
         bias_reg = regularizers.l2(self.settings['l2'])
@@ -816,24 +924,15 @@ class app:
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
-        kernel_size = 3
-        kernel_size2 = 5
-        filters = 96
-        pool_size = 5
-        strides = 2
-        depth1 = 15
-        depth2 = 3
-        depth3 = 3
-        resdepth = 1
-
-        denseUnits = 100
-        kernel_start=5
-        pool_period=3
-
+        filters = [64,64,64,64]
         kernel_size=3
 
-        activation1 = Activation(activation='tanh')
-        activation2 = ReLU()
+        activation = ReLU()
+
+
+
+        depth1=3
+        depth2=4
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
         input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
@@ -841,34 +940,42 @@ class app:
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
 
-        x0 = e.resUnit2(input0, filters, kernel_size, activation2, kernel_init, bias_init, self.X[0]['shape'], True)
-        for i in range(0, depth1):
-            x0 = e.resUnit2(x0, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x0=MaxPool1D(pool_size=2)(x0)
+        x0 = e.convUnit(input0, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
+        for j in range(0,depth1):
+            if j!=0:
+                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+            for i in range(0, depth2):
+                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init)
 
 
-        x1 = e.resUnit2(input1, filters, kernel_size, activation2, kernel_init, bias_init, self.X[1]['shape'], True)
-        for i in range(0, depth1):
-            x1 = e.resUnit2(x1, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x1 = MaxPool1D(pool_size=2)(x1)
 
-        x2 = e.resUnit2(input2, filters, kernel_size, activation2, kernel_init, bias_init, self.X[2]['shape'], True)
-        for i in range(0, depth1):
-            x2 = e.resUnit2(x2, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x2 = MaxPool1D(pool_size=2)(x2)
+        x1 = e.convUnit(input1, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[1]['shape'])
+        for j in range(0,depth1):
+            if j!=0:
+                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+            for i in range(0, depth2):
+                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init)
 
-        x3 = e.resUnit2(input3, filters, kernel_size, activation2, kernel_init, bias_init, self.X[3]['shape'], True)
-        for i in range(0, depth1):
-            x3 = e.resUnit2(x3, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x3 = MaxPool1D(pool_size=2)(x3)
+
+        x2 = e.convUnit(input2, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[2]['shape'])
+        for j in range(0,depth1):
+            if j!=0:
+                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+            for i in range(0, depth2):
+                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+
+
+        x3 = e.convUnit(input3, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[3]['shape'])
+        for j in range(0,depth1):
+            if j!=0:
+                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+            for i in range(0, depth2):
+                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+
 
         denseUnits = 400
         z = concatenate([x0, x1, x2, x3])
-        # z = MaxPool1D(pool_size=4)(z)
+        z = AveragePooling1D(pool_size=2)(z)
         # z=Activation(activation='tanh')(z)
         # for i in range(0,depth):
         #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
@@ -889,7 +996,7 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=False)
+        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
         optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
@@ -1019,6 +1126,7 @@ class app:
 
         self.historyCallback.initData(self.X, self.Y, self.nDataSize, self.inputFiles)
 
+
         if (self.sLogName == None):
             self.logDir = self.job_dir + "logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
         else:
@@ -1033,13 +1141,13 @@ class app:
         self.historyCallback.initSettings(self.job_dir + self.model_name, metr,
                                           self.settings['overfit_epochs'], self.settings['reduction_epochs'],
                                           self.settings['ls_reduction_koef'],
-                                          self.logDir, self.settings['saveWholeModel'], 5)
+                                          self.logDir, self.settings['saveWholeModel'], 1)
         lrScheduler = callbacks.LearningRateScheduler(self.lrSchedule)
 
         self.callbacks = [
             self.historyCallback,
-            self.tb_log,
-            lrScheduler
+            self.tb_log
+
         ]
 
         # model.fit_generator()
@@ -1256,7 +1364,7 @@ class app:
             'ls_reduction_koef': 0.95,
             'metrics': 0,
             'batch_size': 0.1,
-            'saveWholeModel': True
+            'saveWholeModel': False
         }
 
         self.sDataInput1Path = "input.txt"
