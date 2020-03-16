@@ -107,12 +107,12 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
         prediction = self.model.predict(x=input)
 
-        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
-        testingplot = testingfig.add_subplot(111)
-        testingplot.plot(output, linewidth=0.05, color='b')
-        testingplot.plot(prediction, linewidth=0.05, color='r')
-        testingfig.savefig(fname=self.logDir + '/tests/images/' + str(epoch))
-        plt.close(testingfig)
+        #testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
+        #testingplot = testingfig.add_subplot(111)
+        #testingplot.plot(output, linewidth=0.05, color='b')
+        #testingplot.plot(prediction, linewidth=0.05, color='r')
+        #testingfig.savefig(fname=self.logDir + '/tests/images/' + str(epoch))
+        #plt.close(testingfig)
 
         #arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
         arrayToFile = np.column_stack((prediction, output))
@@ -181,7 +181,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.val_acc = np.array([self._val_acc], dtype=float)
 
         if (self.metrics == 'train_acc'):
-            if (self._acc >= self.bestAcc):
+            if (self._acc > self.bestAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
@@ -199,7 +199,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.reductionCounter += 1
 
         if (self.metrics == 'val_acc'):
-            if (self._val_acc >= self.bestAccVal):
+            if (self._val_acc > self.bestAccVal):
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
@@ -217,7 +217,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.reductionCounter += 1
 
         if (self.metrics == 'full_acc'):
-            if (self._acc >= self.bestAcc and self._val_acc >= self.bestValAcc):
+            if (self._acc > self.bestAcc and self._val_acc >= self.bestValAcc):
                 print("acc improved {0:6f} -> {1:6f}".format(self.bestAcc, self._acc))
                 print("val_acc improved {0:6f} -> {1:6f}".format(self.bestValAcc, self._val_acc))
                 self.ovfCounter = 0
@@ -237,7 +237,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.reductionCounter += 1
 
         if (self.metrics == 'train_loss'):
-            if (self._loss <= self.bestLoss):
+            if (self._loss < self.bestLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
@@ -255,7 +255,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.reductionCounter += 1
 
         if (self.metrics == 'val_loss'):
-            if (self._val_loss <= self.bestValLoss):
+            if (self._val_loss < self.bestValLoss):
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
                 self.reductionCounter = 0
@@ -273,7 +273,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                 self.reductionCounter += 1
 
         if (self.metrics == 'full_loss'):
-            if (self._loss <= self.bestLoss and self._val_loss <= self.bestValLoss):
+            if (self._loss < self.bestLoss and self._val_loss <= self.bestValLoss):
                 print("loss improved {0:6f} -> {1:6f}".format(self.bestLoss, self._loss))
                 print("val_loss improved {0:6f} -> {1:6f}".format(self.bestValLoss, self._val_loss))
                 self.ovfCounter = 0
@@ -611,7 +611,7 @@ class elements:
         output=Dropout(self.settings['drop_rate'])(output)
         return output
 
-    def resUnit3(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0, advFilters=False):
+    def resUnit3(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0, advFilters=False, batchNormalization=True):
         kernel_reg = regularizers.l2(self.settings['l2'])
         bias_reg = regularizers.l2(self.settings['l2'])
 
@@ -641,23 +641,32 @@ class elements:
 
         if (inputShape != 0):
             t1 = conv1dinput(kernel_size)(t1)
+
             if(advFilters==True):
                 t0=conv1dinput(kernel_size)(t0)
+
         else:
             t1 = conv1d(kernel_size)(t1)
+
             if(advFilters==True):
                 t0 = conv1d(kernel_size)(t0)
 
-        t1=BatchNormalization()(t1)
+
+        if(batchNormalization==True):
+            t1=BatchNormalization()(t1)
+            if(advFilters==True):
+                t0=BatchNormalization()(t0)
         t1=activation(t1)
 
         t1=conv1d(kernel_size)(t1)
-        t1=BatchNormalization()(t1)
+
+        if(batchNormalization==True):
+            t1=BatchNormalization()(t1)
 
         output = add([t0, t1])
 
         output = activation(output)
-        output=Dropout(self.settings['drop_rate'])(output)
+
         return output
 
     def convUnit(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0):
@@ -697,6 +706,42 @@ class elements:
         t1=Dropout(self.settings['drop_rate'])(t1)
         return t1
 
+    def convUnit3(self, input, filters, kernel_size, activation, kernel_init, bias_init, inputShape=0):
+        kernel_reg = regularizers.l2(self.settings['l2'])
+        bias_reg = regularizers.l2(self.settings['l2'])
+
+        def conv1dinput(kernel):
+
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          input_shape=(inputShape, 1),
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+        def conv1d(kernel):
+            return Conv1D(kernel_size=kernel, filters=filters, activation=None,
+                          padding="same",
+                          kernel_initializer=kernel_init,
+                          bias_initializer=bias_init,
+                          bias_regularizer=bias_reg,
+                          kernel_regularizer=kernel_reg,
+                          )
+
+
+        t1 = input
+
+        if (inputShape != 0):
+            t1 = conv1dinput(kernel_size)(t1)
+        else:
+            t1 = conv1d(kernel_size)(t1)
+
+        t1=BatchNormalization()(t1)
+        t1=activation(t1)
+
+        return t1
 
 
     def resUnit235(self, input, filters, activation, kernel_init, bias_init, inputShape=0):
@@ -924,15 +969,15 @@ class app:
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
-        filters = [64,64,64,64]
-        kernel_size=3
+        filters = [32,32,64,96,128,256]
+        kernel_size=5
 
         activation = ReLU()
 
+        batchNormalization=True
 
-
-        depth1=3
-        depth2=4
+        depth1=5
+        depth2=2
 
         input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
         input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
@@ -940,37 +985,37 @@ class app:
         input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
 
 
-        x0 = e.convUnit(input0, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
+        x0 = e.convUnit3(input0, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
         for j in range(0,depth1):
             if j!=0:
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
             for i in range(0, depth2):
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
 
 
 
-        x1 = e.convUnit(input1, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[1]['shape'])
+        x1 = e.convUnit3(input1, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[1]['shape'])
         for j in range(0,depth1):
             if j!=0:
-                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
             for i in range(0, depth2):
-                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
 
 
-        x2 = e.convUnit(input2, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[2]['shape'])
+        x2 = e.convUnit3(input2, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[2]['shape'])
         for j in range(0,depth1):
             if j!=0:
-                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
             for i in range(0, depth2):
-                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
 
 
-        x3 = e.convUnit(input3, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[3]['shape'])
+        x3 = e.convUnit3(input3, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[3]['shape'])
         for j in range(0,depth1):
             if j!=0:
-                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True)
+                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
             for i in range(0, depth2):
-                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init)
+                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
 
 
         denseUnits = 400
@@ -996,8 +1041,8 @@ class app:
             inputs=[input0, input1, input2, input3],
             outputs=[output])
         optimizer = None
-        #optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
-        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
+        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
         model.compile(
@@ -1098,7 +1143,7 @@ class app:
         except:
             pass
         else:
-            print("1 epoch = {0} batches".format(bcount))
+            print("1 epoch = {0} batches ({1})".format(bcount,self.n_batches_train))
 
         score_train = model.evaluate(test_x, test_y, batch_size=self.n_batches_train)  # , batch_size=500)
         score_test = None
@@ -1239,10 +1284,18 @@ class app:
                             input.append(X0[i])
 
                     if (self.inputFiles == 1):
-                        os.remove(self.job_dir + self.sDataInput1Path)
+                        while(os.path.isfile(self.job_dir + self.sDataInput1Path)):
+                            try:
+                                os.remove(self.job_dir + self.sDataInput1Path)
+                            except:
+                                pass
                     else:
                         for i in range(0, self.inputFiles):
-                            os.remove(self.job_dir + self.sDataInput1PathM.format(i))
+                            while(os.path.isfile(self.job_dir + self.sDataInput1PathM.format(i))):
+                                try:
+                                    os.remove(self.job_dir + self.sDataInput1PathM.format(i))
+                                except:
+                                    pass
 
                     p = model.predict(x=input)
 
