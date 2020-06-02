@@ -25,7 +25,6 @@ BatchMod = 0.05
 MaxBatchSize = 3000000000
 
 DISABLE_LOG = True
-ENABLE_TRAINING_LOG = False
 
 layersNames = np.array(["conv1d", "dense", "max_pooling1d", "flatten", "lst", "concatenate"])
 layersShortNames = np.array(["c1", "d", "p", "f", "lst", "ctn"])
@@ -927,7 +926,7 @@ class app:
         activation = ELU()
         batchNormalization=True
 
-        depth=2
+        depth=1
 
         input = Input(shape=self.inputShape, name='input0')
 
@@ -937,7 +936,15 @@ class app:
         for i in range(0,depth):
             if(i!=0):
                 x=pool
-            conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)(x)
+            else:
+                conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              input_shape=(self.X[0]['shape']),
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
@@ -1389,16 +1396,12 @@ class app:
 
 
 
-        self.sTrainDataInputPathM = "in_data_train{0}.txt"
-        self.sTestDataInputPathM = "in_data_test{0}.txt"
+        self.sTrainDataInputPathM = "sinoffset_train{0}.txt"
+        self.sTestDataInputPathM  = "sinoffset_test{0}.txt"
 
 
-        self.sTrainDataOutputPathM = "out_data_train{0}.txt"
-        self.sTestDataOutputPathM = "out_data_test{0}.txt"
-
-        self.inputFiles = 1
-        self.outputFiles = 1
-        self.modelFilters=3
+        self.sTrainDataOutputPathM = "sinoffset_train{0}.txt"
+        self.sTestDataOutputPathM  = "sinoffset_test{0}.txt"
 
 
         self.sLogName = None
@@ -1412,8 +1415,11 @@ class app:
         self.testing_model = False
         self.ctr = False
 
-        self.inputShape=(100,3)
-        self.outputShape=(2,)
+        self.inputFiles = 1
+        self.outputFiles = 1
+
+        self.inputShape=(100,1)
+        self.outputShape=(100,1)
 
     def setLogName(self, logName):
         self.sLogName = logName
@@ -1450,13 +1456,8 @@ class app:
         strData = file.read()
         strData = strData.split()
         doubleData = np.array(strData, dtype=np.float32)
-        #dim = None
-        #if (oneFrame == False):
-        #    dim = int(doubleData.size / ( self.nDataSize * self.modelFilters) )
-        #    doubleData = np.reshape(doubleData, [self.nDataSize, dim, self.modelFilters])
-        #else:
-        #    dim = int(doubleData.size)
-        #    doubleData = np.reshape(doubleData, [1, dim, self.modelFilters])
+
+
         return doubleData
 
     def loadData(self, shape, path, oneFrame=False):
@@ -1722,10 +1723,10 @@ if __name__ == "__main__":
 
 
 
-#--job-dir=C:/Users/antonvoloshuk/AppData/Roaming/MetaQuotes/Terminal/287469DEA9630EA94D0715D755974F1B/tester/files/jobr/EURUSD/
+#--job-dir=D:/data_sinoffset/
 #--mode=2
 #--ctr=0
-#--data-size=2500
+#--data-size=100
 #--eval-size=0.2
 #--batch-size=0.0256
 #--epochs=100000
