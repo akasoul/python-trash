@@ -936,21 +936,21 @@ class app:
         for i in range(0,depth):
             if(i!=0):
                 x=pool
-                conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)(x)
             else:
-                conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              input_shape=(self.X[0]['shape']),
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                              input_shape=(self.X[0]['shape'],1),
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)(x)
-            pool = MaxPool1D(pool_size=2, padding='same')(conv1)
+            pool = MaxPool1D(pool_size=2)(conv1)
 
         encoded=pool
 
@@ -960,22 +960,24 @@ class app:
             if (i != 0):
                 x = up
 
-            conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
                            padding="same",
                            kernel_initializer=kernel_init,
                            bias_initializer=bias_init,
                            bias_regularizer=bias_reg,
                            kernel_regularizer=kernel_reg)(x)
-            up = UpSampling1D(size=2, padding='same')(conv1)
+            up = UpSampling1D(size=2)(conv1)
 
 
         decoded=up
 
 
 
-        encoder = Model(input, encoded, name="encoder")
-        decoder = Model(encoded, decoded, name="decoder")
-        autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
+        #encoder = Model(input, encoded, name="encoder")
+        #decoder = Model(encoded, decoded, name="decoder")
+        #autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
+
+        autoencoder=Model(input,decoded,name="autoencoder")
 
         model=autoencoder
 
