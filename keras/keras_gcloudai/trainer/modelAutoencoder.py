@@ -3,7 +3,7 @@ from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.utils import plot_model
 from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -760,6 +760,7 @@ class elements:
         return t1
 
 
+
     def resUnit235(self, input, filters, activation, kernel_init, bias_init, inputShape=0):
         kernel_reg = regularizers.l2(self.settings['l2'])
         bias_reg = regularizers.l2(self.settings['l2'])
@@ -908,71 +909,6 @@ class elements:
 
 class app:
 
-    def initModel78_80(self):
-        e = elements(self.settings)
-
-        kernel_init = 'glorot_uniform'
-        bias_init = 'zeros'
-
-        filters = 96
-        depth1 = 15
-        pool_period=3
-        kernel_size=3
-
-        activation2 = ReLU()
-
-        input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
-        input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
-        input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
-        input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
-
-
-        x0 = e.resUnit2(input0, filters, kernel_size, activation2, kernel_init, bias_init, self.X[0]['shape'], True)
-        for i in range(0, depth1):
-            x0 = e.resUnit2(x0, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x0=MaxPool1D(pool_size=2)(x0)
-
-
-        x1 = e.resUnit2(input1, filters, kernel_size, activation2, kernel_init, bias_init, self.X[1]['shape'], True)
-        for i in range(0, depth1):
-            x1 = e.resUnit2(x1, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x1 = MaxPool1D(pool_size=2)(x1)
-
-        x2 = e.resUnit2(input2, filters, kernel_size, activation2, kernel_init, bias_init, self.X[2]['shape'], True)
-        for i in range(0, depth1):
-            x2 = e.resUnit2(x2, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x2 = MaxPool1D(pool_size=2)(x2)
-
-        x3 = e.resUnit2(input3, filters, kernel_size, activation2, kernel_init, bias_init, self.X[3]['shape'], True)
-        for i in range(0, depth1):
-            x3 = e.resUnit2(x3, filters, kernel_size, activation2, kernel_init, bias_init)
-            if(i%pool_period==0):
-                x3 = MaxPool1D(pool_size=2)(x3)
-
-        z = concatenate([x0, x1, x2, x3])
-
-        z = Flatten()(z)
-        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), kernel_init, bias_init ,False,False)
-
-        model = Model(
-            inputs=[input0, input1, input2, input3],
-            outputs=[output])
-        optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-
-        model.compile(
-            loss='mean_squared_error',
-            optimizer=optimizer,
-            metrics=['accuracy'])
-
-        print(model.summary())
-
-        self.setModelName(model)
-        return model
-
-
     def initModel(self):
         e = elements(self.settings)
         # model
@@ -991,47 +927,51 @@ class app:
         activation = ELU()
         batchNormalization=True
 
-        depth1=5
-        depth2=2
+        depth=2
 
-        input0 = Input(shape=self.inputShape, name='input0')
-
+        input = Input(shape=self.inputShape, name='input0')
 
 
-        x0 = e.convUnit3(input0, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
-        for j in range(0,depth1):
-            if j!=0:
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-            for i in range(0, depth2):
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
+        x=input
+        # Encoder
+        for i in range(0,depth):
+            if(i!=0):
+                x=pool
+            conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)(x)
+            pool = MaxPool1D(pool_size=2, padding='same')(conv1)
+
+        encoded=pool
+
+        x=encoded
+        # Decoder
+        for i in range(0, depth):
+            if (i != 0):
+                x = up
+
+            conv1 = Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                           padding="same",
+                           kernel_initializer=kernel_init,
+                           bias_initializer=bias_init,
+                           bias_regularizer=bias_reg,
+                           kernel_regularizer=kernel_reg)(x)
+            up = UpSampling1D(size=2, padding='same')(conv1)
+
+
+        decoded=up
 
 
 
+        encoder = Model(input, encoded, name="encoder")
+        decoder = Model(encoded, decoded, name="decoder")
+        autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
 
+        model=autoencoder
 
-
-        denseUnits = 400
-
-        z = AveragePooling1D(pool_size=2)(x0)
-        # z=Activation(activation='tanh')(z)
-        # for i in range(0,depth):
-        #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        # z = MaxPool1D(100)(z)
-        z = Flatten()(z)
-        #for i in range(0, depth3):
-        #    z = e.denseUnit(z, denseUnits, activation2, 'glorot_normal', 'zeros')
-        # z = e.denseLayer(z, denseUnits, Activation(activation='tanh'), 'glorot_normal', 'zeros')
-        #z=e.LSTMUnit(z,denseUnits, activation2, 'glorot_normal', 'zeros')
-        output = e.denseUnit(z, 2, Activation(activation='softmax'), kernel_init, bias_init)
-
-        # output = (Dense(self.Y[0]['shape'], activation='softmax',
-        #                name='output'))(z)
-        # output = (Dense(units=(25,3),activation='softmax',
-        #           name='output'))(z)
-
-        model = Model(
-            inputs=[input0],
-            outputs=[output])
         optimizer = None
         optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
         #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
@@ -1050,105 +990,7 @@ class app:
         #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
         return model
 
-    def initModel260320(self):
-        e = elements(self.settings)
-        # model
 
-        kernel_init = 'he_normal'
-        kernel_init = 'glorot_uniform'
-        bias_init = 'zeros'
-        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-
-        filters = [32,32,32,32,32,32]
-        kernel_size=3
-
-        activation = ReLU()
-
-        batchNormalization=True
-
-        depth1=4
-        depth2=4
-
-        input0 = Input(shape=(self.X[0]['shape'], 1), name='input0')
-        input1 = Input(shape=(self.X[1]['shape'], 1), name='input1')
-        input2 = Input(shape=(self.X[2]['shape'], 1), name='input2')
-        input3 = Input(shape=(self.X[3]['shape'], 1), name='input3')
-
-
-        x0 = e.convUnit3(input0, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
-        for j in range(0,depth1):
-            if j!=0:
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-            for i in range(0, depth2):
-                x0 = e.resUnit3(x0, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-
-
-
-        x1 = e.convUnit3(input1, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[1]['shape'])
-        for j in range(0,depth1):
-            if j!=0:
-                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-            for i in range(0, depth2):
-                x1 = e.resUnit3(x1, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-
-
-        x2 = e.convUnit3(input2, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[2]['shape'])
-        for j in range(0,depth1):
-            if j!=0:
-                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-            for i in range(0, depth2):
-                x2 = e.resUnit3(x2, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-
-
-        x3 = e.convUnit3(input3, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[3]['shape'])
-        for j in range(0,depth1):
-            if j!=0:
-                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-            for i in range(0, depth2):
-                x3 = e.resUnit3(x3, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-
-
-        denseUnits = 400
-        z = concatenate([x0, x1, x2, x3])
-        z = AveragePooling1D(pool_size=2)(z)
-        # z=Activation(activation='tanh')(z)
-        # for i in range(0,depth):
-        #    z = self.conv1DResLayer(z, kernel_size, filters, resdepth, 'elu', 'glorot_uniform', 'zeros', True, 2)
-        # z = MaxPool1D(100)(z)
-        z = Flatten()(z)
-        #for i in range(0, depth3):
-        #    z = e.denseUnit(z, denseUnits, activation2, 'glorot_normal', 'zeros')
-        # z = e.denseLayer(z, denseUnits, Activation(activation='tanh'), 'glorot_normal', 'zeros')
-        #z=e.LSTMUnit(z,denseUnits, activation2, 'glorot_normal', 'zeros')
-        output = e.denseUnit(z, self.Y[0]['shape'], Activation(activation='softmax'), kernel_init, bias_init)
-
-        # output = (Dense(self.Y[0]['shape'], activation='softmax',
-        #                name='output'))(z)
-        # output = (Dense(units=(25,3),activation='softmax',
-        #           name='output'))(z)
-
-        model = Model(
-            inputs=[input0, input1, input2, input3],
-            outputs=[output,])
-        optimizer = None
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
-        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
-
-        model.compile(
-            loss='mean_squared_error',
-            #loss='categorical_crossentropy',
-            optimizer=optimizer,
-            # metrics=['accuracy','binary_accuracy'])
-            metrics=['accuracy'])
-
-        print(model.summary())
-
-        self.setModelName(model)
-        #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
-        return model
 
 
     def setModelName(self, model):
@@ -1623,15 +1465,13 @@ class app:
                'shape': shape}
         return out
 
-    def _prepareData(self, input_train, output_train, input_test, output_test):
-        pass
+
 
 
     def prepareTrainData(self):
-        #if (self.inputFiles == 1):
-        #    self.X_train = np.array([self.loadData(self.job_dir + self.sTrainDataInputPath)])
-        #else:
+
         self.nTrainSize = int(self.nDataSize)
+
         self.X_train = np.array([self.loadData(self.getList(self.nTrainSize,self.inputShape), self.job_dir + self.sTrainDataInputPathM.format(0))])
         for i in range(1, self.inputFiles):
             self.X_train = np.append(self.X_train,
@@ -1647,11 +1487,11 @@ class app:
 
         for i in range(0, self.inputFiles):
             self.X_train[i]['data'] = np.reshape(self.X_train[i]['data'],self.getList(self.nTrainSize,self.inputShape))
-                                                 #[self.nTrainSize, 50, 3])
+
 
         for i in range(0, self.outputFiles):
             self.Y_train[i]['data'] = np.reshape(self.Y_train[i]['data'], self.getList(self.nTrainSize,self.outputShape))
-                                                 #[self.nTrainSize, 2])
+
 
         self.X = np.empty(shape=self.inputFiles, dtype=dict)
         self.Y = np.empty(shape=self.outputFiles, dtype=dict)
@@ -1663,15 +1503,13 @@ class app:
             self.Y[i] = {'data': None,
                          'shape': self.Y_train[i]['shape']}
 
-        #np.expand_dims
 
 
 
     def prepareTestData(self):
-        #if (self.inputFiles == 1):
-        #    self.X_test = np.array([self.loadData(self.job_dir + self.sTestDataInputPath)])
-        #else:
+
         self.nTestSize = int(self.nDataSize)
+
         self.X_test = np.array([self.loadData(self.getList(self.nTestSize,self.inputShape), self.job_dir + self.sTestDataInputPathM.format(0))])
         for i in range(1, self.inputFiles):
             self.X_test = np.append(self.X_test, self.loadData(self.getList(self.nTestSize,self.inputShape), self.job_dir + self.sTestDataInputPathM.format(i)))
@@ -1684,10 +1522,12 @@ class app:
 
         for i in range(0, self.inputFiles):
             self.X_test[i]['data'] = np.reshape(self.X_test[i]['data'],self.getList(self.nTestSize,self.inputShape))
-                                                #[self.nTestSize, 50, 3])
+
 
         for i in range(0, self.outputFiles):
             self.Y_test[i]['data'] = np.reshape(self.Y_test[i]['data'], self.getList(self.nTestSize,self.outputShape))
+
+
 
     def prepareData(self):
         self.nDataSize = int(self.nTestSize + self.nTrainSize)
