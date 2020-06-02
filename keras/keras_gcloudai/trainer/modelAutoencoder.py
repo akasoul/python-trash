@@ -1105,7 +1105,6 @@ class app:
         # self.historyCallback.acc=np.array[score_train[1]]
         # self.historyCallback.val_loss=np.array[score_test[0]]
         # self.historyCallback.val_acc=np.array[score_test[1]]
-
         # if (self.settings['metrics'] == 0):
         #    metr = 'full_acc'
         # if (self.settings['metrics'] == 1):
@@ -1387,6 +1386,8 @@ class app:
         self.sDataOutputPath = "out_data.txt"
         self.sTrainDataOutputPath = "out_data_train.txt"
         self.sTestDataOutputPath = "out_data_test.txt"
+
+
 
         self.sTrainDataInputPathM = "in_data_train{0}.txt"
         self.sTestDataInputPathM = "in_data_test{0}.txt"
