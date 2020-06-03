@@ -129,8 +129,10 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
         #plt.close(testingfig)
 
         #arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
+
         arrayToFile = np.column_stack((prediction, output[0]))
         arrayToFile = np.reshape(arrayToFile,[arrayToFile.shape[0],arrayToFile.shape[1]])
+        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
         target = output[0]
         target=np.reshape(target,[target.shape[0], target.shape[1]])
@@ -139,7 +141,6 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "target.txt", target, delimiter=" ", fmt='%1.3f')
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "prediction.txt", prediction, delimiter=" ", fmt='%1.3f')
 
-        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
 
 
@@ -929,11 +930,15 @@ class app:
         activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         filters = [64,64,128,256,512,1024]
-        kernel_size=3
+        kernel_size=10
 
-        activation = ReLU()
-        activation = ELU()
+        #activation = ReLU()
+        #activation=None
         batchNormalization=True
+        activation='tanh'
+        activation = ELU()
+
+
 
         depth=2
 
@@ -945,14 +950,14 @@ class app:
         for i in range(0,depth):
             if(i!=0):
                 x=pool
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)(x)
             else:
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
                               input_shape=(self.X[0]['shape'],1),
                               padding="same",
                               kernel_initializer=kernel_init,
@@ -969,7 +974,7 @@ class app:
             if (i != 0):
                 x = up
 
-            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
+            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
                            padding="same",
                            kernel_initializer=kernel_init,
                            bias_initializer=bias_init,
