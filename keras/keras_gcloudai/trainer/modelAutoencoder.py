@@ -130,6 +130,15 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
         #arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
         arrayToFile = np.column_stack((prediction, output[0]))
+        arrayToFile = np.reshape(arrayToFile,[arrayToFile.shape[0],arrayToFile.shape[1]])
+
+        target = output[0]
+        target=np.reshape(target,[target.shape[0], target.shape[1]])
+        prediction=np.reshape(prediction, [prediction.shape[0], prediction.shape[1]])
+
+        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "target.txt", target, delimiter=" ", fmt='%1.3f')
+        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "prediction.txt", prediction, delimiter=" ", fmt='%1.3f')
+
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
 
@@ -926,7 +935,7 @@ class app:
         activation = ELU()
         batchNormalization=True
 
-        depth=1
+        depth=2
 
         input = Input(shape=self.inputShape, name='input0')
 
@@ -936,21 +945,21 @@ class app:
         for i in range(0,depth):
             if(i!=0):
                 x=pool
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)(x)
             else:
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
                               input_shape=(self.X[0]['shape'],1),
                               padding="same",
                               kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)(x)
-            pool = MaxPool1D(pool_size=2)(conv1)
+            pool = MaxPool1D(pool_size=2,padding="same")(conv1)
 
         encoded=pool
 
@@ -960,7 +969,7 @@ class app:
             if (i != 0):
                 x = up
 
-            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=None,
                            padding="same",
                            kernel_initializer=kernel_init,
                            bias_initializer=bias_init,
@@ -1119,7 +1128,7 @@ class app:
         # if (self.settings['metrics'] == 1):
         #    metr = 'full_loss'
 
-        metr = 'full_acc'
+        metr = 'full_loss'
         if (metr == 'train_acc' or metr == 'train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
