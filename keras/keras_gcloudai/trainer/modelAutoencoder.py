@@ -1018,7 +1018,8 @@ class app:
             metrics=['accuracy'])
 
         print(model.summary())
-
+        print(encoder.summary())
+        print(decoder.summary())
         self.setModelName(model)
         #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
         return model
