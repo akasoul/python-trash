@@ -942,7 +942,7 @@ class app:
 
         depth=2
 
-        input = Input(shape=self.inputShape, name='input0')
+        input = Input(shape=self.inputShape, name='input')
 
 
         x=input
@@ -968,13 +968,22 @@ class app:
 
         encoded=pool
 
-        x=encoded
+
+        e_input = Input(shape=(25,1), name='e_input')
+        x = e_input
         # Decoder
         for i in range(0, depth):
             if (i != 0):
                 x = up
-
-            conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                           padding="same",
+                           kernel_initializer=kernel_init,
+                           bias_initializer=bias_init,
+                           bias_regularizer=bias_reg,
+                           kernel_regularizer=kernel_reg)(x)
+            else:
+                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
+                           input_shape=[encoded.shape[1],encoded.shape[2]],
                            padding="same",
                            kernel_initializer=kernel_init,
                            bias_initializer=bias_init,
@@ -987,11 +996,12 @@ class app:
 
 
 
-        #encoder = Model(input, encoded, name="encoder")
-        #decoder = Model(encoded, decoded, name="decoder")
-        #autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
+        encoder = Model(input, encoded, name="encoder")
+        pass
+        decoder = Model(e_input, decoded, name="decoder")
+        autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
 
-        autoencoder=Model(input,decoded,name="autoencoder")
+        #autoencoder=Model(input,decoded,name="autoencoder")
 
         model=autoencoder
 
