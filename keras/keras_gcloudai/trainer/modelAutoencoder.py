@@ -938,61 +938,49 @@ class app:
         activation='tanh'
         activation = ELU()
 
+        def conv(filters):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+        def convi(filters,inputShape):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              input_shape=inputShape,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
 
 
-        depth=2
-
+        # Encoder
         input = Input(shape=self.inputShape, name='input')
 
-
         x=input
-        # Encoder
-        for i in range(0,depth):
-            if(i!=0):
-                x=pool
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)(x)
-            else:
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
-                              input_shape=(self.X[0]['shape'],1),
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)(x)
-            pool = MaxPool1D(pool_size=2,padding="same")(conv1)
+
+        conv1 = convi(10, (self.X[0]['shape'], 1))(x)
+        pool = MaxPool1D(pool_size=2, padding="same")(conv1)
+
+        conv1 = conv(10)(pool)
+        pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
         encoded=pool
 
 
-        e_input = Input(shape=(25,1), name='e_input')
-        x = e_input
         # Decoder
-        for i in range(0, depth):
-            if (i != 0):
-                x = up
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
-                           padding="same",
-                           kernel_initializer=kernel_init,
-                           bias_initializer=bias_init,
-                           bias_regularizer=bias_reg,
-                           kernel_regularizer=kernel_reg)(x)
-            else:
-                conv1 = Conv1D(kernel_size=kernel_size, filters=1, activation=activation,
-                           input_shape=[encoded.shape[1],encoded.shape[2]],
-                           padding="same",
-                           kernel_initializer=kernel_init,
-                           bias_initializer=bias_init,
-                           bias_regularizer=bias_reg,
-                           kernel_regularizer=kernel_reg)(x)
-            up = UpSampling1D(size=2)(conv1)
+        e_input = Input(shape=(25,10), name='e_input')
+        x = e_input
 
+        conv1 = convi(10, [encoded.shape[1], encoded.shape[2]])(x)
+        up = UpSampling1D(size=2)(conv1)
 
-        decoded=up
+        conv1 = conv(10)(up)
+        up = UpSampling1D(size=2)(conv1)
+
+        decoded=conv(1)(up)
 
 
 
@@ -1010,19 +998,105 @@ class app:
         #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
-        model.compile(
+        autoencoder.compile(
             loss='mean_squared_error',
             #loss='categorical_crossentropy',
             optimizer=optimizer,
             # metrics=['accuracy','binary_accuracy'])
             metrics=['accuracy'])
 
-        print(model.summary())
         print(encoder.summary())
         print(decoder.summary())
-        self.setModelName(model)
+
+        self.setModelName(autoencoder)
         #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
-        return model
+        return autoencoder, encoder, decoder
+
+
+
+
+    def initModel2(self):
+
+        kernel_init = 'he_normal'
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        kernel_size=10
+
+        #activation = ReLU()
+        #activation=None
+        activation='tanh'
+        activation = ELU()
+
+        def conv(filters):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+        def convi(filters,inputShape):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              input_shape=inputShape,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+
+        input = Input(shape=self.inputShape, name='input')
+
+        x=convi(10,(self.X[0]['shape'],1))(input)
+        x=MaxPool1D(pool_size=2, padding="same")(x)
+        x=conv(10)(x)
+        x=MaxPool1D(pool_size=2, padding="same")(x)
+        encoded=x
+
+        e_input = Input(shape=(25,10), name='e_input')
+        x=convi(10,(encoded.shape[1],encoded.shape[2]) )(encoded)
+        x=UpSampling1D(size=2)(x)
+        x=conv(10)(x)
+        x=UpSampling1D(size=2)(x)
+
+        x=conv(1)(x)
+        decoded=x
+
+
+
+
+
+
+        encoder = Model(input, encoded, name="encoder")
+        pass
+        decoder = Model(e_input, decoded, name="decoder")
+        autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
+
+        #autoencoder=Model(input,decoded,name="autoencoder")
+
+        model=autoencoder
+
+        optimizer = None
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
+        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
+
+        autoencoder.compile(
+            loss='mean_squared_error',
+            #loss='categorical_crossentropy',
+            optimizer=optimizer,
+            # metrics=['accuracy','binary_accuracy'])
+            metrics=['accuracy'])
+
+        print(encoder.summary())
+        print(decoder.summary())
+
+        self.setModelName(autoencoder)
+        #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
+        return autoencoder, encoder, decoder
 
 
 
@@ -1070,7 +1144,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel()
+        model, encoder, decoder = self.initModel()
         if (self.ctr == True):
             try:
                 if(self.settings['saveWholeModel']==True):
@@ -1192,6 +1266,18 @@ class app:
                       callbacks=self.callbacks)
 
         # score = model.evaluate(self.X, self.Y)  # , batch_size=500)
+
+        #w1=model.layers[1].get_weights()
+        #w2=encoder.layers[1].get_weights()
+        #
+        #input=np.reshape(test_x[0][0], self.getList(1,self.inputShape))
+        #output_model=model.predict(input)
+        #output_enc=encoder.predict(input)
+        #output_dec=decoder.predict(output_enc)
+        #
+        #np.savetxt("D:/autoencoder/decoded.txt",np.squeeze(input),delimiter="\n")
+        #np.savetxt("D:/autoencoder/encoded.txt",np.squeeze(output_enc),delimiter="\n")
+        #print(output_model,output_enc,output_dec)
 
         backend.reset_uids()
         backend.clear_session()
