@@ -131,15 +131,15 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
         #arrayToFile = np.column_stack((prediction[:, 0], output[:, 0]))
 
         arrayToFile = np.column_stack((prediction, output[0]))
-        arrayToFile = np.reshape(arrayToFile,[arrayToFile.shape[0],arrayToFile.shape[1]])
+        arrayToFile = np.reshape(arrayToFile,[arrayToFile.shape[0],arrayToFile.shape[1]*arrayToFile.shape[2]])
         np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
 
-        target = output[0]
-        target=np.reshape(target,[target.shape[0], target.shape[1]])
-        prediction=np.reshape(prediction, [prediction.shape[0], prediction.shape[1]])
-
-        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "target.txt", target, delimiter=" ", fmt='%1.3f')
-        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "prediction.txt", prediction, delimiter=" ", fmt='%1.3f')
+        #target = output[0]
+        #target=np.reshape(target,[target.shape[0], target.shape[1]])
+        #prediction=np.reshape(prediction, [prediction.shape[0], prediction.shape[1]])
+        #
+        #np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "target.txt", target, delimiter=" ", fmt='%1.3f')
+        #np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + "prediction.txt", prediction, delimiter=" ", fmt='%1.3f')
 
 
 
@@ -927,16 +927,13 @@ class app:
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        activity_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
-        filters = [64,64,128,256,512,1024]
         kernel_size=10
 
         #activation = ReLU()
-        #activation=None
-        batchNormalization=True
         activation='tanh'
         activation = ELU()
+        activation=None
 
         def conv(filters):
             return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
@@ -961,26 +958,34 @@ class app:
 
         x=input
 
-        conv1 = convi(10, (self.X[0]['shape'], 1))(x)
+        conv1 = convi(40, (self.X[0]['shape'], 1))(x)
+        conv1 = Dropout(self.settings['drop_rate'])(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
-        conv1 = conv(10)(pool)
+        conv1 = conv(20)(pool)
+        conv1 = Dropout(self.settings['drop_rate'])(conv1)
+        #conv1 = conv(25)(conv1)
+        #conv1 = conv(25)(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
         encoded=pool
 
 
         # Decoder
-        e_input = Input(shape=(25,10), name='e_input')
+        e_input = Input(shape=(25,20), name='e_input')
         x = e_input
 
-        conv1 = convi(10, [encoded.shape[1], encoded.shape[2]])(x)
+        conv1 = convi(20, [encoded.shape[1], encoded.shape[2]])(x)
+        conv1 = Dropout(self.settings['drop_rate'])(conv1)
+        #conv1 = conv(25)(conv1)
+        #conv1 = conv(25)(conv1)
         up = UpSampling1D(size=2)(conv1)
 
-        conv1 = conv(10)(up)
+        conv1 = conv(40)(up)
+        conv1 = Dropout(self.settings['drop_rate'])(conv1)
         up = UpSampling1D(size=2)(conv1)
 
-        decoded=conv(1)(up)
+        decoded=conv(3)(up)
 
 
 
@@ -1531,8 +1536,8 @@ class app:
         self.inputFiles = 1
         self.outputFiles = 1
 
-        self.inputShape=(100,1)
-        self.outputShape=(100,1)
+        self.inputShape=(100,3)
+        self.outputShape=(100,3)
 
     def setLogName(self, logName):
         self.sLogName = logName
