@@ -958,30 +958,26 @@ class app:
 
         x=input
 
-        conv1 = convi(100, (self.X[0]['shape'], 1))(x)
+        conv1 = convi(200, (self.X[0]['shape'], 1))(x)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
-        conv1 = conv(50)(pool)
+        conv1 = conv(3)(pool)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        #conv1 = conv(25)(conv1)
-        #conv1 = conv(25)(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
         encoded=pool
 
 
         # Decoder
-        e_input = Input(shape=(25,50), name='e_input')
+        e_input = Input(shape=(25,1), name='e_input')
         x = e_input
 
-        conv1 = convi(50, [encoded.shape[1], encoded.shape[2]])(x)
+        conv1 = convi(3, [encoded.shape[1], encoded.shape[2]])(x)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        #conv1 = conv(25)(conv1)
-        #conv1 = conv(25)(conv1)
         up = UpSampling1D(size=2)(conv1)
 
-        conv1 = conv(100)(up)
+        conv1 = conv(200)(up)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         up = UpSampling1D(size=2)(conv1)
 
