@@ -958,11 +958,11 @@ class app:
 
         x=input
 
-        conv1 = convi(40, (self.X[0]['shape'], 1))(x)
+        conv1 = convi(100, (self.X[0]['shape'], 1))(x)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
-        conv1 = conv(20)(pool)
+        conv1 = conv(50)(pool)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         #conv1 = conv(25)(conv1)
         #conv1 = conv(25)(conv1)
@@ -972,16 +972,16 @@ class app:
 
 
         # Decoder
-        e_input = Input(shape=(25,20), name='e_input')
+        e_input = Input(shape=(25,50), name='e_input')
         x = e_input
 
-        conv1 = convi(20, [encoded.shape[1], encoded.shape[2]])(x)
+        conv1 = convi(50, [encoded.shape[1], encoded.shape[2]])(x)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         #conv1 = conv(25)(conv1)
         #conv1 = conv(25)(conv1)
         up = UpSampling1D(size=2)(conv1)
 
-        conv1 = conv(40)(up)
+        conv1 = conv(100)(up)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         up = UpSampling1D(size=2)(conv1)
 
@@ -1854,4 +1854,22 @@ if __name__ == "__main__":
 #--ls=0.001
 #--l1=0.00
 #--l2=0.0001
+#--drop-rate=0.15
+
+
+
+
+#--job-dir=D:/data0306/
+#--mode=0
+#--ctr=0
+#--data-size=2500
+#--eval-size=0.2
+#--batch-size=0.01
+#--epochs=100000
+#--overfit-epochs=5000
+#--reduction-epochs=2000
+#--ls-reduction-koef=0.85
+#--ls=0.0001
+#--l1=0.001
+#--l2=0.0000
 #--drop-rate=0.15
