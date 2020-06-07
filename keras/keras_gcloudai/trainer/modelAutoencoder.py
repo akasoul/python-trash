@@ -962,7 +962,7 @@ class app:
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
-        conv1 = conv(3)(pool)
+        conv1 = conv(100)(pool)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         pool = MaxPool1D(pool_size=2, padding="same")(conv1)
 
@@ -973,7 +973,7 @@ class app:
         e_input = Input(shape=(25,1), name='e_input')
         x = e_input
 
-        conv1 = convi(3, [encoded.shape[1], encoded.shape[2]])(x)
+        conv1 = convi(100, [encoded.shape[1], encoded.shape[2]])(x)
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         up = UpSampling1D(size=2)(conv1)
 
@@ -981,7 +981,7 @@ class app:
         conv1 = Dropout(self.settings['drop_rate'])(conv1)
         up = UpSampling1D(size=2)(conv1)
 
-        decoded=conv(3)(up)
+        decoded=conv(1)(up)
 
 
 
@@ -1510,12 +1510,12 @@ class app:
 
 
 
-        self.sTrainDataInputPathM = "sinoffset_train{0}.txt"
-        self.sTestDataInputPathM  = "sinoffset_test{0}.txt"
+        self.sTrainDataInputPathM = "in_data_train{0}.txt"
+        self.sTestDataInputPathM  = "in_data_test{0}.txt"
 
 
-        self.sTrainDataOutputPathM = "sinoffset_train{0}.txt"
-        self.sTestDataOutputPathM  = "sinoffset_test{0}.txt"
+        self.sTrainDataOutputPathM = "in_data_train{0}.txt"
+        self.sTestDataOutputPathM  = "in_data_test{0}.txt"
 
 
         self.sLogName = None
@@ -1532,8 +1532,8 @@ class app:
         self.inputFiles = 1
         self.outputFiles = 1
 
-        self.inputShape=(100,3)
-        self.outputShape=(100,3)
+        self.inputShape=(100,1)
+        self.outputShape=(100,1)
 
     def setLogName(self, logName):
         self.sLogName = logName
