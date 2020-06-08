@@ -3,7 +3,7 @@ from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.utils import plot_model
 from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -953,35 +953,64 @@ class app:
                               kernel_regularizer=kernel_reg)
 
 
+        def dense(units):
+            return Dense(units=units, activation='elu',
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+
+        def densei(filters,inputShape):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              input_shape=inputShape,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+
         # Encoder
         input = Input(shape=self.inputShape, name='input')
 
-        x=input
+        x = input
 
-        conv1 = convi(200, (self.X[0]['shape'], 1))(x)
-        conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        pool = MaxPool1D(pool_size=2, padding="same")(conv1)
+        x = convi(400, (self.X[0]['shape'], 1))(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=2, padding="same")(x)
 
-        conv1 = conv(100)(pool)
-        conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        pool = MaxPool1D(pool_size=2, padding="same")(conv1)
+        x = conv(200)(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=2, padding="same")(x)
 
-        encoded=pool
+        x = conv(100)(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=5, padding="same")(x)
+
+
+
+        encoded=x
 
 
         # Decoder
-        e_input = Input(shape=(25,1), name='e_input')
-        x = e_input
+        e_input = Input(shape=(5,1), name='e_input')
+        y = e_input
 
-        conv1 = convi(100, [encoded.shape[1], encoded.shape[2]])(x)
-        conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        up = UpSampling1D(size=2)(conv1)
 
-        conv1 = conv(200)(up)
-        conv1 = Dropout(self.settings['drop_rate'])(conv1)
-        up = UpSampling1D(size=2)(conv1)
+        y = conv(100)(y)
+        y = Dropout(self.settings['drop_rate'])(y)
+        y = UpSampling1D(size=5)(y)
 
-        decoded=conv(1)(up)
+        y = conv(200)(y)
+        y = Dropout(self.settings['drop_rate'])(y)
+        y = UpSampling1D(size=2)(y)
+
+        y = conv(400)(y)
+        y = Dropout(self.settings['drop_rate'])(y)
+        y = UpSampling1D(size=2)(y)
+
+        decoded=conv(1)(y)
 
 
 
