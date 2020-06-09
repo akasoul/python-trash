@@ -1506,7 +1506,7 @@ class app:
             'ls_reduction_koef': 0.95,
             'metrics': 0,
             'batch_size': 0.1,
-            'saveWholeModel': False
+            'saveWholeModel': True
         }
 
         self.sDataInput1Path = "input.txt"
