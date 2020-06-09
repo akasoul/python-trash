@@ -1069,13 +1069,7 @@ class app:
 
 
 
-        model2=load_model(self.job_dir+"e644430b5aa8e9eeb1be5ecc75ee586c.h5")
-        #print(model2.summary())
-        tempw1=( model.layers[1].get_weights())
-        tempw2=( model2.layers[1].get_weights())
-        model.layers[1].set_weights(model2.layers[1].get_weights())
-        print(tempw1,tempw2)
-        model.layers[1].trainable=False
+
 
         model.compile(
             loss='mean_squared_error',
@@ -1088,7 +1082,13 @@ class app:
 
         self.setModelName(model)
 
-
+        model2=load_model(self.job_dir+"e644430b5aa8e9eeb1be5ecc75ee586c.h5")
+        #print(model2.summary())
+        tempw1=( model.layers[1].get_weights())
+        tempw2=( model2.layers[1].get_weights())
+        model.layers[1].set_weights(model2.layers[1].get_weights())
+        print(tempw1,tempw2)
+        model.layers[1].trainable=False
 
         return model
 
