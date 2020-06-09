@@ -972,8 +972,118 @@ class app:
         self.setModelName(model)
         return model
 
-
     def initModel(self):
+        e = elements(self.settings)
+        # model
+
+        kernel_init = 'he_normal'
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        kernel_size=10
+
+        activation='tanh'
+        activation = ELU()
+        activation=None
+
+        def conv(filters):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+        def convi(filters,inputShape):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              input_shape=inputShape,
+                              padding="same",
+                              kernel_initializer=kernel_init,
+                              bias_initializer=bias_init,
+                              bias_regularizer=bias_reg,
+                              kernel_regularizer=kernel_reg)
+
+        # Encoder
+        input = Input(shape=self.inputShape, name='input')
+
+        x = input
+
+        x = convi(400, (self.X[0]['shape'], 1))(x)
+        x = convi(400, (self.X[0]['shape'], 1))(x)
+        x = Dropout(self.settings['drop_rate'])(x)
+        x = MaxPool1D(pool_size=2, padding="same")(x)
+
+
+        x = conv(1)(x)
+
+
+        encoded=x
+
+
+
+
+        kernel_init = 'he_normal'
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+
+        filters = [64,64,128,256,512,1024]
+        kernel_size=3
+
+        activation = ReLU()
+        activation = ELU()
+        batchNormalization=True
+
+        depth1=5
+        depth2=2
+
+
+
+        x = e.convUnit3(encoded, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
+        for j in range(0,depth1):
+            if j!=0:
+                x = e.resUnit3(x, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
+            for i in range(0, depth2):
+                x = e.resUnit3(x, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
+
+
+
+
+
+
+        x = AveragePooling1D(pool_size=2)(x)
+        x = Flatten()(x)
+        output = e.denseUnit(x, 2, Activation(activation='softmax'), kernel_init, bias_init)
+
+
+        model = Model(
+            inputs=[input],
+            outputs=[output])
+        optimizer = None
+        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
+        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
+        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
+
+        model.compile(
+            loss='mean_squared_error',
+            #loss='categorical_crossentropy',
+            optimizer=optimizer,
+            # metrics=['accuracy','binary_accuracy'])
+            metrics=['accuracy'])
+
+        print(model.summary())
+
+        self.setModelName(model)
+
+        encoder=load_model(self.job_dir+"encoder.h5")
+
+        return model
+
+
+    def initModel2(self):
         e = elements(self.settings)
         # model
 

@@ -952,60 +952,44 @@ class app:
                               bias_regularizer=bias_reg,
                               kernel_regularizer=kernel_reg)
 
-
-        def dense(units):
-            return Dense(units=units, activation='elu',
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
-
-
-        def densei(filters,inputShape):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              input_shape=inputShape,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
-
-
         # Encoder
         input = Input(shape=self.inputShape, name='input')
 
         x = input
 
         x = convi(400, (self.X[0]['shape'], 1))(x)
+        x = convi(400, (self.X[0]['shape'], 1))(x)
         x = Dropout(self.settings['drop_rate'])(x)
         x = MaxPool1D(pool_size=2, padding="same")(x)
 
-        x = conv(200)(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=2, padding="same")(x)
+        #x = conv(200)(x)
+        #x = Dropout(self.settings['drop_rate'])(x)
+        #x = MaxPool1D(pool_size=2, padding="same")(x)
 
-        x = conv(100)(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=5, padding="same")(x)
+        #x = conv(100)(x)
+        #x = Dropout(self.settings['drop_rate'])(x)
+        #x = MaxPool1D(pool_size=5, padding="same")(x)
 
+        x = conv(1)(x)
 
 
         encoded=x
 
 
         # Decoder
-        e_input = Input(shape=(5,1), name='e_input')
+        e_input = Input(shape=(50,1), name='e_input')
         y = e_input
 
 
-        y = conv(100)(y)
-        y = Dropout(self.settings['drop_rate'])(y)
-        y = UpSampling1D(size=5)(y)
+        #y = conv(100)(y)
+        #y = Dropout(self.settings['drop_rate'])(y)
+        #y = UpSampling1D(size=5)(y)
 
-        y = conv(200)(y)
-        y = Dropout(self.settings['drop_rate'])(y)
-        y = UpSampling1D(size=2)(y)
+        #y = conv(200)(y)
+        #y = Dropout(self.settings['drop_rate'])(y)
+        #y = UpSampling1D(size=2)(y)
 
+        y = conv(400)(y)
         y = conv(400)(y)
         y = Dropout(self.settings['drop_rate'])(y)
         y = UpSampling1D(size=2)(y)
@@ -1186,7 +1170,7 @@ class app:
 
             else:
                 print('model loaded')
-
+        #model.save(self.job_dir+"autoencoder.h5")
         train_x = None
         train_y = None
         test_x = None
