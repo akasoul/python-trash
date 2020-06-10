@@ -3,7 +3,7 @@ from keras import Model, optimizers, regularizers, callbacks, models, backend
 from keras.utils import plot_model
 from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D
 from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 from tensorflow import io
@@ -981,6 +981,7 @@ class app:
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        act_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
 
         kernel_size=10
 
@@ -992,18 +993,21 @@ class app:
             return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                               padding="same",
                               kernel_initializer=kernel_init,
+                              bias_initializer=bias_init)
+
+        def conva(filters):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
+                              activity_regularizer=act_reg)
 
         def convi(filters,inputShape):
             return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                               input_shape=inputShape,
                               padding="same",
                               kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
+                              bias_initializer=bias_init)
 
         # Encoder
         input = Input(shape=self.inputShape, name='input')
@@ -1011,17 +1015,18 @@ class app:
         x = input
 
         x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=2, padding="same")(x)
-
-
-        x = conv(1)(x)
+        x = conv(400)(x)
+        #x = MaxPool1D(pool_size=2, padding="same")(x)
+        x = UpSampling1D(size=2)(x)
+        x = conva(1)(x)
 
 
         encoded=x
 
-
+        #x=Flatten()(encoded)
+        #x=e.denseUnit(x, 25, Activation(activation='tanh'), kernel_init, bias_init)
+        #x=e.denseUnit(x, 25, Activation(activation='tanh'), kernel_init, bias_init)
+        #x=e.denseUnit(x, 25, Activation(activation='tanh'), kernel_init, bias_init)
 
 
         kernel_init = 'he_normal'
@@ -1029,33 +1034,24 @@ class app:
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-
-        filters = [64,64,128,256,512,1024]
-        kernel_size=3
-
+        filters = [64,64,64,64,128,128]
+        kernel_size=10
         activation = ReLU()
         activation = ELU()
         batchNormalization=True
-
-        depth1=5
+        depth1=3
         depth2=2
 
-
-
-        x = e.convUnit3(encoded, filters[0], kernel_size, activation, kernel_init, bias_init, self.X[0]['shape'])
         for j in range(0,depth1):
             if j!=0:
-                x = e.resUnit3(x, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
+                x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
             for i in range(0, depth2):
-                x = e.resUnit3(x, filters[j+1], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-
-
-
-
-
-
-        x = AveragePooling1D(pool_size=2)(x)
+                x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
+        x = MaxPool1D(pool_size=2)(x)
         x = Flatten()(x)
+
+
+
         output = e.denseUnit(x, 2, Activation(activation='softmax'), kernel_init, bias_init)
 
 
@@ -1068,6 +1064,19 @@ class app:
         #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
 
 
+
+        model2=load_model(self.job_dir+"autoencoder.h5")
+        model.layers[0].set_weights(model2.layers[1].layers[0].get_weights())
+        model.layers[1].set_weights(model2.layers[1].layers[1].get_weights())
+        model.layers[2].set_weights(model2.layers[1].layers[2].get_weights())
+        model.layers[3].set_weights(model2.layers[1].layers[3].get_weights())
+        model.layers[4].set_weights(model2.layers[1].layers[4].get_weights())
+
+        model.layers[0].trainable=False
+        model.layers[1].trainable=False
+        model.layers[2].trainable=False
+        model.layers[3].trainable=False
+        model.layers[4].trainable=False
 
 
 
@@ -1082,13 +1091,8 @@ class app:
 
         self.setModelName(model)
 
-        model2=load_model(self.job_dir+"e644430b5aa8e9eeb1be5ecc75ee586c.h5")
-        #print(model2.summary())
-        tempw1=( model.layers[1].get_weights())
-        tempw2=( model2.layers[1].get_weights())
-        model.layers[1].set_weights(model2.layers[1].get_weights())
-        print(tempw1,tempw2)
-        model.layers[1].trainable=False
+
+
 
         return model
 

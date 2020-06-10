@@ -927,7 +927,7 @@ class app:
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-
+        act_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         kernel_size=10
 
         #activation = ReLU()
@@ -939,18 +939,21 @@ class app:
             return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                               padding="same",
                               kernel_initializer=kernel_init,
+                              bias_initializer=bias_init)
+
+        def conva(filters):
+            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
+                              padding="same",
+                              kernel_initializer=kernel_init,
                               bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
+                              activity_regularizer=act_reg)
 
         def convi(filters,inputShape):
             return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
                               input_shape=inputShape,
                               padding="same",
                               kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
+                              bias_initializer=bias_init)
 
         # Encoder
         input = Input(shape=self.inputShape, name='input')
@@ -958,48 +961,28 @@ class app:
         x = input
 
         x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = Dropout(self.settings['drop_rate'])(x)
-        x = MaxPool1D(pool_size=2, padding="same")(x)
-
-        #x = conv(200)(x)
-        #x = Dropout(self.settings['drop_rate'])(x)
+        x = conv(400)(x)
         #x = MaxPool1D(pool_size=2, padding="same")(x)
-
-        #x = conv(100)(x)
-        #x = Dropout(self.settings['drop_rate'])(x)
-        #x = MaxPool1D(pool_size=5, padding="same")(x)
-
-        x = conv(1)(x)
+        x = UpSampling1D(size=2)(x)
+        x = conva(1)(x)
 
 
         encoded=x
 
 
         # Decoder
-        e_input = Input(shape=(50,1), name='e_input')
+        e_input = Input(shape=(200,1), name='e_input')
         y = e_input
-
-
-        #y = conv(100)(y)
-        #y = Dropout(self.settings['drop_rate'])(y)
-        #y = UpSampling1D(size=5)(y)
-
-        #y = conv(200)(y)
-        #y = Dropout(self.settings['drop_rate'])(y)
+        y = MaxPool1D(pool_size=2, padding="same")(y)
         #y = UpSampling1D(size=2)(y)
-
         y = conv(400)(y)
         y = conv(400)(y)
-        y = Dropout(self.settings['drop_rate'])(y)
-        y = UpSampling1D(size=2)(y)
 
         decoded=conv(1)(y)
 
 
 
         encoder = Model(input, encoded, name="encoder")
-        pass
         decoder = Model(e_input, decoded, name="decoder")
         autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
 
@@ -1389,6 +1372,8 @@ class app:
                     file.close()
                     print(output)
 
+
+
     def threadTest(self, count):
 
         yMin = -1.3
@@ -1397,7 +1382,7 @@ class app:
         backend.reset_uids()
         backend.clear_session()
 
-        model = self.initModel()
+        model, encoder, decoder = self.initModel()
         try:
             if (self.settings['saveWholeModel'] == True):
                 model = load_model(self.job_dir + self.model_name)
@@ -1413,65 +1398,21 @@ class app:
             import matplotlib.pyplot as plt
         except:
             return
+        input = np.reshape(self.X[0]['data'][0], self.getList(1,self.inputShape))
+        encoded=encoder.predict(x=input)
 
-        testingfig = np.empty(dtype=plt.Figure, shape=count)
-        testingplot = np.empty(dtype=plt.Subplot, shape=count)
-        ctime = datetime.now().strftime("%Y%m%d-%H%M%S")
-        sample = random.sample(range(0, self.nDataSize), count)
-        figCounter = 0
-        if not os.path.isdir(self.job_dir + 'logs/test/' + ctime):
-            os.makedirs(self.job_dir + 'logs/test/' + ctime)
+        fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
+        #testingplot = fig.add_subplot(1, 1, 2)
+        plot1 = fig.add_subplot(221)
+        plot2 = fig.add_subplot(224)
+        #testingplot = fig.add_subplot(2, 1, 2)
+        #trainingplot = fig.add_subplot(2,1,2)
 
-        input = None
-        output = None
+        plot1.plot(input[0],         linewidth=0.5, color='b')
+        plot2.plot(encoded[0],          linewidth=0.5, color='r')
+        #
+        plt.show()
 
-        for i in range(0, self.inputFiles):
-            if i == 0:
-                input = list([self.X[i]['data']])
-            else:
-                input.append(self.X[i]['data'])
-
-        for i in range(0, self.outputFiles):
-            if i == 0:
-                output = list([self.Y[i]['data']])
-            else:
-                output.append(self.Y[i]['data'])
-
-        #output = self.Y[0]['data']
-
-        prediction = model.predict(x=input)
-
-        np.savetxt(self.job_dir + "prediction.txt", prediction, delimiter=" ")
-        np.savetxt(self.job_dir + "output.txt", output, delimiter=" ")
-
-        testingfig = plt.figure(num='Testing plot', figsize=(16, 9), dpi=100)
-        testingplot = testingfig.add_subplot(111)
-        if (yMin != 0 and yMax != 0):
-            plt.ylim(yMin, yMax)
-        testingplot.plot(output, linewidth=0.05, color='b')
-        testingplot.plot(prediction, linewidth=0.05, color='r')
-        testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/all')
-
-        for index in range(0, self.nDataSize):
-
-            _y = self.Y[0]['data'][index]
-            _p = prediction[index]
-            _p = np.reshape(_p, self.Y[0]['shape'])
-
-            testingfig = plt.figure(num='Testing plot ' + str(index), figsize=(10, 7), dpi=80)
-            testingplot = testingfig.add_subplot(111)
-            if (yMin != 0 and yMax != 0):
-                plt.ylim(yMin, yMax)
-            testingplot.plot(_y, linewidth=0.5, color='b')
-            testingplot.plot(_p, linewidth=0.5, color='r')
-            testingfig.savefig(fname=self.job_dir + 'logs/test/' + ctime + '/' + str(index))
-            plt.close(testingfig)
-
-        # while True:
-        #    pass
-        ##plt.ioff()
-        # backend.reset_uids()
-        # backend.clear_session()
 
     def setSettings(self, settingName, settingValue):
         for i in self.settings:

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 
-a = np.genfromtxt(r"D:\TrainingData\data0706\logs\fit\20200609-154216\tests\texts\32.txt")
+a = np.genfromtxt(r"D:\TrainingData\data0706\logs\fit\20200610-123535\tests\texts\1305.txt")
 
 
 fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
