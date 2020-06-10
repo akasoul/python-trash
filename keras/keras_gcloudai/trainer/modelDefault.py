@@ -1035,7 +1035,7 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         filters = [64,64,64,64,128,128]
-        kernel_size=10
+        kernel_size=5
         activation = ReLU()
         activation = ELU()
         batchNormalization=True
