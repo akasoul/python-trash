@@ -1403,8 +1403,8 @@ class app:
 
         fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
         #testingplot = fig.add_subplot(1, 1, 2)
-        plot1 = fig.add_subplot(221)
-        plot2 = fig.add_subplot(224)
+        plot1 = fig.add_subplot(211)
+        plot2 = fig.add_subplot(212)
         #testingplot = fig.add_subplot(2, 1, 2)
         #trainingplot = fig.add_subplot(2,1,2)
 
