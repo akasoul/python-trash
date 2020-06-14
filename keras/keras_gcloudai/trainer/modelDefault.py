@@ -315,13 +315,13 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
             #    self.model = load_model(self.modelName)
             #else:
             #    self.model.load_weights(self.modelName)
-            try:
-                self.model.set_weights(self.best_weights)
-            except:
-                pass
-            else:
-                print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
-            #print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
+            #try:
+            #    self.model.set_weights(self.best_weights)
+            #except:
+            #    pass
+            #else:
+                #print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
+            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
             self.reductionCounter = 0
 
         if (self.ovfCounter >= self.ovfEpochs):
@@ -1014,10 +1014,10 @@ class app:
 
         x = input
 
-        x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = conv(400)(x)
-        #x = MaxPool1D(pool_size=2, padding="same")(x)
-        x = UpSampling1D(size=2)(x)
+        x = convi(200, (self.X[0]['shape'], 1))(x)
+        x = conv(200)(x)
+        x = MaxPool1D(pool_size=2, padding="same")(x)
+        #x = UpSampling1D(size=2)(x)
         x = conva(1)(x)
 
 
@@ -1034,30 +1034,31 @@ class app:
         bias_init = 'zeros'
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        filters = [256,256,256,256,128,128]
-        kernel_size=5
+        filters = [64,128,256,64,64,64]
+        kernel_size=3
         activation = ReLU()
         activation = ELU()
         batchNormalization=True
         depth1=3
         depth2=5
 
-        #for j in range(0,depth1):
-        #    if j!=0:
-        #        x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
-        #    for i in range(0, depth2):
-        #        x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
-        #    x = MaxPool1D(pool_size=2)(x)
+        for j in range(0,depth1):
+            if j!=0:
+                x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0, True, batchNormalization)
+            for i in range(0, depth2):
+                x = e.resUnit3(x, filters[j], kernel_size, activation, kernel_init, bias_init, 0,False, batchNormalization)
+            x = MaxPool1D(pool_size=2)(x)
 
 
-        depth=4
-        for i in range(0,depth):
-            x=Conv1D(kernel_size=kernel_size, filters=filters[i], activation='elu',
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                            activity_regularizer=act_reg)(x)
-            #x = MaxPool1D(pool_size=2)(x)
+        #depth=10
+        #for i in range(0,depth):
+        #    #x=BatchNormalization()(x)
+        #    x=Conv1D(kernel_size=kernel_size, filters=128, activation='tanh',
+        #                      padding="same",
+        #                      kernel_initializer=kernel_init,
+        #                      bias_initializer=bias_init,
+        #                    activity_regularizer=act_reg)(x)
+        #    #x = MaxPool1D(pool_size=2)(x)
 
         x = Flatten()(x)
         output = e.denseUnit(x, 2, Activation(activation='softmax'), kernel_init, bias_init)
@@ -1401,7 +1402,7 @@ class app:
         # if (self.settings['metrics'] == 1):
         #    metr = 'full_loss'
 
-        metr = 'full_acc'
+        metr = 'full_loss'
         if (metr == 'train_acc' or metr == 'train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:

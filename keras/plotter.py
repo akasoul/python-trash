@@ -4,16 +4,30 @@ import matplotlib.pyplot as plt
 
 
 
-a = np.genfromtxt(r"D:\TrainingData\data0706\logs\fit\20200611-145458\tests\texts\41.txt")
+a = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\logs\fit\20200613-235140\tests\texts\177.txt")
+b = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\logs\fit\20200613-235140\tests\texts\289.txt")
 
 
 fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
-testingplot = fig.add_subplot(1,1,1)
+testingplot1 = fig.add_subplot(2,1,1)
+testingplot2 = fig.add_subplot(2,1,2)
 #trainingplot = fig.add_subplot(2,1,2)
 
 
 index=1
-testingplot.plot(a[index,0:99], linewidth=0.5, color='b')
-testingplot.plot(a[index,100:200], linewidth=0.5, color='r')
+
+testingplot1.plot(a[3300:3400,0], linewidth=0.5, color='b')
+testingplot1.plot(a[3300:3400,2], linewidth=0.5, color='r')
+
+testingplot2.plot(b[3300:3400,0], linewidth=0.5, color='b')
+testingplot2.plot(b[3300:3400,2], linewidth=0.5, color='r')
 
 plt.show()
+
+
+# index=1
+# testingplot.plot(a[index,0:99], linewidth=0.5, color='b')
+# testingplot.plot(a[index,2:200], linewidth=0.5, color='r')
+#
+#
+# plt.show()

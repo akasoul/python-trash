@@ -960,10 +960,10 @@ class app:
 
         x = input
 
-        x = convi(400, (self.X[0]['shape'], 1))(x)
-        x = conv(400)(x)
-        #x = MaxPool1D(pool_size=2, padding="same")(x)
-        x = UpSampling1D(size=2)(x)
+        x = convi(200, (self.X[0]['shape'], 1))(x)
+        x = conv(200)(x)
+        x = MaxPool1D(pool_size=2, padding="same")(x)
+        #x = UpSampling1D(size=2)(x)
         x = conva(1)(x)
 
 
@@ -973,10 +973,10 @@ class app:
         # Decoder
         e_input = Input(shape=(200,1), name='e_input')
         y = e_input
-        y = MaxPool1D(pool_size=2, padding="same")(y)
-        #y = UpSampling1D(size=2)(y)
-        y = conv(400)(y)
-        y = conv(400)(y)
+        #y = MaxPool1D(pool_size=2, padding="same")(y)
+        y = UpSampling1D(size=2)(y)
+        y = conv(200)(y)
+        y = conv(200)(y)
 
         decoded=conv(1)(y)
 
