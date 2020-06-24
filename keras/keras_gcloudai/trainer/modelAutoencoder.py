@@ -962,19 +962,19 @@ class app:
 
         x = convi(200, (self.X[0]['shape'], 1))(x)
         x = conv(200)(x)
-        x = MaxPool1D(pool_size=2, padding="same")(x)
+        #x = MaxPool1D(pool_size=2, padding="same")(x)
         #x = UpSampling1D(size=2)(x)
-        x = conva(1)(x)
+        #x = conva(1)(x)
 
 
         encoded=x
 
 
         # Decoder
-        e_input = Input(shape=(200,1), name='e_input')
+        e_input = Input(shape=(200,200), name='e_input')
         y = e_input
         #y = MaxPool1D(pool_size=2, padding="same")(y)
-        y = UpSampling1D(size=2)(y)
+        #y = UpSampling1D(size=2)(y)
         y = conv(200)(y)
         y = conv(200)(y)
 
@@ -1468,8 +1468,8 @@ class app:
         self.sTestDataInputPathM  = "in_data_test{0}.txt"
 
 
-        self.sTrainDataOutputPathM = "in_data_train{0}.txt"
-        self.sTestDataOutputPathM  = "in_data_test{0}.txt"
+        self.sTrainDataOutputPathM = "out_data_train{0}.txt"
+        self.sTestDataOutputPathM  = "out_data_test{0}.txt"
 
 
         self.sLogName = None
@@ -1486,7 +1486,7 @@ class app:
         self.inputFiles = 1
         self.outputFiles = 1
 
-        self.inputShape=(100,1)
+        self.inputShape=(100,3)
         self.outputShape=(100,1)
 
     def setLogName(self, logName):
