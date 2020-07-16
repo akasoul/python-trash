@@ -1035,7 +1035,7 @@ class app:
         input3 = Input(shape=self.inputShape[2], name='input3')
 
         filters = 10
-        depth = 4
+        depth = 3
         depth2 = 5
         dense_units=512
 
@@ -1044,11 +1044,11 @@ class app:
         kernel3=1
 
         conv1kernel=10
-        conv1filters=25
+        conv1filters=30
         conv1strides=2
-        filters1=20
-        filters2=20
-        filters3=25
+        filters1=25
+        filters2=25
+        filters3=30
 
         lstmUnits=256
 
@@ -1502,7 +1502,7 @@ class app:
             'reduction_epochs': 2500,
             'ls_reduction_koef': 0.95,
             'batch_size': 0.1,
-            'saveWholeModel': False
+            'saveWholeModel': True
         }
 
 
@@ -1578,7 +1578,7 @@ class app:
 
 
 
-    def prepareTrainData(self):
+    def getTrainData(self):
 
         self.X_train = list([self.loadData( self.job_dir + self.sTrainDataInputPathM.format(0),self.getList(self.trainSize, self.inputShape[0]) )])
         for i in range(1, self.inputFiles):
@@ -1591,7 +1591,7 @@ class app:
 
 
 
-    def prepareTestData(self):
+    def getTestData(self):
 
         self.X_test = list([self.loadData(self.job_dir + self.sTestDataInputPathM.format(0),  self.getList(self.testSize, self.inputShape[0]))])
         for i in range(1, self.inputFiles):
@@ -1604,7 +1604,7 @@ class app:
 
 
 
-    def prepareData(self):
+    def mergeData(self):
 
         self.X = np.empty(shape=self.inputFiles, dtype=dict)
         self.Y = np.empty(shape=self.outputFiles, dtype=dict)
@@ -1626,6 +1626,32 @@ class app:
         #self.X_train=self.scaler.transform(self.X_train)
         #self.X_test=self.scaler.transform(self.X_test)
 
+    def preprocessData(self):
+        self.inputMaxValue=0
+        self.inputMinValue=9999999999999999
+
+        self.processedMaxValue=1.0
+        self.processedMinValue=0.0
+        for i in range(0,self.inputFiles):
+            if(self.inputMinValue>self.X_train[i].min()):
+                self.inputMinValue = self.X_train[i].min()
+            if(self.inputMinValue>self.X_test[i].min()):
+                self.inputMinValue = self.X_test[i].min()
+
+            if(self.inputMaxValue<self.X_train[i].max()):
+                self.inputMaxValue = self.X_train[i].max()
+            if(self.inputMaxValue<self.X_test[i].max()):
+                self.inputMaxValue = self.X_test[i].max()
+
+        for i in range(0,self.inputFiles):
+            for j in np.nditer(self.X_train[i],op_flags=['readwrite']):
+                j[...]=(j-self.inputMinValue)*(self.processedMaxValue-self.processedMinValue)/(self.inputMaxValue-self.inputMinValue) - self.processedMinValue
+            for j in np.nditer(self.X_test[i],op_flags=['readwrite']):
+                j[...]=(j-self.inputMinValue)*(self.processedMaxValue-self.processedMinValue)/(self.inputMaxValue-self.inputMinValue) - self.processedMinValue
+
+
+
+
     def runTensorboard(self):
         ts = threading.Thread(target=self.threadTensorboard)
         ts.daemon = True
@@ -1646,9 +1672,10 @@ class app:
 
         # loadData
         # self.prepareData()
-        self.prepareTrainData()
-        self.prepareTestData()
-        self.prepareData()
+        self.getTrainData()
+        self.getTestData()
+        self.preprocessData()
+        self.mergeData()
 
     def getTuple(self,a,b):
         out=list(a)
