@@ -155,7 +155,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
     def on_epoch_end(self, epoch, logs=None):
 
         logs['lr'] = backend.get_value(self.model.optimizer.lr)
-        logs['gradient']=backend.get_value()
+        #logs['gradient']=backend.get_value(self.model.optimizer.get_gradients())
 
         try:
             self._loss = logs.get('loss')
@@ -188,7 +188,6 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
             except:
                 pass
 
-        epoch = epoch + 1
 
         # try:
         #     self.loss = np.append(self.loss, self._loss)
@@ -343,6 +342,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
         if (self.ovfCounter >= self.ovfEpochs):
             self.model_stop_training = True
+        epoch = epoch + 1
 
 
 class elements:
