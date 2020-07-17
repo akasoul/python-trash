@@ -4,8 +4,8 @@ from keras.utils import plot_model
 from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
     Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape, ThresholdedReLU, GlobalAveragePooling1D
-from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
+#from sklearn.model_selection import train_test_split
+#from sklearn import preprocessing
 from tensorflow import io
 import argparse
 import os
@@ -90,7 +90,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
 
 
-    def threadTest(self, epoch):
+    def threadTest(self, epoch,train_val=None,test_val=None):
         try:
             import matplotlib.pyplot as plt
         except:
@@ -139,7 +139,8 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
             arrayToFile.append(prediction[i][1])
             arrayToFile.append(output[0][i][1])
         arrayToFile = np.reshape(arrayToFile,[prediction.shape[0],prediction.shape[1]*output[0].shape[1]])
-        np.savetxt(self.logDir + '/tests/texts/' + str(epoch) + ".txt", arrayToFile, delimiter=" ", fmt='%1.3f')
+        filename=self.logDir + '/tests/texts/' + str(epoch) +"_"+str(train_val)+"_"+str(test_val) + ".txt"
+        np.savetxt(filename, arrayToFile, delimiter=" ", fmt='%1.3f')
 
         #target = output[0]
         #target=np.reshape(target,[target.shape[0], target.shape[1]])
@@ -154,6 +155,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
     def on_epoch_end(self, epoch, logs=None):
 
         logs['lr'] = backend.get_value(self.model.optimizer.lr)
+        logs['gradient']=backend.get_value()
 
         try:
             self._loss = logs.get('loss')
@@ -188,15 +190,15 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
         epoch = epoch + 1
 
-        try:
-            self.loss = np.append(self.loss, self._loss)
-        except:
-            self.loss = np.array([self._loss], dtype=float)
-
-        try:
-            self.acc = np.append(self.acc, self._acc)
-        except:
-            self.acc = np.array([self._acc], dtype=float)
+        # try:
+        #     self.loss = np.append(self.loss, self._loss)
+        # except:
+        #     self.loss = np.array([self._loss], dtype=float)
+        #
+        # try:
+        #     self.acc = np.append(self.acc, self._acc)
+        # except:
+        #     self.acc = np.array([self._acc], dtype=float)
 
         if (
                 self.metrics == 'val_acc' or self.metrics == 'val_loss' or self.metrics == 'full_acc' or self.metrics == 'full_loss'):
@@ -222,7 +224,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._acc,self._val_acc)
                 self.bestAcc = self._acc
             else:
                 self.ovfCounter += 1
@@ -240,7 +242,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._acc,self._val_acc)
                 self.bestValAcc = self._val_acc
             else:
                 self.ovfCounter += 1
@@ -259,7 +261,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._acc,self._val_acc)
                 self.bestAcc = self._acc
                 self.bestValAcc = self._val_acc
             else:
@@ -278,7 +280,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._loss,self._val_loss)
                 self.bestLoss = self._loss
             else:
                 self.ovfCounter += 1
@@ -296,7 +298,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._loss,self._val_loss)
                 self.bestValLoss = self._val_loss
             else:
                 self.ovfCounter += 1
@@ -315,7 +317,7 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
                     self.model.save_weights(self.modelName)
                 if (epoch - self.bestEpoch > self.minEpochsBetweenSavingModel):
                     self.bestEpoch = epoch
-                    self.threadTest(epoch)
+                    self.threadTest(epoch,self._loss,self._val_loss)
                 self.bestLoss = self._loss
                 self.bestValLoss = self._val_loss
             else:
@@ -1620,7 +1622,7 @@ class app:
             self.Y.append(np.append(self.Y_train[i], self.Y_test[i]))
             self.Y[i]=np.reshape(self.Y[i],self.getList(self.dataSize,self.outputShape[i]))
 
-        self.scaler=preprocessing.MinMaxScaler()
+        #self.scaler=preprocessing.MinMaxScaler()
 
         #self.X=self.scaler.fit_transform(self.X)
         #self.X_train=self.scaler.transform(self.X_train)
