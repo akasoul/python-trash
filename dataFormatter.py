@@ -6,9 +6,9 @@ inTest = r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9
 outTrain = r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\out_data_train{0}.txt"
 outTest = r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\out_data_test{0}.txt"
 
-inFilesCount=3
+inFilesCount=4
 outFilesCount=1
-split=500
+split=1000
 
 inFmt="%.5f"
 outFmt="%.1f"

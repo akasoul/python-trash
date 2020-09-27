@@ -138,8 +138,15 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
             arrayToFile.append(output[0][i][0])
             arrayToFile.append(prediction[i][1])
             arrayToFile.append(output[0][i][1])
-        arrayToFile = np.reshape(arrayToFile,[prediction.shape[0],prediction.shape[1]*output[0].shape[1]])
-        filename=self.logDir + '/tests/texts/' + str(epoch) +"_"+str(train_val)+"_"+str(test_val) + ".txt"
+            arrayToFile.append(prediction[i][2])
+            arrayToFile.append(output[0][i][2])
+        arrayToFile = np.reshape(arrayToFile,[prediction.shape[0],2*output[0].shape[1]])
+
+        if(train_val>0.0001 and test_val>0.0001):
+            filename=self.logDir + '/tests/texts/' + str(epoch) +"_"+"{:.4f}".format(train_val)+"_"+"{:.4f}".format(test_val) + ".txt"
+        else:
+            filename=self.logDir + '/tests/texts/' + str(epoch) +"_"+str(train_val)+"_"+str(test_val) + ".txt"
+
         np.savetxt(filename, arrayToFile, delimiter=" ", fmt='%1.3f')
 
         #target = output[0]
@@ -327,17 +334,14 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
             old_lr = backend.get_value(self.model.optimizer.lr)
             new_lr = old_lr * self.reductionKoef
             backend.set_value(self.model.optimizer.lr, new_lr)
-            #if (self.saveWholeModel == True):
-            #    self.model = load_model(self.modelName)
-            #else:
-            #    self.model.load_weights(self.modelName)
-            #try:
-            #    self.model.set_weights(self.best_weights)
-            #except:
-            #    pass
-            #else:
-                #print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
-            print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
+
+            try:
+                self.model.set_weights(self.best_weights)
+            except:
+                pass
+            else:
+                print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
+            #print("learning rate reduced {0:5f} -> {1:5f}".format(old_lr, new_lr))
             self.reductionCounter = 0
 
         if (self.ovfCounter >= self.ovfEpochs):
@@ -915,8 +919,8 @@ class elements:
         output = LSTM(units=units,
                        kernel_initializer=kernel_init,
                        bias_initializer=bias_init,
-                       bias_regularizer=bias_reg,
-                       kernel_regularizer=kernel_reg,
+                       #bias_regularizer=bias_reg,
+                       #kernel_regularizer=kernel_reg,
                        )(output)
         output = activation(output)
         output = Dropout(self.settings['drop_rate'])(output)
@@ -926,7 +930,7 @@ class elements:
 class app:
 
 
-    def initModel(self):
+    def initModel_old(self):
         e = elements(self.settings)
         # model
 
@@ -943,7 +947,7 @@ class app:
         def conv1d(input,kernel,filters,activation=None,strides=2):
             out=input
             out = Conv1D(kernel_size=kernel, filters=filters, activation=None,
-                          padding="same",
+                          #padding="same",
                           strides=strides,
                           kernel_initializer=kernel_init,
                           bias_initializer=bias_init,
@@ -1024,8 +1028,9 @@ class app:
                 return Dense(units,
                          kernel_initializer=kernel_init,
                          bias_initializer=bias_init,
-                         bias_regularizer=bias_reg,
-                         kernel_regularizer=kernel_reg)
+                         #bias_regularizer=bias_reg,
+                         #kernel_regularizer=kernel_reg
+                             )
             t=input
             t=dense_layer(units)(t)
             if(self.settings['drop_rate'] != 0):
@@ -1037,7 +1042,7 @@ class app:
         input3 = Input(shape=self.inputShape[2], name='input3')
 
         filters = 10
-        depth = 3
+        depth = 5
         depth2 = 5
         dense_units=512
 
@@ -1045,12 +1050,14 @@ class app:
         kernel2=3
         kernel3=1
 
+        filters1 = 128
+        filters2 = 128
+        filters3 = 256
+
         conv1kernel=10
-        conv1filters=30
+        conv1filters=filters3
         conv1strides=2
-        filters1=25
-        filters2=25
-        filters3=30
+
 
         lstmUnits=256
 
@@ -1115,6 +1122,155 @@ class app:
         return model
 
 
+    def initModel(self):
+        e = elements(self.settings)
+        # model
+
+        kernel_init = 'he_normal'
+        kernel_init = 'glorot_uniform'
+        bias_init = 'zeros'
+        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        act_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
+        kernel_size=10
+
+        useBatchNormalization=False
+
+
+        def lstm(units):
+            return  LSTM(units,
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg)
+
+        def dense(input,units,activation,firstLayer=False):
+            def dense_layer(units):
+                return Dense(units,
+                         kernel_initializer=kernel_init,
+                         bias_initializer=bias_init,
+                         bias_regularizer=bias_reg,
+                         kernel_regularizer=kernel_reg
+                             )
+            t=input
+            #if(useBatchNormalization):
+            #    t=BatchNormalization()(t)
+            t=dense_layer(units)(t)
+            if(activation!=None):
+                t=activation(t)
+            t=dense_layer(units)(t)
+            if(activation!=None):
+                t=activation(t)
+            if(firstLayer):
+                t0=dense_layer(units)(input)
+            else:
+                t0=input
+            t=add([t,t0])
+            if(self.settings['drop_rate'] != 0):
+
+                t=Dropout(self.settings['drop_rate'])(t)
+
+            return t
+
+        input1 = Input(shape=self.inputShape[0], name='input1')
+        input2 = Input(shape=self.inputShape[1], name='input2')
+        input3 = Input(shape=self.inputShape[2], name='input3')
+        input4 = Input(shape=self.inputShape[3], name='input4')
+
+        filters = 10
+        depth = 5
+        depth2 = 5
+        dense_units=128
+
+        kernel1=1
+        kernel2=3
+        kernel3=1
+
+        filters1 = 128
+        filters2 = 128
+        filters3 = 256
+
+        conv1kernel=10
+        conv1filters=filters3
+        conv1strides=2
+
+
+        lstmUnits=32
+
+        x1 = input1
+        if(useBatchNormalization):
+            x1=BatchNormalization()(x1)
+        for i in range(0, depth):
+            if(i==0):
+                x1 = dense(x1, dense_units, ReLU(), True)
+            else:
+                x1 = dense(x1, dense_units, ReLU())
+
+        x2 = input2
+        if(useBatchNormalization):
+            x2=BatchNormalization()(x2)
+        for i in range(0, depth):
+            if(i==0):
+                x2 = dense(x2, dense_units, ReLU(), True)
+            else:
+                x2 = dense(x2, dense_units, ReLU())
+
+        x3 = input3
+        if(useBatchNormalization):
+            x3=BatchNormalization()(x3)
+        for i in range(0, depth):
+            if(i==0):
+                x3 = dense(x3, dense_units, ReLU(),True)
+            else:
+                x3 = dense(x3, dense_units, ReLU())
+
+        x4 = input4
+        if(useBatchNormalization):
+            x4=BatchNormalization()(x4)
+        for i in range(0, depth):
+            if(i==0):
+                x4 = dense(x4, dense_units, ReLU(),True)
+            else:
+                x4 = dense(x4, dense_units, ReLU())
+
+        #x1=Flatten()(x1)
+        #x2=Flatten()(x2)
+        #x3=Flatten()(x3)
+
+        x=concatenate([x1,x2,x3,x4])
+
+        #x=MaxPool1D(pool_size=32)(x)
+
+        #x = AveragePooling1D(pool_size=2)(x)
+        #x=Flatten()(x)
+
+
+        x=dense(x,dense_units,ReLU(),True)
+        x=dense(x,dense_units,ReLU())
+        x=dense(x,dense_units,ReLU())
+
+        #x=lstm(lstmUnits)(x)
+
+        #x=GlobalAveragePooling1D()(x)
+
+        # x=dense(64)(x)
+        # x=Activation('elu')(x)
+        # x=dense(32)(x)
+        # x=Activation('elu')(x)
+        # x=dense(16)(x)
+        # x=Activation('elu')(x)
+
+
+        output=Dense(3,activation='softmax')(x)
+
+
+
+        model = Model([input1,input2,input3,input4], output)#, name="autoencoder")
+
+
+        self.setModelName(model)
+
+        return model
 
 
     def setModelName(self, model):
@@ -1138,6 +1294,7 @@ class app:
 
     def lrSchedule(self, epoch):
         lr = self.settings['ls']
+        lr = lr*0.1**float(int(epoch/200))
         return lr
         if epoch > 50:
             lr *= 0.1
@@ -1270,8 +1427,8 @@ class app:
 
         self.callbacks = [
             self.historyCallback,
-            self.tb_log
-
+            self.tb_log,
+            #lrScheduler
         ]
 
         # model.fit_generator()
@@ -1526,11 +1683,11 @@ class app:
         self.testing_model = False
         self.ctr = False
 
-        self.inputFiles = 3
+        self.inputFiles = 4
         self.outputFiles = 1
 
-        self.inputShape=[(100,1),(100,1),(100,1),(100,1),(2,)]
-        self.outputShape=[(2,),]
+        self.inputShape=[(10,),(10,),(10,),(10,),(3,)]
+        self.outputShape=[(3,),]
 
     def setLogName(self, logName):
         self.sLogName = logName
@@ -1631,25 +1788,32 @@ class app:
     def preprocessData(self):
         self.inputMaxValue=0
         self.inputMinValue=9999999999999999
+        self.inputMinMax=np.zeros((self.inputFiles,2))
+        inpMinMax={'min':99999999,
+                   'max':0}
+        self.inputMinMax=[inpMinMax]
+        for i in range(1,self.inputFiles):
+            self.inputMinMax.append(inpMinMax)
 
         self.processedMaxValue=1.0
         self.processedMinValue=0.0
-        for i in range(0,self.inputFiles):
-            if(self.inputMinValue>self.X_train[i].min()):
-                self.inputMinValue = self.X_train[i].min()
-            if(self.inputMinValue>self.X_test[i].min()):
-                self.inputMinValue = self.X_test[i].min()
 
-            if(self.inputMaxValue<self.X_train[i].max()):
-                self.inputMaxValue = self.X_train[i].max()
-            if(self.inputMaxValue<self.X_test[i].max()):
-                self.inputMaxValue = self.X_test[i].max()
+        for i in range(0,self.inputFiles):
+            if(self.inputMinMax[i]['min']>self.X_train[i].min()):
+                self.inputMinMax[i]['min'] = self.X_train[i].min()
+            if(self.inputMinMax[i]['min']>self.X_test[i].min()):
+                self.inputMinMax[i]['min'] = self.X_test[i].min()
+
+            if(self.inputMinMax[i]['max']<self.X_train[i].max()):
+                self.inputMinMax[i]['max'] = self.X_train[i].max()
+            if(self.inputMinMax[i]['max']<self.X_test[i].max()):
+                self.inputMinMax[i]['max'] = self.X_test[i].max()
 
         for i in range(0,self.inputFiles):
             for j in np.nditer(self.X_train[i],op_flags=['readwrite']):
-                j[...]=(j-self.inputMinValue)*(self.processedMaxValue-self.processedMinValue)/(self.inputMaxValue-self.inputMinValue) - self.processedMinValue
+                j[...]=(j-self.inputMinMax[i]['min'])*(self.processedMaxValue-self.processedMinValue)/(self.inputMinMax[i]['max']-self.inputMinMax[i]['min']) - self.processedMinValue
             for j in np.nditer(self.X_test[i],op_flags=['readwrite']):
-                j[...]=(j-self.inputMinValue)*(self.processedMaxValue-self.processedMinValue)/(self.inputMaxValue-self.inputMinValue) - self.processedMinValue
+                j[...]=(j-self.inputMinMax[i]['min'])*(self.processedMaxValue-self.processedMinValue)/(self.inputMinMax[i]['max']-self.inputMinMax[i]['min']) - self.processedMinValue
 
 
 
