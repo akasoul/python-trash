@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 
 
 
-a = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\alter\EURUSD\profitArray.txt")
-b = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\alter\EURUSD\profitMAArray.txt")
+a = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\logs\fit\20200704-101949\tests\texts\2504.txt")
+#b = np.genfromtxt(r"C:\Users\antonvoloshuk\AppData\Roaming\MetaQuotes\Terminal\287469DEA9630EA94D0715D755974F1B\tester\files\jobr\EURUSD\out_data_train0.txt")
 
 #a=np.reshape(a,[10000,200])
 fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
@@ -14,8 +14,10 @@ testingplot1 = fig.add_subplot(1,1,1)
 #trainingplot = fig.add_subplot(2,1,2)
 
 
-testingplot1.plot(a, linewidth=0.5, color='b')
-testingplot1.plot(b, linewidth=0.5, color='r')
+first=2500
+last=2600
+testingplot1.plot(a[first:last,0], linewidth=0.5, color='b')
+testingplot1.plot(a[first:last,1], linewidth=0.5, color='r')
 #testingplot1.plot(a[index][200:300], linewidth=0.5, color='g')
 #testingplot1.plot(b[index][0:100], linewidth=0.5, color='y')
 
