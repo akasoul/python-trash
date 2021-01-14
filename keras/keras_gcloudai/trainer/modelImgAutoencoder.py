@@ -1127,6 +1127,10 @@ class app:
         else:
             print("1 epoch = {0} batches ({1})".format(bcount,self.n_batches_train))
 
+        b=np.array(self.inputs[0])
+        b=np.expand_dims(b,axis=0)
+        a=model.predict(b)
+
         score_train = model.evaluate(self.inputsTrain,  self.outputsTrain, batch_size=self.n_batches_train)  # , batch_size=500)
         score_test = None
         if (self.eval_size > 0.0):
@@ -1384,14 +1388,16 @@ class app:
         path=self.job_dir+"/data/"
         fileList=os.listdir(path)
 
-        self.inputs=np.array([])
+        self.inputs=[]
+        #self.inputs=np.array([])
         for i in fileList:
             img=preprocessing.image.load_img(path+i)
             array=preprocessing.image.img_to_array(img)
             #array=np.expand_dims(array,axis=0)
-            self.inputs=np.append([self.inputs],[array])
+           # self.inputs=np.append([self.inputs],[array])
+            self.inputs.append(array)
 
-        self.inputs=np.reshape(self.inputs,newshape=[fileList.__len__(),self.inputsShape])
+        #self.inputs=np.reshape(self.inputs,newshape=[fileList.__len__(),self.inputsShape])
         self.outputs=self.inputs
 
         self.nDataSize = int(self.inputs.__len__())
