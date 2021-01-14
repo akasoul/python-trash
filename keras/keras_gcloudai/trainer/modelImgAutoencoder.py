@@ -1,11 +1,11 @@
 import numpy as np
 from keras import Model, optimizers, regularizers, callbacks, models, backend, preprocessing
+
 from keras.utils import plot_model
 from keras.models import Sequential,load_model
-from keras.layers import Input, Dense, Dropout, Conv1D, MaxPool1D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape
+from keras.layers import Input, Dense, Dropout, Conv1D, Conv2D, MaxPool1D, MaxPool2D, Flatten, LSTM, concatenate, BatchNormalization, \
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape, UpSampling2D
 from sklearn.model_selection import train_test_split
-from sklearn import preprocessing
 from tensorflow import io
 import argparse
 import os
@@ -931,54 +931,20 @@ class app:
         kernel_size=10
 
         #activation = ReLU()
-        activation='tanh'
-        activation = ELU()
-        activation=None
 
-        def conv(filters):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init)
-
-        def conva(filters):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              activity_regularizer=act_reg)
-
-        def convi(filters,inputShape):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              input_shape=inputShape,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init)
 
         # Encoder
-        input = Input(shape=self.inputShape, name='input')
-
+        input = Input(shape=self.inputsShape, name='input')
         x = input
-
-        x = convi(200, (self.X[0]['shape'], 1))(x)
-        x = conv(200)(x)
-        #x = MaxPool1D(pool_size=2, padding="same")(x)
-        #x = UpSampling1D(size=2)(x)
-        #x = conva(1)(x)
+        x = Conv2D(1, (2, 2), activation='relu', padding='same')(x)
+        encoded = MaxPool2D((2, 2), padding='same')(x)
 
 
-        encoded=x
+        e_input = Input(shape=(32, 32, 1), name='e_input')
+        x = UpSampling2D((2, 2))(e_input)
+        x = Conv2D(1, (2, 2), activation='relu', padding='same')(x)
+        decoded = Conv2D(3, (2, 2), activation='sigmoid', padding='same')(x)
 
-
-        # Decoder
-        e_input = Input(shape=(200,200), name='e_input')
-        y = e_input
-        #y = MaxPool1D(pool_size=2, padding="same")(y)
-        #y = UpSampling1D(size=2)(y)
-        y = conv(200)(y)
-        y = conv(200)(y)
-
-        decoded=conv(1)(y)
 
 
 
@@ -1100,16 +1066,12 @@ class app:
 
     def setModelName(self, model):
         sName = ""
-        for i in range(self.inputFiles):
-            sName += str(self.X[i]['shape'])
-            sName += '.'
+
         for i in model.layers:
             for j in range(0, layersNames.size):
                 sName += i.name
                 sName += "."
-        for i in range(self.outputFiles):
-            sName += str(self.Y[i]['shape'])
-            sName += '.'
+
         name = hashlib.md5()
         name.update(sName.encode())
 
@@ -1450,244 +1412,59 @@ class app:
             'saveWholeModel': True
         }
 
-        self.sDataInput1Path = "input.txt"
-        self.sDataInput1PathM = "input{0}.txt"
-        self.sDataInputPath = "in_data.txt"
-        self.sTrainDataInputPath = "in_data_train.txt"
-        self.sTestDataInputPath = "in_data_test.txt"
-        self.sDataInputPathM = "in_data{0}.txt"
-
-
-        self.sDataOutputPath = "out_data.txt"
-        self.sTrainDataOutputPath = "out_data_train.txt"
-        self.sTestDataOutputPath = "out_data_test.txt"
-
-
-
-        self.sTrainDataInputPathM = "in_data_train{0}.txt"
-        self.sTestDataInputPathM  = "in_data_test{0}.txt"
-
-
-        self.sTrainDataOutputPathM = "out_data_train{0}.txt"
-        self.sTestDataOutputPathM  = "out_data_test{0}.txt"
-
-
-        self.sLogName = None
-
-        self.training_is_launched = False
-        self.run_is_launched = False
-        self.saving_is_launched = False
-        self.savepng_is_launched = False
-        self.test_model = False
-        self.model_is_tested = True
-        self.testing_model = False
-        self.ctr = False
-
-        self.inputFiles = 1
-        self.outputFiles = 1
-
-        self.inputShape=(100,3)
-        self.outputShape=(100,1)
-
-    def setLogName(self, logName):
-        self.sLogName = logName
-
-    def log(self, str):
-        if DISABLE_LOG == True:
-            return
-        logfilename = self.job_dir + "log.txt"
-        time = datetime.strftime(datetime.now(), "%Y.%m.%d %H:%M:%S")
-        file = None
-        try:
-            file = open(logfilename, 'a')
-        except:
-            try:
-                file = io.gfile.GFile(logfilename, 'a')
-            except:
-                try:
-                    file = open(logfilename, 'w')
-                except:
-                    file = io.gfile.GFile(logfilename, 'w')
-
-        if (file != None):
-            file.write(time + ' ')
-            file.write(str + '\n')
-            file.close()
-
-    def loadFromFile(self, filename, oneFrame=False):
-        file = None
-        try:
-            file = open(filename, 'r')
-        except:
-            file = io.gfile.GFile(filename, 'r')
-
-        strData = file.read()
-        strData = strData.split()
-        doubleData = np.array(strData, dtype=np.float32)
-
-
-        return doubleData
-
-    def loadData(self, shape, path, oneFrame=False):
-        data = self.loadFromFile(path, oneFrame)
-        #inputs = data.shape[1]
-        out = {'data': data,
-               'shape': shape}
-        return out
-
-
-
-
-    def prepareTrainData(self):
-
-        self.nTrainSize = int(self.nDataSize)
-
-        self.X_train = np.array([self.loadData(self.getList(self.nTrainSize,self.inputShape), self.job_dir + self.sTrainDataInputPathM.format(0))])
-        for i in range(1, self.inputFiles):
-            self.X_train = np.append(self.X_train,
-                                     self.loadData(self.getList(self.nTrainSize,self.inputShape), self.job_dir + self.sTrainDataInputPathM.format(i)))
-
-        self.Y_train = np.array([self.loadData(self.getList(self.nTrainSize,self.outputShape), self.job_dir + self.sTrainDataOutputPathM.format(0))])
-        for i in range(1, self.outputFiles):
-            self.Y_train = np.append(self.Y_train,
-                                     self.loadData(self.getList(self.nTrainSize,self.outputShape), self.job_dir + self.sTrainDataOutputPathM.format(i)))
-
-
-
-
-        for i in range(0, self.inputFiles):
-            self.X_train[i]['data'] = np.reshape(self.X_train[i]['data'],self.getList(self.nTrainSize,self.inputShape))
-
-
-        for i in range(0, self.outputFiles):
-            self.Y_train[i]['data'] = np.reshape(self.Y_train[i]['data'], self.getList(self.nTrainSize,self.outputShape))
-
-
-        self.X = np.empty(shape=self.inputFiles, dtype=dict)
-        self.Y = np.empty(shape=self.outputFiles, dtype=dict)
-
-        for i in range(0, self.inputFiles):
-            self.X[i] = {'data': None,
-                         'shape': self.X_train[i]['shape']}
-        for i in range(0, self.outputFiles):
-            self.Y[i] = {'data': None,
-                         'shape': self.Y_train[i]['shape']}
-
-
-
-
-    def prepareTestData(self):
-
-        self.nTestSize = int(self.nDataSize)
-
-        self.X_test = np.array([self.loadData(self.getList(self.nTestSize,self.inputShape), self.job_dir + self.sTestDataInputPathM.format(0))])
-        for i in range(1, self.inputFiles):
-            self.X_test = np.append(self.X_test, self.loadData(self.getList(self.nTestSize,self.inputShape), self.job_dir + self.sTestDataInputPathM.format(i)))
-
-        self.Y_test = np.array([self.loadData(self.getList(self.nTestSize,self.outputShape), self.job_dir + self.sTestDataOutputPathM.format(0))])
-        for i in range(1, self.outputFiles):
-            self.Y_test = np.append(self.Y_test, self.loadData(self.getList(self.nTestSize,self.outputShape), self.job_dir + self.sTestDataOutputPathM.format(i)))
-
-
-
-        for i in range(0, self.inputFiles):
-            self.X_test[i]['data'] = np.reshape(self.X_test[i]['data'],self.getList(self.nTestSize,self.inputShape))
-
-
-        for i in range(0, self.outputFiles):
-            self.Y_test[i]['data'] = np.reshape(self.Y_test[i]['data'], self.getList(self.nTestSize,self.outputShape))
-
-
 
     def prepareData(self):
-        self.nDataSize = int(self.nTestSize + self.nTrainSize)
+        path=self.job_dir+"/data/"
+        fileList=os.listdir(path)
 
-        self.X = np.empty(shape=self.inputFiles, dtype=dict)
-        self.Y = np.empty(shape=self.outputFiles, dtype=dict)
-
-        for i in range(0, self.inputFiles):
-            self.X[i] = {'data': None,
-                         'shape': None}
-        for i in range(0, self.outputFiles):
-            self.Y[i] = {'data': None,
-                         'shape': None}
+        self.inputs=[]
+        for i in fileList:
+            img=preprocessing.image.load_img(path+i)
+            self.inputs.append(preprocessing.image.img_to_array(img))
 
 
-        for i in range(0, self.inputFiles):
-            self.X[i]['data'] = np.append(self.X_train[i]['data'], self.X_test[i]['data'])
-            self.X[i]['shape'] = self.X_train[i]['shape']
-            self.X[i]['data'] = np.reshape(self.X[i]['data'], self.getList(self.nDataSize,self.inputShape))
+        self.outputs=self.inputs
 
-        for i in range(0, self.outputFiles):
-            self.Y[i]['data'] = np.append(self.Y_train[i]['data'], self.Y_test[i]['data'])
-            self.Y[i]['shape'] = self.Y_train[i]['shape']
-            self.Y[i]['data'] = np.reshape(self.Y[i]['data'], self.getList(self.nDataSize,self.outputShape))
+        self.nDataSize = int(self.inputs.__len__())
 
-    def runTensorboard(self):
-        ts = threading.Thread(target=self.threadTensorboard)
-        ts.daemon = True
-        ts.start()
+        self.inputsShape=self.inputs[0].shape
+        self.outputsShape=self.inputsShape
 
-    def threadTensorboard(self):
-        cmd = "tensorboard --logdir {0}".format(self.logDir)
-        os.system(cmd)
+    def splitData(self):
+        self.inputsTrain=[]
+        self.inputsTest=[]
+        self.outputsTrain=[]
+        self.outputsTest=[]
 
-    def __init__(self, job_dir, data_size, eval_size):
+        for i in range(0,self.nDataSize):
+            if( i%2 == 0):
+                self.inputsTrain.append(self.inputs[i])
+                self.outputsTrain.append(self.outputs[i])
+            else:
+                self.inputsTest.append(self.inputs[i])
+                self.outputsTest.append(self.outputs[i])
+
+    def __init__(self, job_dir, ):
         self.historyCallback = historyCallback()
         self.job_dir = job_dir
-        self.eval_size = float(eval_size)
-        self.nDataSize = int(data_size)
+
         # self.initPlots()
         self.initSettings()
 
         # loadData
         # self.prepareData()
-        self.prepareTrainData()
-        self.prepareTestData()
         self.prepareData()
-        self.log('data loaded')
+        self.splitData()
 
-    def getTuple(self,a,b):
-        out=list(a)
-        for i in b:
-            out.append(i)
-        out=tuple(out)
-        return out
 
-    def getList(self,a,b):
-        out=list([a])
-        for i in b:
-            out.append(i)
 
-        return out
-
-def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_epochs, reduction_epochs,
-         ls_reduction_koef, ls, l1, l2, drop_rate):  # , **args):
-    z = app(job_dir, data_size, eval_size)
+def main(job_dir, mode, ctr):  # , **args):
+    z = app(job_dir)
     # print(mode)
     # if(mode.find('train')>0):
     mode = int(mode)
     ctr = int(ctr)
 
-    if (epochs != None):
-        z.setSettings('epochs', epochs)
-    if (overfit_epochs != None):
-        z.setSettings('overfit_epochs', overfit_epochs)
-    if (reduction_epochs != None):
-        z.setSettings('reduction_epochs', reduction_epochs)
-    if (ls_reduction_koef != None):
-        z.setSettings('ls_reduction_koef', ls_reduction_koef)
-    if (ls != None):
-        z.setSettings('ls', ls)
-    if (l1 != None):
-        z.setSettings('l1', l1)
-    if (l2 != None):
-        z.setSettings('l2', l2)
-    if (drop_rate != None):
-        z.setSettings('drop_rate', drop_rate)
-    if (batch_size != None):
-        z.setSettings('batch_size', batch_size)
-    print(z.settings)
     if (ctr == 1):
         z.ctr = True
 
@@ -1704,21 +1481,6 @@ def main(job_dir, mode, ctr, data_size, eval_size, batch_size, epochs, overfit_e
     if (mode == 2):
         z.threadPredict()
 
-    # if(mode.find('optimise')>0):
-    if (mode == 3):
-        z.ctr = False
-
-        ls_arr = np.array([0.000000001, 0.00000001, 0.0000001, 0.000001, 0.00001, 0.0001])
-        for i in ls_arr:
-                    # for l in l2_arr:
-                    name = "ls={0}".format(i)
-                    z.setLogName(name)
-                    z.setSettings('epochs', epochs)
-                    z.setSettings('overfit_epochs', overfit_epochs)
-                    z.setSettings('reduction_epochs', reduction_epochs)
-                    z.setSettings('ls_reduction_koef', ls_reduction_koef)
-                    z.setSettings('ls', i)
-                    z.threadTrain()
 
 
 if __name__ == "__main__":
@@ -1736,50 +1498,6 @@ if __name__ == "__main__":
     parser.add_argument(
         '--ctr',
         help='Load the model and continue training',
-        required=True)
-    parser.add_argument(
-        '--data-size',
-        help='Size of train+eval data',
-        required=True)
-    parser.add_argument(
-        '--eval-size',
-        help='Eval size = ____ data size',
-        required=True)
-    parser.add_argument(
-        '--batch-size',
-        help='Batch size',
-        required=True)
-    parser.add_argument(
-        '--epochs',
-        help='Epochs',
-        required=True)
-    parser.add_argument(
-        '--overfit-epochs',
-        help='Overfit epochs',
-        required=True)
-    parser.add_argument(
-        '--reduction-epochs',
-        help='Reduction epochs',
-        required=True)
-    parser.add_argument(
-        '--ls-reduction-koef',
-        help='Reduction factor',
-        required=True)
-    parser.add_argument(
-        '--ls',
-        help='Learning speed',
-        required=True)
-    parser.add_argument(
-        '--l1',
-        help='L1',
-        required=True)
-    parser.add_argument(
-        '--l2',
-        help='L2',
-        required=True)
-    parser.add_argument(
-        '--drop-rate',
-        help='Drop rate',
         required=True)
 
     args = parser.parse_args()
