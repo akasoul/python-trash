@@ -1115,41 +1115,8 @@ class app:
 
             else:
                 print('model loaded')
-        #model.save(self.job_dir+"autoencoder.h5")
-        train_x = None
-        train_y = None
-        test_x = None
-        test_y = None
-        all_x = None
-        all_y = None
-        for i in range(0, self.inputFiles):
-            if i == 0:
-                train_x = list([self.X_train[i]['data']])
-                all_x = list([self.X[i]['data']])
-                if (self.eval_size > 0.0):
-                    test_x = list([self.X_test[i]['data']])
-            else:
-                train_x.append(self.X_train[i]['data'])
-                all_x.append(self.X[i]['data'])
-                if (self.eval_size > 0.0):
-                    test_x.append(self.X_test[i]['data'])
 
-        for i in range(0, self.outputFiles):
-            if i == 0:
-                train_y = list([self.Y_train[i]['data']])
-                all_y = list([self.Y[i]['data']])
-                if (self.eval_size > 0.0):
-                    test_y = list([self.Y_test[i]['data']])
-            else:
-                train_y.append(self.Y_train[i]['data'])
-                all_y.append(self.Y[i]['data'])
-                if (self.eval_size > 0.0):
-                    test_y.append(self.Y_test[i]['data'])
 
-        #train_y = list([self.Y_train[0]['data']])
-        #all_y = list([self.Y[0]['data']])
-        #if (self.eval_size > 0.0):
-        #    test_y = list([self.Y_test[0]['data']])
 
         self.n_batches_train = int(self.nTrainSize * self.settings['batch_size'])
         bcount = None
@@ -1160,10 +1127,10 @@ class app:
         else:
             print("1 epoch = {0} batches ({1})".format(bcount,self.n_batches_train))
 
-        score_train = model.evaluate(test_x, test_y, batch_size=self.n_batches_train)  # , batch_size=500)
+        score_train = model.evaluate(self.inputsTrain,  self.outputsTrain, batch_size=self.n_batches_train)  # , batch_size=500)
         score_test = None
         if (self.eval_size > 0.0):
-            score_test = model.evaluate(train_x, train_y, batch_size=self.n_batches_train)  # , batch_size=500)
+            score_test = model.evaluate(self.inputsTest, self.outputsTest, batch_size=self.n_batches_train)  # , batch_size=500)
         print("loss {0} \nacc {1}".format(score_train[0], score_train[1]))
         if (self.eval_size > 0.0):
             print("val_loss {0} \nval_acc {1}".format(score_test[0], score_test[1]))
@@ -1183,7 +1150,7 @@ class app:
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initData(self.X, self.Y, self.nDataSize, self.inputFiles, self.outputFiles)
+        self.historyCallback.initData(self.inputs, self.outputs, self.nDataSize, self.inputFiles, self.outputFiles)
 
 
         if (self.sLogName == None):
@@ -1213,13 +1180,13 @@ class app:
         self.log('start training')
 
         if (self.eval_size > 0.0):
-            model.fit(x=train_x, y=train_y, epochs=self.settings['epochs'], verbose=1,
+            model.fit(x=self.inputsTrain, y=self.outputsTrain, epochs=self.settings['epochs'], verbose=1,
                       batch_size=self.n_batches_train,
                       # shuffle=True,
                       callbacks=self.callbacks,
-                      validation_data=(test_x, test_y))
+                      validation_data=(self.inputsTest, self.outputsTest))
         else:
-            model.fit(x=train_x, y=train_y, epochs=self.settings['epochs'], verbose=1,
+            model.fit(x=self.inputsTrain, y=self.outputsTrain, epochs=self.settings['epochs'], verbose=1,
                       batch_size=self.n_batches_train,
                       # shuffle=True,
                       callbacks=self.callbacks)
@@ -1417,12 +1384,14 @@ class app:
         path=self.job_dir+"/data/"
         fileList=os.listdir(path)
 
-        self.inputs=[]
+        self.inputs=np.array([])
         for i in fileList:
             img=preprocessing.image.load_img(path+i)
-            self.inputs.append(preprocessing.image.img_to_array(img))
+            array=preprocessing.image.img_to_array(img)
+            #array=np.expand_dims(array,axis=0)
+            self.inputs=np.append([self.inputs],[array])
 
-
+        self.inputs=np.reshape(self.inputs,newshape=[fileList.__len__(),self.inputsShape])
         self.outputs=self.inputs
 
         self.nDataSize = int(self.inputs.__len__())
@@ -1443,6 +1412,8 @@ class app:
             else:
                 self.inputsTest.append(self.inputs[i])
                 self.outputsTest.append(self.outputs[i])
+        self.nTrainSize=self.inputsTrain.__len__()
+        self.nTestSize=self.inputsTest.__len__()
 
     def __init__(self, job_dir, ):
         self.historyCallback = historyCallback()
@@ -1467,7 +1438,8 @@ def main(job_dir, mode, ctr):  # , **args):
 
     if (ctr == 1):
         z.ctr = True
-
+    else:
+        z.ctr = False
 
     if (mode == 0):
         z.threadTrain()
