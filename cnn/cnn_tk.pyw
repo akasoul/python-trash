@@ -413,7 +413,7 @@ class app:
 
     def onClickShowTestingPlot(self, event):
         self.threadTest()
-        #ts = threading.Thread(target=self.threadTest)
+        #ts = threading.Thread(target=self.taskTest)
         #ts.daemon = True
         #ts.start()
 

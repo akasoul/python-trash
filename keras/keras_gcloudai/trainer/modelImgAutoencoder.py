@@ -70,26 +70,14 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
 
         self.logDir = _logDir
 
-    def initData(self, xData, yData, nDataSize, nInputFiles, nOutputFiles):
-        self.X = None
-        self.Y = None
-        self.inputFiles = nInputFiles
-        self.outputFiles= nOutputFiles
-        for i in range(0, self.inputFiles):
-            if i == 0:
-                self.X = list([xData[i]['data']])
-            else:
-                self.X.append(xData[i]['data'])
-
-        for i in range(0, self.outputFiles):
-            if i == 0:
-                self.Y = list([yData[i]['data']])
-            else:
-                self.Y.append(yData[i]['data'])
-
+    def initData(self, xData, yData, nDataSize):
+        self.X = xData
+        self.Y = yData
+        self.nDataSize=nDataSize
 
 
     def threadTest(self, epoch):
+        return
         try:
             import matplotlib.pyplot as plt
         except:
@@ -928,22 +916,27 @@ class app:
         kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         act_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        kernel_size=10
-
+        kernel_size=(2,2)
+        pool_kernel_size=(16,16)
         #activation = ReLU()
 
 
         # Encoder
         input = Input(shape=self.inputsShape, name='input')
         x = input
-        x = Conv2D(1, (2, 2), activation='relu', padding='same')(x)
-        encoded = MaxPool2D((2, 2), padding='same')(x)
+        x = Conv2D(100, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(100, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(4, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        encoded = MaxPool2D(pool_kernel_size, padding='same')(x)
 
 
-        e_input = Input(shape=(32, 32, 1), name='e_input')
-        x = UpSampling2D((2, 2))(e_input)
-        x = Conv2D(1, (2, 2), activation='relu', padding='same')(x)
-        decoded = Conv2D(3, (2, 2), activation='sigmoid', padding='same')(x)
+        e_input = Input(shape=(4, 4, 4), name='e_input')
+        x = UpSampling2D(pool_kernel_size)(e_input)
+        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        decoded = Conv2D(3, kernel_size, activation='elu', padding='same')(x)
 
 
 
@@ -978,88 +971,7 @@ class app:
 
 
 
-    def initModel2(self):
 
-        kernel_init = 'he_normal'
-        kernel_init = 'glorot_uniform'
-        bias_init = 'zeros'
-        kernel_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-        bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
-
-        kernel_size=10
-
-        #activation = ReLU()
-        #activation=None
-        activation='tanh'
-        activation = ELU()
-
-        def conv(filters):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
-
-        def convi(filters,inputShape):
-            return Conv1D(kernel_size=kernel_size, filters=filters, activation=activation,
-                              input_shape=inputShape,
-                              padding="same",
-                              kernel_initializer=kernel_init,
-                              bias_initializer=bias_init,
-                              bias_regularizer=bias_reg,
-                              kernel_regularizer=kernel_reg)
-
-
-        input = Input(shape=self.inputShape, name='input')
-
-        x=convi(10,(self.X[0]['shape'],1))(input)
-        x=MaxPool1D(pool_size=2, padding="same")(x)
-        x=conv(10)(x)
-        x=MaxPool1D(pool_size=2, padding="same")(x)
-        encoded=x
-
-        e_input = Input(shape=(25,10), name='e_input')
-        x=convi(10,(encoded.shape[1],encoded.shape[2]) )(encoded)
-        x=UpSampling1D(size=2)(x)
-        x=conv(10)(x)
-        x=UpSampling1D(size=2)(x)
-
-        x=conv(1)(x)
-        decoded=x
-
-
-
-
-
-
-        encoder = Model(input, encoded, name="encoder")
-        pass
-        decoder = Model(e_input, decoded, name="decoder")
-        autoencoder = Model(input, decoder(encoder(input)), name="autoencoder")
-
-        #autoencoder=Model(input,decoded,name="autoencoder")
-
-        model=autoencoder
-
-        optimizer = None
-        optimizer = optimizers.Adam(lr=self.settings['ls'], beta_1=0.9, beta_2=0.999, decay=0.0, amsgrad=True)
-        #optimizer = optimizers.RMSprop(lr=self.settings['ls'], rho=0.9)
-        #optimizer=optimizers.SGD(learning_rate=self.settings['ls'])#,momentum=0.1)
-
-        autoencoder.compile(
-            loss='mean_squared_error',
-            #loss='categorical_crossentropy',
-            optimizer=optimizer,
-            # metrics=['accuracy','binary_accuracy'])
-            metrics=['accuracy'])
-
-        print(encoder.summary())
-        print(decoder.summary())
-
-        self.setModelName(autoencoder)
-        #plot_model(model,to_file=self.job_dir + self.model_name + ".png")
-        return autoencoder, encoder, decoder
 
 
 
@@ -1097,7 +1009,7 @@ class app:
             return lr
         return lr
 
-    def threadTrain(self):
+    def taskTrain(self):
         self.training_is_launched = True
 
         backend.reset_uids()
@@ -1127,16 +1039,16 @@ class app:
         else:
             print("1 epoch = {0} batches ({1})".format(bcount,self.n_batches_train))
 
-        b=np.array(self.inputs[0])
-        b=np.expand_dims(b,axis=0)
-        a=model.predict(b)
+        #b=np.array(self.inputs[0])
+        #b=np.expand_dims(b,axis=0)
+        #a=model.predict(b)
 
         score_train = model.evaluate(self.inputsTrain,  self.outputsTrain, batch_size=self.n_batches_train)  # , batch_size=500)
         score_test = None
-        if (self.eval_size > 0.0):
+        if (self.nTestSize > 0):
             score_test = model.evaluate(self.inputsTest, self.outputsTest, batch_size=self.n_batches_train)  # , batch_size=500)
         print("loss {0} \nacc {1}".format(score_train[0], score_train[1]))
-        if (self.eval_size > 0.0):
+        if (self.nTestSize > 0):
             print("val_loss {0} \nval_acc {1}".format(score_test[0], score_test[1]))
 
         # self.historyCallback.loss=np.array[score_train[0]]
@@ -1154,13 +1066,11 @@ class app:
         else:
             self.historyCallback.initArrays2(score_train[0], score_test[0], score_train[1], score_test[1])
 
-        self.historyCallback.initData(self.inputs, self.outputs, self.nDataSize, self.inputFiles, self.outputFiles)
+        self.historyCallback.initData(self.inputs, self.outputs, self.nDataSize)
 
+        self.logDir = self.job_dir + "logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+        #self.logDir = self.job_dir + "logs/fit/" + self.sLogName
 
-        if (self.sLogName == None):
-            self.logDir = self.job_dir + "logs/fit/" + datetime.now().strftime("%Y%m%d-%H%M%S")
-        else:
-            self.logDir = self.job_dir + "logs/fit/" + self.sLogName
 
         if not os.path.isdir(self.logDir):
             os.makedirs(self.logDir)
@@ -1181,9 +1091,8 @@ class app:
         ]
 
         # model.fit_generator()
-        self.log('start training')
 
-        if (self.eval_size > 0.0):
+        if (self.nTestSize > 0.0):
             model.fit(x=self.inputsTrain, y=self.outputsTrain, epochs=self.settings['epochs'], verbose=1,
                       batch_size=self.n_batches_train,
                       # shuffle=True,
@@ -1214,7 +1123,7 @@ class app:
 
         self.training_is_launched = False
 
-    def threadPredict(self):
+    def taskPredict(self):
         backend.reset_uids()
         backend.clear_session()
 
@@ -1307,7 +1216,7 @@ class app:
 
 
 
-    def threadTest(self, count):
+    def taskTest(self):
 
         yMin = -1.3
         yMax = 1.3
@@ -1331,20 +1240,29 @@ class app:
             import matplotlib.pyplot as plt
         except:
             return
-        input = np.reshape(self.X[0]['data'][0], self.getList(1,self.inputShape))
-        encoded=encoder.predict(x=input)
 
-        fig = plt.figure(num='fig', figsize=(16, 9), dpi=100)
-        #testingplot = fig.add_subplot(1, 1, 2)
-        plot1 = fig.add_subplot(211)
-        plot2 = fig.add_subplot(212)
-        #testingplot = fig.add_subplot(2, 1, 2)
-        #trainingplot = fig.add_subplot(2,1,2)
 
-        plot1.plot(input[0],         linewidth=0.5, color='b')
-        plot2.plot(encoded[0],          linewidth=0.5, color='r')
-        #
-        plt.show()
+        encoder=model.layers[1]
+        decoder=model.layers[2]
+
+        for i in range(0,50):
+            input = self.inputs[i]
+            inputImage=preprocessing.image.array_to_img(input)
+            input=np.expand_dims(input,axis=0)
+
+            model_out=model.predict(input)
+            moImage=preprocessing.image.array_to_img(model_out[0])
+
+            enc_out=encoder.predict(input)
+            dec_out=decoder.predict(enc_out)
+            doImage=preprocessing.image.array_to_img(dec_out[0])
+
+            if not os.path.isdir(self.job_dir + '/test'):
+                os.makedirs(self.job_dir + '/test')
+
+            inputImage.save(self.job_dir+"test/"+str(i)+"inputImage.png")
+            moImage.save(self.job_dir+"test/"+str(i)+"outputImage.png")
+            #doImage.save(self.job_dir+"test/"+str(i)+"doImage.png")
 
 
     def setSettings(self, settingName, settingValue):
@@ -1372,14 +1290,14 @@ class app:
             'epochs': 50000,
             'stop_error': 0.0000000001,
             'ls': 0.001,
-            'l1': 0.00,
-            'l2': 0.00,
+            'l1': 0.000,
+            'l2': 0.000,
             'drop_rate': 0.00,
             'overfit_epochs': 5000,
             'reduction_epochs': 2500,
             'ls_reduction_koef': 0.95,
             'metrics': 0,
-            'batch_size': 0.1,
+            'batch_size': 0.01,
             'saveWholeModel': True
         }
 
@@ -1395,14 +1313,18 @@ class app:
             array=preprocessing.image.img_to_array(img)
             #array=np.expand_dims(array,axis=0)
            # self.inputs=np.append([self.inputs],[array])
-            self.inputs.append(array)
+            if(array.shape==(64,64,3)):
+                self.inputs.append(array)
 
+        for i in self.inputs:
+            print(i.shape)
+        self.inputs=np.array(self.inputs)
         #self.inputs=np.reshape(self.inputs,newshape=[fileList.__len__(),self.inputsShape])
         self.outputs=self.inputs
 
         self.nDataSize = int(self.inputs.__len__())
 
-        self.inputsShape=self.inputs[0].shape
+        self.inputsShape=[64,64,3]
         self.outputsShape=self.inputsShape
 
     def splitData(self):
@@ -1418,6 +1340,12 @@ class app:
             else:
                 self.inputsTest.append(self.inputs[i])
                 self.outputsTest.append(self.outputs[i])
+
+        self.inputsTrain=np.array(self.inputsTrain)
+        self.outputsTrain=np.array(self.outputsTrain)
+        self.inputsTest=np.array(self.inputsTest)
+        self.outputsTest=np.array(self.outputsTest)
+
         self.nTrainSize=self.inputsTrain.__len__()
         self.nTestSize=self.inputsTest.__len__()
 
@@ -1448,16 +1376,16 @@ def main(job_dir, mode, ctr):  # , **args):
         z.ctr = False
 
     if (mode == 0):
-        z.threadTrain()
+        z.taskTrain()
 
     # if(mode.find('test')>0):
     if (mode == 1):
         # r=np.random()
-        z.threadTest(z.nDataSize)
+        z.taskTest()
 
     # if(mode.find('predict')>0):
     if (mode == 2):
-        z.threadPredict()
+        z.taskPredict()
 
 
 
