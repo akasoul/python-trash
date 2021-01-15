@@ -917,25 +917,27 @@ class app:
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         act_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         kernel_size=(2,2)
-        pool_kernel_size=(16,16)
+        pool_kernel_size=(8,8)
         #activation = ReLU()
 
 
         # Encoder
         input = Input(shape=self.inputsShape, name='input')
         x = input
+        x = Conv2D(200, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
         x = Conv2D(100, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(4, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(50, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(25, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(3, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
         encoded = MaxPool2D(pool_kernel_size, padding='same')(x)
 
 
-        e_input = Input(shape=(4, 4, 4), name='e_input')
+        e_input = Input(shape=(8, 8, 3), name='e_input')
         x = UpSampling2D(pool_kernel_size)(e_input)
+        x = Conv2D(25, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(50, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
         x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
+        x = Conv2D(200, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
         decoded = Conv2D(3, kernel_size, activation='elu', padding='same')(x)
 
 
@@ -1245,6 +1247,10 @@ class app:
         encoder=model.layers[1]
         decoder=model.layers[2]
 
+        dir = self.job_dir + 'logs/test/' + str(datetime.now().strftime("%Y%m%d-%H%M%S"))
+        if not os.path.isdir(dir):
+            os.makedirs(dir)
+
         for i in range(0,50):
             input = self.inputs[i]
             inputImage=preprocessing.image.array_to_img(input)
@@ -1257,11 +1263,10 @@ class app:
             dec_out=decoder.predict(enc_out)
             doImage=preprocessing.image.array_to_img(dec_out[0])
 
-            if not os.path.isdir(self.job_dir + '/test'):
-                os.makedirs(self.job_dir + '/test')
 
-            inputImage.save(self.job_dir+"test/"+str(i)+"inputImage.png")
-            moImage.save(self.job_dir+"test/"+str(i)+"outputImage.png")
+
+            inputImage.save(dir+"/"+str(i)+"inputImage.png")
+            moImage.save(dir+"/"+str(i)+"outputImage.png")
             #doImage.save(self.job_dir+"test/"+str(i)+"doImage.png")
 
 
@@ -1289,7 +1294,7 @@ class app:
         self.settings = {
             'epochs': 50000,
             'stop_error': 0.0000000001,
-            'ls': 0.001,
+            'ls': 0.0001,
             'l1': 0.000,
             'l2': 0.000,
             'drop_rate': 0.00,
