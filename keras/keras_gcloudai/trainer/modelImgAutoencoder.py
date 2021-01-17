@@ -1,10 +1,11 @@
 import numpy as np
+import coremltools
 from keras import Model, optimizers, regularizers, callbacks, models, backend, preprocessing
 
 from keras.utils import plot_model
 from keras.models import Sequential,load_model
 from keras.layers import Input, Dense, Dropout, Conv1D, Conv2D, MaxPool1D, MaxPool2D, Flatten, LSTM, concatenate, BatchNormalization, \
-    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape, UpSampling2D
+    Activation, add, AveragePooling1D, multiply, LeakyReLU, ReLU, ELU, UpSampling1D, Reshape, UpSampling2D, Multiply
 from sklearn.model_selection import train_test_split
 from tensorflow import io
 import argparse
@@ -64,9 +65,10 @@ class historyCallback(callbacks.Callback):#,callbacks.EarlyStopping):
         self.bestEpoch = -minEpochsBetweenSavingModel
         #self.best_weights=self.model.get_weights()
         self.bestLoss = self.loss[0]
-        self.bestValLoss = self.val_loss[0]
         self.bestAcc = self.acc[0]
-        self.bestValAcc = self.val_acc[0]
+        if(self.metrics != 'train_loss' and self.metrics != 'train_acc'):
+            self.bestValLoss = self.val_loss[0]
+            self.bestValAcc = self.val_acc[0]
 
         self.logDir = _logDir
 
@@ -917,28 +919,27 @@ class app:
         bias_reg = regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         act_reg=regularizers.l1_l2(l1=self.settings['l1'], l2=self.settings['l2'])
         kernel_size=(2,2)
-        pool_kernel_size=(8,8)
+        pool_kernel_size=(2,2)
         #activation = ReLU()
 
 
         # Encoder
         input = Input(shape=self.inputsShape, name='input')
         x = input
-        x = Conv2D(200, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(50, kernel_size, activation='elu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(25, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(3, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        encoded = MaxPool2D(pool_kernel_size, padding='same')(x)
+        x = Conv2D(36, kernel_size, activation='relu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        x = Conv2D(18, kernel_size, activation='relu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        x = Conv2D(9, kernel_size, activation='relu',padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        x  = Flatten()(x)
+        encoded=Dense(10,activation='relu',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
 
-
-        e_input = Input(shape=(8, 8, 3), name='e_input')
-        x = UpSampling2D(pool_kernel_size)(e_input)
-        x = Conv2D(25, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(50, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(100, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        x = Conv2D(200, kernel_size, activation='elu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init)(x)
-        decoded = Conv2D(3, kernel_size, activation='elu', padding='same')(x)
+        e_input = Input(shape=(10,), name='e_input')
+        x = Dense(388800,activation='relu',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(e_input)
+        x = Reshape([360,360,3])(x)
+        #x = UpSampling2D((2,2))(x)
+        x = Conv2D(36, kernel_size, activation='relu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        x = Conv2D(18, kernel_size, activation='relu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        x = Conv2D(9, kernel_size, activation='relu', padding='same',kernel_initializer=kernel_init,bias_initializer=bias_init,kernel_regularizer=kernel_reg,bias_regularizer=bias_reg)(x)
+        decoded = Conv2D(3, kernel_size, activation='relu', padding='same')(x)
 
 
 
@@ -1011,6 +1012,31 @@ class app:
             return lr
         return lr
 
+    def taskConvert(self):
+        backend.reset_uids()
+        backend.clear_session()
+
+        model, encoder, decoder = self.initModel()
+        try:
+            if (self.settings['saveWholeModel'] == True):
+                model = load_model(self.job_dir + self.model_name)
+            else:
+                model.load_weights(self.job_dir + self.model_name)
+        except:
+            print('no model')
+            return
+        else:
+            print('model loaded')
+
+
+        encoder = model.layers[1]
+        decoder = model.layers[2]
+
+        decoder.save(self.job_dir+"/decoder.h5")
+
+        decoderml = coremltools.converters.keras.convert(decoder)
+        decoderml.save(self.job_dir+"/decoder.mlmodel")
+
     def taskTrain(self):
         self.training_is_launched = True
 
@@ -1032,23 +1058,25 @@ class app:
 
 
 
-        self.n_batches_train = int(self.nTrainSize * self.settings['batch_size'])
+        self.nBatchesTrain = int(self.nTrainSize * self.settings['batch_size'])
+        if(self.nBatchesTrain<1):
+            self.nBatchesTrain=1
         bcount = None
         try:
             bcount = 1 / self.settings['batch_size']
         except:
             pass
         else:
-            print("1 epoch = {0} batches ({1})".format(bcount,self.n_batches_train))
+            print("1 epoch = {0} batches ({1})".format(bcount, self.nBatchesTrain))
 
         #b=np.array(self.inputs[0])
         #b=np.expand_dims(b,axis=0)
         #a=model.predict(b)
 
-        score_train = model.evaluate(self.inputsTrain,  self.outputsTrain, batch_size=self.n_batches_train)  # , batch_size=500)
+        score_train = model.evaluate(self.inputsTrain, self.outputsTrain, batch_size=self.nBatchesTrain)  # , batch_size=500)
         score_test = None
         if (self.nTestSize > 0):
-            score_test = model.evaluate(self.inputsTest, self.outputsTest, batch_size=self.n_batches_train)  # , batch_size=500)
+            score_test = model.evaluate(self.inputsTest, self.outputsTest, batch_size=self.nBatchesTrain)  # , batch_size=500)
         print("loss {0} \nacc {1}".format(score_train[0], score_train[1]))
         if (self.nTestSize > 0):
             print("val_loss {0} \nval_acc {1}".format(score_test[0], score_test[1]))
@@ -1062,7 +1090,7 @@ class app:
         # if (self.settings['metrics'] == 1):
         #    metr = 'full_loss'
 
-        metr = 'full_loss'
+        metr = 'train_loss'
         if (metr == 'train_acc' or metr == 'train_loss'):
             self.historyCallback.initArrays(score_train[0], score_train[1])
         else:
@@ -1096,13 +1124,13 @@ class app:
 
         if (self.nTestSize > 0.0):
             model.fit(x=self.inputsTrain, y=self.outputsTrain, epochs=self.settings['epochs'], verbose=1,
-                      batch_size=self.n_batches_train,
+                      batch_size=self.nBatchesTrain,
                       # shuffle=True,
                       callbacks=self.callbacks,
                       validation_data=(self.inputsTest, self.outputsTest))
         else:
             model.fit(x=self.inputsTrain, y=self.outputsTrain, epochs=self.settings['epochs'], verbose=1,
-                      batch_size=self.n_batches_train,
+                      batch_size=self.nBatchesTrain,
                       # shuffle=True,
                       callbacks=self.callbacks)
 
@@ -1251,6 +1279,7 @@ class app:
         if not os.path.isdir(dir):
             os.makedirs(dir)
 
+
         for i in range(0,50):
             input = self.inputs[i]
             inputImage=preprocessing.image.array_to_img(input)
@@ -1268,6 +1297,24 @@ class app:
             inputImage.save(dir+"/"+str(i)+"inputImage.png")
             moImage.save(dir+"/"+str(i)+"outputImage.png")
             #doImage.save(self.job_dir+"test/"+str(i)+"doImage.png")
+
+        #for i in range(0,50):
+        #    input = self.inputs[i]
+        #    inputImage=preprocessing.image.array_to_img(input)
+        #    input=np.expand_dims(input,axis=0)
+        #
+        #    model_out=model.predict(input)
+        #    moImage=preprocessing.image.array_to_img(model_out[0])
+        #
+        #    enc_out=encoder.predict(input)
+        #    dec_out=decoder.predict(enc_out)
+        #    doImage=preprocessing.image.array_to_img(dec_out[0])
+        #
+        #
+        #
+        #    inputImage.save(dir+"/"+str(i)+"inputImage.png")
+        #    moImage.save(dir+"/"+str(i)+"outputImage.png")
+        #    #doImage.save(self.job_dir+"test/"+str(i)+"doImage.png")
 
 
     def setSettings(self, settingName, settingValue):
@@ -1295,14 +1342,14 @@ class app:
             'epochs': 50000,
             'stop_error': 0.0000000001,
             'ls': 0.0001,
-            'l1': 0.000,
-            'l2': 0.000,
-            'drop_rate': 0.00,
+            'l1': 0.0001,
+            'l2': 0.0001,
+            'drop_rate': 0.0,
             'overfit_epochs': 5000,
             'reduction_epochs': 2500,
             'ls_reduction_koef': 0.95,
             'metrics': 0,
-            'batch_size': 0.01,
+            'batch_size': 0.03,
             'saveWholeModel': True
         }
 
@@ -1318,18 +1365,17 @@ class app:
             array=preprocessing.image.img_to_array(img)
             #array=np.expand_dims(array,axis=0)
            # self.inputs=np.append([self.inputs],[array])
-            if(array.shape==(64,64,3)):
+            if(array.shape==(360,360,3)):
                 self.inputs.append(array)
 
-        for i in self.inputs:
-            print(i.shape)
+
         self.inputs=np.array(self.inputs)
         #self.inputs=np.reshape(self.inputs,newshape=[fileList.__len__(),self.inputsShape])
         self.outputs=self.inputs
 
         self.nDataSize = int(self.inputs.__len__())
 
-        self.inputsShape=[64,64,3]
+        self.inputsShape=[360,360,3]
         self.outputsShape=self.inputsShape
 
     def splitData(self):
@@ -1338,13 +1384,16 @@ class app:
         self.outputsTrain=[]
         self.outputsTest=[]
 
-        for i in range(0,self.nDataSize):
-            if( i%2 == 0):
-                self.inputsTrain.append(self.inputs[i])
-                self.outputsTrain.append(self.outputs[i])
-            else:
-                self.inputsTest.append(self.inputs[i])
-                self.outputsTest.append(self.outputs[i])
+        # for i in range(0,self.nDataSize):
+        #     if( i%2 == 0):
+        #         self.inputsTrain.append(self.inputs[i])
+        #         self.outputsTrain.append(self.outputs[i])
+        #     else:
+        #         self.inputsTest.append(self.inputs[i])
+        #         self.outputsTest.append(self.outputs[i])
+
+        self.inputsTrain=self.inputs
+        self.outputsTrain=self.outputs
 
         self.inputsTrain=np.array(self.inputsTrain)
         self.outputsTrain=np.array(self.outputsTrain)
@@ -1383,10 +1432,11 @@ def main(job_dir, mode, ctr):  # , **args):
     if (mode == 0):
         z.taskTrain()
 
-    # if(mode.find('test')>0):
     if (mode == 1):
-        # r=np.random()
         z.taskTest()
+
+    if (mode == 2):
+        z.taskConvert()
 
     # if(mode.find('predict')>0):
     if (mode == 2):
